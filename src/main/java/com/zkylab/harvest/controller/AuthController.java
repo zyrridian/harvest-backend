@@ -1,9 +1,8 @@
 package com.zkylab.harvest.controller;
 
-import com.zkylab.harvest.dto.RegisterRequest;
-import com.zkylab.harvest.dto.RegisterResponse;
-import com.zkylab.harvest.dto.ErrorResponse;
+import com.zkylab.harvest.dto.*;
 import com.zkylab.harvest.service.RegistrationService;
+import com.zkylab.harvest.service.OtpService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -24,9 +23,11 @@ import jakarta.validation.Valid;
 public class AuthController {
 
     private final RegistrationService registrationService;
+    private final OtpService otpService;
 
-    public AuthController(RegistrationService registrationService) {
+    public AuthController(RegistrationService registrationService, OtpService otpService) {
         this.registrationService = registrationService;
+        this.otpService = otpService;
     }
 
     @PostMapping("/register")
@@ -187,6 +188,235 @@ public class AuthController {
             } else if ("DUPLICATE_USER".equals(err.getError_code())) {
                 return ResponseEntity.status(HttpStatus.CONFLICT).body(err);
             } else if ("RATE_LIMIT_EXCEEDED".equals(err.getError_code())) {
+                return ResponseEntity.status(429).body(err);
+            }
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(err);
+        }
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Unknown error");
+    }
+
+    @PostMapping("/verify-otp")
+    @Operation(
+        summary = "Verify OTP code",
+        description = "Verify the OTP code sent to the user's phone number during registration"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "OTP verified successfully",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = VerifyOtpResponse.class),
+                examples = @ExampleObject(
+                    name = "Success Response",
+                    value = """
+                    {
+                      "status": "success",
+                      "message": "Phone number verified successfully",
+                      "data": {
+                        "user_id": "usr_1234567890abcdef",
+                        "verified": true,
+                        "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                        "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                        "token_type": "Bearer",
+                        "expires_in": 3600,
+                        "user": {
+                          "user_id": "usr_1234567890abcdef",
+                          "email": "john@example.com",
+                          "phone": "+6281234567890",
+                          "full_name": "John Doe",
+                          "user_type": "producer",
+                          "is_verified": true,
+                          "is_profile_complete": false,
+                          "verification_status": {
+                            "email_verified": false,
+                            "phone_verified": true,
+                            "business_verified": false
+                          }
+                        }
+                      }
+                    }
+                    """
+                )
+            )
+        ),
+        @ApiResponse(
+            responseCode = "400",
+            description = "Invalid OTP",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = OtpErrorResponse.class),
+                examples = @ExampleObject(
+                    name = "Invalid OTP",
+                    value = """
+                    {
+                      "status": "error",
+                      "message": "Invalid or expired OTP code",
+                      "error_code": "INVALID_OTP",
+                      "attempts_remaining": 2,
+                      "max_attempts": 5
+                    }
+                    """
+                )
+            )
+        ),
+        @ApiResponse(
+            responseCode = "403",
+            description = "Max attempts exceeded",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = OtpErrorResponse.class),
+                examples = @ExampleObject(
+                    name = "Max Attempts Exceeded",
+                    value = """
+                    {
+                      "status": "error",
+                      "message": "Maximum OTP attempts exceeded. Please request a new code.",
+                      "error_code": "MAX_ATTEMPTS_EXCEEDED",
+                      "can_resend_at": "2025-10-11T10:20:00Z"
+                    }
+                    """
+                )
+            )
+        ),
+        @ApiResponse(
+            responseCode = "410",
+            description = "OTP expired",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = OtpErrorResponse.class),
+                examples = @ExampleObject(
+                    name = "OTP Expired",
+                    value = """
+                    {
+                      "status": "error",
+                      "message": "OTP code has expired. Please request a new one.",
+                      "error_code": "OTP_EXPIRED"
+                    }
+                    """
+                )
+            )
+        )
+    })
+    public ResponseEntity<?> verifyOtp(
+            @Parameter(description = "Temporary session token from registration", example = "temp_ver_1234567890abcdef")
+            @RequestHeader(value = "Authorization", required = false) String authorization,
+
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                description = "OTP verification data",
+                required = true,
+                content = @Content(
+                    mediaType = "application/json",
+                    schema = @Schema(implementation = VerifyOtpRequest.class),
+                    examples = @ExampleObject(
+                        name = "Verify OTP",
+                        value = """
+                        {
+                          "otp_code": "123456",
+                          "verification_id": "ver_1234567890abcdef"
+                        }
+                        """
+                    )
+                )
+            )
+            @Valid @RequestBody VerifyOtpRequest request) {
+        Object result = otpService.verifyOtp(request);
+
+        if (result instanceof VerifyOtpResponse) {
+            return ResponseEntity.ok(result);
+        } else if (result instanceof OtpErrorResponse) {
+            OtpErrorResponse err = (OtpErrorResponse) result;
+            if ("INVALID_OTP".equals(err.getError_code())) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(err);
+            } else if ("MAX_ATTEMPTS_EXCEEDED".equals(err.getError_code())) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(err);
+            } else if ("OTP_EXPIRED".equals(err.getError_code())) {
+                return ResponseEntity.status(HttpStatus.GONE).body(err);
+            }
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(err);
+        }
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Unknown error");
+    }
+
+    @PostMapping("/resend-otp")
+    @Operation(
+        summary = "Resend OTP code",
+        description = "Request a new OTP code to be sent via SMS, WhatsApp, or phone call"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "OTP resent successfully",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = ResendOtpResponse.class),
+                examples = @ExampleObject(
+                    name = "Success Response",
+                    value = """
+                    {
+                      "status": "success",
+                      "message": "OTP code has been resent",
+                      "data": {
+                        "verification_id": "ver_1234567890abcdef",
+                        "sent_to": "+6281234567890",
+                        "method": "sms",
+                        "expires_at": "2025-10-11T10:25:00Z",
+                        "can_resend_at": "2025-10-11T10:21:00Z"
+                      }
+                    }
+                    """
+                )
+            )
+        ),
+        @ApiResponse(
+            responseCode = "429",
+            description = "Resend cooldown",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = OtpErrorResponse.class),
+                examples = @ExampleObject(
+                    name = "Resend Cooldown",
+                    value = """
+                    {
+                      "status": "error",
+                      "message": "Please wait before requesting another OTP",
+                      "error_code": "RESEND_COOLDOWN",
+                      "retry_after": 45
+                    }
+                    """
+                )
+            )
+        )
+    })
+    public ResponseEntity<?> resendOtp(
+            @Parameter(description = "Temporary session token from registration", example = "temp_ver_1234567890abcdef")
+            @RequestHeader(value = "Authorization", required = false) String authorization,
+
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                description = "Resend OTP request data",
+                required = true,
+                content = @Content(
+                    mediaType = "application/json",
+                    schema = @Schema(implementation = ResendOtpRequest.class),
+                    examples = @ExampleObject(
+                        name = "Resend OTP",
+                        value = """
+                        {
+                          "verification_id": "ver_1234567890abcdef",
+                          "method": "sms"
+                        }
+                        """
+                    )
+                )
+            )
+            @Valid @RequestBody ResendOtpRequest request) {
+        Object result = otpService.resendOtp(request);
+
+        if (result instanceof ResendOtpResponse) {
+            return ResponseEntity.ok(result);
+        } else if (result instanceof OtpErrorResponse) {
+            OtpErrorResponse err = (OtpErrorResponse) result;
+            if ("RESEND_COOLDOWN".equals(err.getError_code())) {
                 return ResponseEntity.status(429).body(err);
             }
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(err);

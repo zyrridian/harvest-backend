@@ -3,6 +3,7 @@ package com.zkylab.harvest.service;
 import com.zkylab.harvest.dto.RegisterRequest;
 import com.zkylab.harvest.dto.RegisterResponse;
 import com.zkylab.harvest.dto.ErrorResponse;
+import com.zkylab.harvest.model.OtpVerification;
 import com.zkylab.harvest.model.User;
 import com.zkylab.harvest.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -15,10 +16,12 @@ import java.util.*;
 public class RegistrationService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final OtpService otpService;
 
-    public RegistrationService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public RegistrationService(UserRepository userRepository, PasswordEncoder passwordEncoder, OtpService otpService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.otpService = otpService;
     }
 
     public Object register(RegisterRequest request) {
@@ -87,6 +90,9 @@ public class RegistrationService {
 
         userRepository.save(user);
 
+        // Create OTP verification
+        OtpVerification otpVerification = otpService.createOtpVerification(user.getPhoneNumber(), user.getId());
+
         // Build success response
         RegisterResponse response = new RegisterResponse();
         response.setStatus("success");
@@ -101,8 +107,8 @@ public class RegistrationService {
         data.setVerification_required(true);
         data.setVerification_method("otp");
         data.setOtp_sent_to(user.getPhoneNumber());
-        data.setOtp_expires_at(ZonedDateTime.now().plusMinutes(5));
-        data.setSession_token("temp_" + UUID.randomUUID().toString());
+        data.setOtp_expires_at(otpVerification.getExpiresAt());
+        data.setSession_token("temp_" + otpVerification.getVerificationId());
         data.setCreated_at(user.getCreatedAt());
 
         response.setData(data);
