@@ -12,4 +12,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
     // based on its name. It will generate a query like:
     // SELECT * FROM app_users WHERE username = ?
     Optional<User> findByUsername(String username);
+
+    // New methods for registration validation
+    boolean existsByEmail(String email);
+    boolean existsByPhoneNumber(String phoneNumber);
 }
