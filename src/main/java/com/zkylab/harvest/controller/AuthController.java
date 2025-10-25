@@ -5,6 +5,7 @@ import com.zkylab.harvest.service.RegistrationService;
 import com.zkylab.harvest.service.OtpService;
 import com.zkylab.harvest.service.LoginService;
 import com.zkylab.harvest.service.SocialLoginService;
+import com.zkylab.harvest.service.TokenService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -28,12 +29,14 @@ public class AuthController {
     private final OtpService otpService;
     private final LoginService loginService;
     private final SocialLoginService socialLoginService;
+    private final TokenService tokenService;
 
-    public AuthController(RegistrationService registrationService, OtpService otpService, LoginService loginService, SocialLoginService socialLoginService) {
+    public AuthController(RegistrationService registrationService, OtpService otpService, LoginService loginService, SocialLoginService socialLoginService, TokenService tokenService) {
         this.registrationService = registrationService;
         this.otpService = otpService;
         this.loginService = loginService;
         this.socialLoginService = socialLoginService;
+        this.tokenService = tokenService;
     }
 
     @PostMapping("/register")
@@ -785,6 +788,152 @@ public class AuthController {
             return ResponseEntity.ok(result);
         } else if (result instanceof SocialLoginErrorResponse) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(result);
+        }
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Unknown error");
+    }
+
+    @PostMapping("/refresh-token")
+    @Operation(
+        summary = "Refresh access token",
+        description = "Get a new access token using a valid refresh token"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Token refreshed successfully",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = RefreshTokenResponse.class),
+                examples = @ExampleObject(
+                    name = "Success Response",
+                    value = """
+                    {
+                      "status": "success",
+                      "data": {
+                        "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                        "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                        "token_type": "Bearer",
+                        "expires_in": 3600
+                      }
+                    }
+                    """
+                )
+            )
+        ),
+        @ApiResponse(
+            responseCode = "401",
+            description = "Invalid or expired refresh token",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = TokenErrorResponse.class),
+                examples = @ExampleObject(
+                    name = "Invalid Token",
+                    value = """
+                    {
+                      "status": "error",
+                      "message": "Invalid or expired refresh token",
+                      "error_code": "INVALID_REFRESH_TOKEN"
+                    }
+                    """
+                )
+            )
+        )
+    })
+    public ResponseEntity<?> refreshToken(
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                description = "Refresh token request",
+                required = true,
+                content = @Content(
+                    mediaType = "application/json",
+                    schema = @Schema(implementation = RefreshTokenRequest.class),
+                    examples = @ExampleObject(
+                        name = "Refresh Token",
+                        value = """
+                        {
+                          "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                        }
+                        """
+                    )
+                )
+            )
+            @Valid @RequestBody RefreshTokenRequest request) {
+        Object result = tokenService.refreshToken(request);
+
+        if (result instanceof RefreshTokenResponse) {
+            return ResponseEntity.ok(result);
+        } else if (result instanceof TokenErrorResponse) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(result);
+        }
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Unknown error");
+    }
+
+    @PostMapping("/logout")
+    @Operation(
+        summary = "Logout user",
+        description = "Logout user and optionally invalidate all device sessions"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Logged out successfully",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = LogoutResponse.class),
+                examples = @ExampleObject(
+                    name = "Success Response",
+                    value = """
+                    {
+                      "status": "success",
+                      "message": "Logged out successfully"
+                    }
+                    """
+                )
+            )
+        )
+    })
+    public ResponseEntity<?> logout(
+            @Parameter(description = "Bearer token", example = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...")
+            @RequestHeader(value = "Authorization", required = false) String authorization,
+
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                description = "Logout options",
+                required = false,
+                content = @Content(
+                    mediaType = "application/json",
+                    schema = @Schema(implementation = LogoutRequest.class),
+                    examples = {
+                        @ExampleObject(
+                            name = "Logout Current Device",
+                            value = """
+                            {
+                              "logout_all_devices": false
+                            }
+                            """
+                        ),
+                        @ExampleObject(
+                            name = "Logout All Devices",
+                            value = """
+                            {
+                              "logout_all_devices": true
+                            }
+                            """
+                        )
+                    }
+                )
+            )
+            @RequestBody(required = false) LogoutRequest request) {
+        
+        if (request == null) {
+            request = new LogoutRequest();
+            request.setLogout_all_devices(false);
+        }
+        
+        Object result = tokenService.logout(request, authorization);
+
+        if (result instanceof LogoutResponse) {
+            return ResponseEntity.ok(result);
+        } else if (result instanceof TokenErrorResponse) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(result);
         }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Unknown error");
     }
