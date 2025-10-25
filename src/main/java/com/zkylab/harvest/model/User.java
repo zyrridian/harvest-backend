@@ -55,6 +55,28 @@ public class User {
     @Column(name = "created_at")
     private ZonedDateTime createdAt;
 
+    // Login and verification fields
+    @Column(name = "is_email_verified")
+    private Boolean isEmailVerified = false;
+
+    @Column(name = "is_phone_verified")
+    private Boolean isPhoneVerified = false;
+
+    @Column(name = "is_account_locked")
+    private Boolean isAccountLocked = false;
+
+    @Column(name = "locked_until")
+    private ZonedDateTime lockedUntil;
+
+    @Column(name = "failed_login_attempts")
+    private Integer failedLoginAttempts = 0;
+
+    @Column(name = "last_login_at")
+    private ZonedDateTime lastLoginAt;
+
+    @Column(name = "account_status")
+    private String accountStatus = "active"; // active, suspended, deleted
+
     // --- Getters and Setters ---
     public Long getId() {
         return id;
@@ -198,5 +220,61 @@ public class User {
 
     public void setCreatedAt(ZonedDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public Boolean getIsEmailVerified() {
+        return isEmailVerified;
+    }
+
+    public void setIsEmailVerified(Boolean isEmailVerified) {
+        this.isEmailVerified = isEmailVerified;
+    }
+
+    public Boolean getIsPhoneVerified() {
+        return isPhoneVerified;
+    }
+
+    public void setIsPhoneVerified(Boolean isPhoneVerified) {
+        this.isPhoneVerified = isPhoneVerified;
+    }
+
+    public Boolean getIsAccountLocked() {
+        return isAccountLocked;
+    }
+
+    public void setIsAccountLocked(Boolean isAccountLocked) {
+        this.isAccountLocked = isAccountLocked;
+    }
+
+    public ZonedDateTime getLockedUntil() {
+        return lockedUntil;
+    }
+
+    public void setLockedUntil(ZonedDateTime lockedUntil) {
+        this.lockedUntil = lockedUntil;
+    }
+
+    public Integer getFailedLoginAttempts() {
+        return failedLoginAttempts;
+    }
+
+    public void setFailedLoginAttempts(Integer failedLoginAttempts) {
+        this.failedLoginAttempts = failedLoginAttempts;
+    }
+
+    public ZonedDateTime getLastLoginAt() {
+        return lastLoginAt;
+    }
+
+    public void setLastLoginAt(ZonedDateTime lastLoginAt) {
+        this.lastLoginAt = lastLoginAt;
+    }
+
+    public String getAccountStatus() {
+        return accountStatus;
+    }
+
+    public void setAccountStatus(String accountStatus) {
+        this.accountStatus = accountStatus;
     }
 }

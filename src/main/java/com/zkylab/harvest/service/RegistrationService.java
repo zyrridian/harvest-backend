@@ -30,31 +30,31 @@ public class RegistrationService {
         // Validate password rules
         if (!isValidPassword(request.getPassword())) {
             errors.computeIfAbsent("password", k -> new ArrayList<>())
-                .add("Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character");
+                    .add("Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character");
         }
 
         // Validate password match
         if (!Objects.equals(request.getPassword(), request.getConfirm_password())) {
             errors.computeIfAbsent("confirm_password", k -> new ArrayList<>())
-                .add("Passwords do not match");
+                    .add("Passwords do not match");
         }
 
         // Check terms_accepted
         if (request.getTerms_accepted() == null || !request.getTerms_accepted()) {
             errors.computeIfAbsent("terms_accepted", k -> new ArrayList<>())
-                .add("Terms must be accepted");
+                    .add("Terms must be accepted");
         }
 
         // Check for unique email and phone
         if (userRepository.existsByEmail(request.getEmail())) {
             errors.computeIfAbsent("email", k -> new ArrayList<>())
-                .add("Email is already registered");
+                    .add("Email is already registered");
         }
 
         String fullPhoneNumber = request.getPhone().getCountry_code() + request.getPhone().getNumber();
         if (userRepository.existsByPhoneNumber(fullPhoneNumber)) {
             errors.computeIfAbsent("phone", k -> new ArrayList<>())
-                .add("Phone number is already in use");
+                    .add("Phone number is already in use");
         }
 
         // If validation errors exist, return error response
@@ -63,7 +63,7 @@ public class RegistrationService {
             errorResponse.setStatus("error");
             errorResponse.setMessage("Validation failed");
             errorResponse.setErrors(errors.entrySet().stream().collect(
-                java.util.stream.Collectors.toMap(Map.Entry::getKey, e -> e.getValue().toArray(new String[0]))));
+                    java.util.stream.Collectors.toMap(Map.Entry::getKey, e -> e.getValue().toArray(new String[0]))));
             errorResponse.setError_code("VALIDATION_ERROR");
             return errorResponse;
         }

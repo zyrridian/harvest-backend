@@ -16,4 +16,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
     // New methods for registration validation
     boolean existsByEmail(String email);
     boolean existsByPhoneNumber(String phoneNumber);
+
+    // Login methods - find user by email or phone number
+    Optional<User> findByEmail(String email);
+    Optional<User> findByPhoneNumber(String phoneNumber);
 }
