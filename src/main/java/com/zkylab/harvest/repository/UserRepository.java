@@ -20,4 +20,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     // Login methods - find user by email or phone number
     Optional<User> findByEmail(String email);
     Optional<User> findByPhoneNumber(String phoneNumber);
+
+    // Social login methods - find user by social provider and ID
+    Optional<User> findBySocialProviderAndSocialProviderId(String socialProvider, String socialProviderId);
 }

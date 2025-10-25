@@ -4,6 +4,7 @@ import com.zkylab.harvest.dto.*;
 import com.zkylab.harvest.service.RegistrationService;
 import com.zkylab.harvest.service.OtpService;
 import com.zkylab.harvest.service.LoginService;
+import com.zkylab.harvest.service.SocialLoginService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -26,11 +27,13 @@ public class AuthController {
     private final RegistrationService registrationService;
     private final OtpService otpService;
     private final LoginService loginService;
+    private final SocialLoginService socialLoginService;
 
-    public AuthController(RegistrationService registrationService, OtpService otpService, LoginService loginService) {
+    public AuthController(RegistrationService registrationService, OtpService otpService, LoginService loginService, SocialLoginService socialLoginService) {
         this.registrationService = registrationService;
         this.otpService = otpService;
         this.loginService = loginService;
+        this.socialLoginService = socialLoginService;
     }
 
     @PostMapping("/register")
@@ -616,6 +619,172 @@ public class AuthController {
                 return ResponseEntity.status(428).body(err);
             }
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(err);
+        }
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Unknown error");
+    }
+
+    @PostMapping("/social-login")
+    @Operation(
+        summary = "Social login/registration",
+        description = "Login or register using social providers (Google, Facebook, Apple). Currently uses mock validation - ready for OAuth integration."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Login successful (existing user)",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = SocialLoginResponse.class),
+                examples = @ExampleObject(
+                    name = "Existing User Login",
+                    value = """
+                    {
+                      "status": "success",
+                      "message": "Login successful",
+                      "is_new_user": false,
+                      "requires_profile_completion": false,
+                      "data": {
+                        "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                        "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                        "token_type": "Bearer",
+                        "expires_in": 3600,
+                        "user": {
+                          "user_id": "usr_1234567890abcdef",
+                          "email": "john@example.com",
+                          "phone": "+6281234567890",
+                          "full_name": "John Doe",
+                          "user_type": "producer",
+                          "is_verified": true,
+                          "is_profile_complete": true
+                        }
+                      }
+                    }
+                    """
+                )
+            )
+        ),
+        @ApiResponse(
+            responseCode = "201",
+            description = "Account created successfully (new user)",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = SocialLoginResponse.class),
+                examples = @ExampleObject(
+                    name = "New User Registration",
+                    value = """
+                    {
+                      "status": "success",
+                      "message": "Account created successfully",
+                      "is_new_user": true,
+                      "requires_profile_completion": true,
+                      "data": {
+                        "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                        "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                        "token_type": "Bearer",
+                        "expires_in": 3600,
+                        "user": {
+                          "user_id": "usr_1234567890abcdef",
+                          "email": "newuser@google.com",
+                          "full_name": "New User",
+                          "user_type": "buyer",
+                          "is_verified": true,
+                          "is_profile_complete": false
+                        },
+                        "next_step": "complete_profile"
+                      }
+                    }
+                    """
+                )
+            )
+        ),
+        @ApiResponse(
+            responseCode = "400",
+            description = "Social authentication failed",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = SocialLoginErrorResponse.class),
+                examples = @ExampleObject(
+                    name = "Auth Failed",
+                    value = """
+                    {
+                      "status": "error",
+                      "message": "Failed to authenticate with social provider",
+                      "error_code": "SOCIAL_AUTH_FAILED",
+                      "details": "Invalid access token"
+                    }
+                    """
+                )
+            )
+        )
+    })
+    public ResponseEntity<?> socialLogin(
+            @Parameter(description = "Unique device identifier", example = "device-12345-xyz")
+            @RequestHeader(value = "X-Device-ID", required = false) String deviceId,
+
+            @Parameter(description = "Platform type", example = "android", schema = @Schema(allowableValues = {"android", "ios", "web"}))
+            @RequestHeader(value = "X-Platform", required = false) String platform,
+
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                description = "Social login credentials",
+                required = true,
+                content = @Content(
+                    mediaType = "application/json",
+                    schema = @Schema(implementation = SocialLoginRequest.class),
+                    examples = {
+                        @ExampleObject(
+                            name = "Google Login",
+                            value = """
+                            {
+                              "provider": "google",
+                              "access_token": "google_access_token_here",
+                              "user_type": "producer",
+                              "additional_info": {
+                                "phone": "+6281234567890",
+                                "location": {
+                                  "province": "West Java",
+                                  "city": "Bandung",
+                                  "latitude": -6.914744,
+                                  "longitude": 107.609810
+                                }
+                              }
+                            }
+                            """
+                        ),
+                        @ExampleObject(
+                            name = "Facebook Login",
+                            value = """
+                            {
+                              "provider": "facebook",
+                              "access_token": "facebook_access_token_here",
+                              "user_type": "buyer"
+                            }
+                            """
+                        ),
+                        @ExampleObject(
+                            name = "Apple Login",
+                            value = """
+                            {
+                              "provider": "apple",
+                              "access_token": "apple_identity_token_here",
+                              "user_type": "both"
+                            }
+                            """
+                        )
+                    }
+                )
+            )
+            @Valid @RequestBody SocialLoginRequest request) {
+        Object result = socialLoginService.socialLogin(request);
+
+        if (result instanceof SocialLoginResponse) {
+            SocialLoginResponse response = (SocialLoginResponse) result;
+            // Return 201 for new users, 200 for existing users
+            if (response.getIs_new_user() != null && response.getIs_new_user()) {
+                return ResponseEntity.status(HttpStatus.CREATED).body(result);
+            }
+            return ResponseEntity.ok(result);
+        } else if (result instanceof SocialLoginErrorResponse) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(result);
         }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Unknown error");
     }

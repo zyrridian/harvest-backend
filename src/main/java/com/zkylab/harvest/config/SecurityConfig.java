@@ -24,7 +24,7 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable()) // Disable CSRF for stateless REST APIs
                 .authorizeHttpRequests(auth -> auth
                         // Allow registration, login and public greeting endpoints to be accessed without authentication
-                        .requestMatchers("/api/auth/register", "/api/auth/login", "/api/auth/verify-otp", "/api/auth/resend-otp", "/api/greetings/**").permitAll()
+                        .requestMatchers("/api/auth/register", "/api/auth/login", "/api/auth/social-login", "/api/auth/verify-otp", "/api/auth/resend-otp", "/api/greetings/**").permitAll()
                         // Allow Swagger UI and API docs to be accessed without authentication
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
                         // Any other request must be authenticated

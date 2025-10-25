@@ -77,6 +77,16 @@ public class User {
     @Column(name = "account_status")
     private String accountStatus = "active"; // active, suspended, deleted
 
+    // Social login fields
+    @Column(name = "social_provider")
+    private String socialProvider; // google, facebook, apple, null for regular
+
+    @Column(name = "social_provider_id")
+    private String socialProviderId; // User ID from social provider
+
+    @Column(name = "is_social_account")
+    private Boolean isSocialAccount = false;
+
     // --- Getters and Setters ---
     public Long getId() {
         return id;
@@ -276,5 +286,29 @@ public class User {
 
     public void setAccountStatus(String accountStatus) {
         this.accountStatus = accountStatus;
+    }
+
+    public String getSocialProvider() {
+        return socialProvider;
+    }
+
+    public void setSocialProvider(String socialProvider) {
+        this.socialProvider = socialProvider;
+    }
+
+    public String getSocialProviderId() {
+        return socialProviderId;
+    }
+
+    public void setSocialProviderId(String socialProviderId) {
+        this.socialProviderId = socialProviderId;
+    }
+
+    public Boolean getIsSocialAccount() {
+        return isSocialAccount;
+    }
+
+    public void setIsSocialAccount(Boolean isSocialAccount) {
+        this.isSocialAccount = isSocialAccount;
     }
 }
