@@ -6,6 +6,7 @@ import com.zkylab.harvest.service.OtpService;
 import com.zkylab.harvest.service.LoginService;
 import com.zkylab.harvest.service.SocialLoginService;
 import com.zkylab.harvest.service.TokenService;
+import com.zkylab.harvest.service.PasswordService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -30,13 +31,15 @@ public class AuthController {
     private final LoginService loginService;
     private final SocialLoginService socialLoginService;
     private final TokenService tokenService;
+    private final PasswordService passwordService;
 
-    public AuthController(RegistrationService registrationService, OtpService otpService, LoginService loginService, SocialLoginService socialLoginService, TokenService tokenService) {
+    public AuthController(RegistrationService registrationService, OtpService otpService, LoginService loginService, SocialLoginService socialLoginService, TokenService tokenService, PasswordService passwordService) {
         this.registrationService = registrationService;
         this.otpService = otpService;
         this.loginService = loginService;
         this.socialLoginService = socialLoginService;
         this.tokenService = tokenService;
+        this.passwordService = passwordService;
     }
 
     @PostMapping("/register")
@@ -934,6 +937,314 @@ public class AuthController {
             return ResponseEntity.ok(result);
         } else if (result instanceof TokenErrorResponse) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(result);
+        }
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Unknown error");
+    }
+
+    @PostMapping("/forgot-password")
+    @Operation(
+        summary = "Request password reset",
+        description = "Request a password reset by providing email or phone number. An OTP will be sent."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Reset code sent successfully",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = ForgotPasswordResponse.class),
+                examples = @ExampleObject(
+                    name = "Success Response",
+                    value = """
+                    {
+                      "status": "success",
+                      "message": "Password reset code has been sent",
+                      "data": {
+                        "reset_token": "reset_a1b2c3d4e5f6g7h8",
+                        "sent_to": "john@example.com",
+                        "method": "email",
+                        "expires_at": "2025-10-11T10:25:00Z"
+                      }
+                    }
+                    """
+                )
+            )
+        ),
+        @ApiResponse(
+            responseCode = "404",
+            description = "User not found",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = ErrorResponse.class),
+                examples = @ExampleObject(
+                    name = "User Not Found",
+                    value = """
+                    {
+                      "status": "error",
+                      "message": "No account found with this email/phone",
+                      "error_code": "USER_NOT_FOUND"
+                    }
+                    """
+                )
+            )
+        )
+    })
+    public ResponseEntity<?> forgotPassword(
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                description = "Forgot password request",
+                required = true,
+                content = @Content(
+                    mediaType = "application/json",
+                    schema = @Schema(implementation = ForgotPasswordRequest.class),
+                    examples = {
+                        @ExampleObject(
+                            name = "Email Request",
+                            value = """
+                            {
+                              "identifier": "john@example.com"
+                            }
+                            """
+                        ),
+                        @ExampleObject(
+                            name = "Phone Request",
+                            value = """
+                            {
+                              "identifier": "+6281234567890"
+                            }
+                            """
+                        )
+                    }
+                )
+            )
+            @Valid @RequestBody ForgotPasswordRequest request) {
+        Object result = passwordService.forgotPassword(request);
+
+        if (result instanceof ForgotPasswordResponse) {
+            return ResponseEntity.ok(result);
+        } else if (result instanceof ErrorResponse) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(result);
+        }
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Unknown error");
+    }
+
+    @PostMapping("/reset-password")
+    @Operation(
+        summary = "Reset password with OTP",
+        description = "Reset password using the OTP code sent via email/SMS and the reset token"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Password reset successfully",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = ResetPasswordResponse.class),
+                examples = @ExampleObject(
+                    name = "Success Response",
+                    value = """
+                    {
+                      "status": "success",
+                      "message": "Password has been reset successfully",
+                      "data": {
+                        "user_id": "usr_1234567890abcdef"
+                      }
+                    }
+                    """
+                )
+            )
+        ),
+        @ApiResponse(
+            responseCode = "400",
+            description = "Invalid OTP or token",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = ErrorResponse.class),
+                examples = {
+                    @ExampleObject(
+                        name = "Invalid Token",
+                        value = """
+                        {
+                          "status": "error",
+                          "message": "Invalid reset token or OTP code",
+                          "error_code": "INVALID_RESET_TOKEN"
+                        }
+                        """
+                    ),
+                    @ExampleObject(
+                        name = "Token Expired",
+                        value = """
+                        {
+                          "status": "error",
+                          "message": "Reset token has expired. Please request a new one.",
+                          "error_code": "RESET_TOKEN_EXPIRED"
+                        }
+                        """
+                    ),
+                    @ExampleObject(
+                        name = "Password Mismatch",
+                        value = """
+                        {
+                          "status": "error",
+                          "message": "Passwords do not match",
+                          "error_code": "PASSWORD_MISMATCH"
+                        }
+                        """
+                    )
+                }
+            )
+        )
+    })
+    public ResponseEntity<?> resetPassword(
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                description = "Reset password request",
+                required = true,
+                content = @Content(
+                    mediaType = "application/json",
+                    schema = @Schema(implementation = ResetPasswordRequest.class),
+                    examples = @ExampleObject(
+                        name = "Reset Password",
+                        value = """
+                        {
+                          "reset_token": "reset_a1b2c3d4e5f6g7h8",
+                          "otp_code": "123456",
+                          "new_password": "NewSecurePass123!",
+                          "confirm_password": "NewSecurePass123!"
+                        }
+                        """
+                    )
+                )
+            )
+            @Valid @RequestBody ResetPasswordRequest request) {
+        Object result = passwordService.resetPassword(request);
+
+        if (result instanceof ResetPasswordResponse) {
+            return ResponseEntity.ok(result);
+        } else if (result instanceof ErrorResponse) {
+            ErrorResponse err = (ErrorResponse) result;
+            if ("RESET_TOKEN_EXPIRED".equals(err.getError_code())) {
+                return ResponseEntity.status(HttpStatus.GONE).body(err);
+            }
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(result);
+        }
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Unknown error");
+    }
+
+    @PostMapping("/change-password")
+    @Operation(
+        summary = "Change password",
+        description = "Change password for authenticated user. Requires current password verification."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Password changed successfully",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = ChangePasswordResponse.class),
+                examples = @ExampleObject(
+                    name = "Success Response",
+                    value = """
+                    {
+                      "status": "success",
+                      "message": "Password changed successfully"
+                    }
+                    """
+                )
+            )
+        ),
+        @ApiResponse(
+            responseCode = "400",
+            description = "Invalid request",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = ErrorResponse.class),
+                examples = {
+                    @ExampleObject(
+                        name = "Wrong Current Password",
+                        value = """
+                        {
+                          "status": "error",
+                          "message": "Current password is incorrect",
+                          "error_code": "INVALID_CURRENT_PASSWORD"
+                        }
+                        """
+                    ),
+                    @ExampleObject(
+                        name = "Same Password",
+                        value = """
+                        {
+                          "status": "error",
+                          "message": "New password must be different from current password",
+                          "error_code": "SAME_PASSWORD"
+                        }
+                        """
+                    ),
+                    @ExampleObject(
+                        name = "Weak Password",
+                        value = """
+                        {
+                          "status": "error",
+                          "message": "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character",
+                          "error_code": "WEAK_PASSWORD"
+                        }
+                        """
+                    )
+                }
+            )
+        ),
+        @ApiResponse(
+            responseCode = "401",
+            description = "Unauthorized - invalid or missing token",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = ErrorResponse.class),
+                examples = @ExampleObject(
+                    name = "Unauthorized",
+                    value = """
+                    {
+                      "status": "error",
+                      "message": "Authentication required",
+                      "error_code": "UNAUTHORIZED"
+                    }
+                    """
+                )
+            )
+        )
+    })
+    public ResponseEntity<?> changePassword(
+            @Parameter(description = "Bearer token", example = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...")
+            @RequestHeader(value = "Authorization", required = false) String authorization,
+
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                description = "Change password request",
+                required = true,
+                content = @Content(
+                    mediaType = "application/json",
+                    schema = @Schema(implementation = ChangePasswordRequest.class),
+                    examples = @ExampleObject(
+                        name = "Change Password",
+                        value = """
+                        {
+                          "current_password": "OldPassword123!",
+                          "new_password": "NewSecurePass123!",
+                          "confirm_password": "NewSecurePass123!"
+                        }
+                        """
+                    )
+                )
+            )
+            @Valid @RequestBody ChangePasswordRequest request) {
+        
+        // TODO: Extract user ID from JWT token
+        // For now, using a placeholder
+        Long userId = 1L; // This should be extracted from the JWT token
+        
+        Object result = passwordService.changePassword(request, userId);
+
+        if (result instanceof ChangePasswordResponse) {
+            return ResponseEntity.ok(result);
+        } else if (result instanceof ErrorResponse) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(result);
         }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Unknown error");
     }
