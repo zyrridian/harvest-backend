@@ -32,14 +32,16 @@ public class AuthController {
     private final SocialLoginService socialLoginService;
     private final TokenService tokenService;
     private final PasswordService passwordService;
+    private final BiometricService biometricService;
 
-    public AuthController(RegistrationService registrationService, OtpService otpService, LoginService loginService, SocialLoginService socialLoginService, TokenService tokenService, PasswordService passwordService) {
+    public AuthController(RegistrationService registrationService, OtpService otpService, LoginService loginService, SocialLoginService socialLoginService, TokenService tokenService, PasswordService passwordService, BiometricService biometricService) {
         this.registrationService = registrationService;
         this.otpService = otpService;
         this.loginService = loginService;
         this.socialLoginService = socialLoginService;
         this.tokenService = tokenService;
         this.passwordService = passwordService;
+        this.biometricService = biometricService;
     }
 
     @PostMapping("/register")
@@ -1245,6 +1247,192 @@ public class AuthController {
             return ResponseEntity.ok(result);
         } else if (result instanceof ErrorResponse) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(result);
+        }
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Unknown error");
+    }
+
+    @PostMapping("/biometric/register")
+    @Operation(
+        summary = "Register biometric authentication",
+        description = "Register a device for biometric authentication (fingerprint, face recognition, etc.)"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Biometric registered successfully",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = BiometricRegisterResponse.class),
+                examples = @ExampleObject(
+                    name = "Success Response",
+                    value = """
+                    {
+                      "success": true,
+                      "message": "Biometric authentication registered successfully",
+                      "device_id": "device-12345-xyz",
+                      "registered_at": "2025-10-25T10:30:00"
+                    }
+                    """
+                )
+            )
+        ),
+        @ApiResponse(
+            responseCode = "400",
+            description = "Registration failed",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = BiometricRegisterResponse.class),
+                examples = {
+                    @ExampleObject(
+                        name = "User Not Found",
+                        value = """
+                        {
+                          "success": false,
+                          "message": "User not found"
+                        }
+                        """
+                    ),
+                    @ExampleObject(
+                        name = "Device Already Registered",
+                        value = """
+                        {
+                          "success": false,
+                          "message": "Device already registered for biometric authentication"
+                        }
+                        """
+                    )
+                }
+            )
+        )
+    })
+    public ResponseEntity<?> registerBiometric(
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                description = "Biometric registration data",
+                required = true,
+                content = @Content(
+                    mediaType = "application/json",
+                    schema = @Schema(implementation = BiometricRegisterRequest.class),
+                    examples = @ExampleObject(
+                        name = "Register Fingerprint",
+                        value = """
+                        {
+                          "identifier": "john@example.com",
+                          "device_id": "device-12345-xyz",
+                          "device_name": "Samsung Galaxy S21",
+                          "public_key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA...",
+                          "biometric_type": "fingerprint",
+                          "platform": "android"
+                        }
+                        """
+                    )
+                )
+            )
+            @Valid @RequestBody BiometricRegisterRequest request) {
+        Object result = biometricService.registerBiometric(request);
+        
+        if (result instanceof BiometricRegisterResponse) {
+            BiometricRegisterResponse response = (BiometricRegisterResponse) result;
+            if (response.isSuccess()) {
+                return ResponseEntity.ok(result);
+            } else {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(result);
+            }
+        }
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Unknown error");
+    }
+
+    @PostMapping("/biometric/login")
+    @Operation(
+        summary = "Login with biometric authentication",
+        description = "Authenticate user using registered biometric data (fingerprint, face recognition, etc.)"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Biometric login successful",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = BiometricLoginResponse.class),
+                examples = @ExampleObject(
+                    name = "Success Response",
+                    value = """
+                    {
+                      "success": true,
+                      "message": "Biometric login successful",
+                      "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                      "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                    }
+                    """
+                )
+            )
+        ),
+        @ApiResponse(
+            responseCode = "400",
+            description = "Biometric authentication failed",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = BiometricLoginResponse.class),
+                examples = {
+                    @ExampleObject(
+                        name = "Device Not Registered",
+                        value = """
+                        {
+                          "success": false,
+                          "message": "Device not registered for biometric authentication"
+                        }
+                        """
+                    ),
+                    @ExampleObject(
+                        name = "Authentication Failed",
+                        value = """
+                        {
+                          "success": false,
+                          "message": "Biometric authentication failed"
+                        }
+                        """
+                    ),
+                    @ExampleObject(
+                        name = "Account Locked",
+                        value = """
+                        {
+                          "success": false,
+                          "message": "Account is locked"
+                        }
+                        """
+                    )
+                }
+            )
+        )
+    })
+    public ResponseEntity<?> biometricLogin(
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                description = "Biometric login data",
+                required = true,
+                content = @Content(
+                    mediaType = "application/json",
+                    schema = @Schema(implementation = BiometricLoginRequest.class),
+                    examples = @ExampleObject(
+                        name = "Biometric Login",
+                        value = """
+                        {
+                          "device_id": "device-12345-xyz",
+                          "biometric_token": "encrypted_biometric_signature_here",
+                          "challenge": "server_challenge_token"
+                        }
+                        """
+                    )
+                )
+            )
+            @Valid @RequestBody BiometricLoginRequest request) {
+        Object result = biometricService.biometricLogin(request);
+        
+        if (result instanceof BiometricLoginResponse) {
+            BiometricLoginResponse response = (BiometricLoginResponse) result;
+            if (response.isSuccess()) {
+                return ResponseEntity.ok(result);
+            } else {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(result);
+            }
         }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Unknown error");
     }

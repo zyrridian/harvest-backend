@@ -124,11 +124,12 @@ public class JwtService {
      * @return All claims
      */
     private Claims extractAllClaims(String token) {
-        return Jwts.parser()
-                .setSigningKey(SECRET_KEY)
-                .build()
-                .parseClaimsJws(token)
-                .getBody();
+    // use parserBuilder() which is the modern API for jjwt 0.11+
+    return Jwts.parser()
+        .setSigningKey(SECRET_KEY)
+        .build()
+        .parseClaimsJws(token)
+        .getBody();
     }
 
     /**
