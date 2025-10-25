@@ -65,7 +65,7 @@ public class AuthController {
                       "message": "Registration successful. Please verify your phone number.",
                       "data": {
                         "user_id": "usr_1234567890abcdef",
-                        "email": "john@example.com",
+                        "email": "john.doe@example.com",
                         "phone": "+6281234567890",
                         "full_name": "John Doe",
                         "user_type": "producer",
@@ -237,7 +237,7 @@ public class AuthController {
                         "expires_in": 3600,
                         "user": {
                           "user_id": "usr_1234567890abcdef",
-                          "email": "john@example.com",
+                          "email": "john.doe@example.com",
                           "phone": "+6281234567890",
                           "full_name": "John Doe",
                           "user_type": "producer",
@@ -464,7 +464,7 @@ public class AuthController {
                         "expires_in": 3600,
                         "user": {
                           "user_id": "usr_1234567890abcdef",
-                          "email": "john@example.com",
+                          "email": "john.doe@example.com",
                           "phone": "+6281234567890",
                           "full_name": "John Doe",
                           "user_type": "producer",
@@ -571,7 +571,7 @@ public class AuthController {
                       "error_code": "EMAIL_NOT_VERIFIED",
                       "data": {
                         "user_id": "usr_1234567890abcdef",
-                        "email": "john@example.com",
+                        "email": "john.doe@example.com",
                         "can_resend_verification": true
                       }
                     }
@@ -600,7 +600,7 @@ public class AuthController {
                         name = "Login with Email",
                         value = """
                         {
-                          "identifier": "john@example.com",
+                          "identifier": "john.doe@example.com",
                           "password": "SecurePass123!",
                           "remember_me": true,
                           "device_info": {
@@ -659,7 +659,7 @@ public class AuthController {
                         "expires_in": 3600,
                         "user": {
                           "user_id": "usr_1234567890abcdef",
-                          "email": "john@example.com",
+                          "email": "john.doe@example.com",
                           "phone": "+6281234567890",
                           "full_name": "John Doe",
                           "user_type": "producer",
@@ -964,7 +964,7 @@ public class AuthController {
                       "message": "Password reset code has been sent",
                       "data": {
                         "reset_token": "reset_a1b2c3d4e5f6g7h8",
-                        "sent_to": "john@example.com",
+                        "sent_to": "john.doe@example.com",
                         "method": "email",
                         "expires_at": "2025-10-11T10:25:00Z"
                       }
@@ -1004,7 +1004,7 @@ public class AuthController {
                             name = "Email Request",
                             value = """
                             {
-                              "identifier": "john@example.com"
+                              "identifier": "john.doe@example.com"
                             }
                             """
                         ),
