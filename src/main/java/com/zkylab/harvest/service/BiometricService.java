@@ -34,20 +34,18 @@ public class BiometricService {
     /**
      * Register a device for biometric authentication
      * 
-     * @param request BiometricRegisterRequest containing user and device info
+     * @param request BiometricRegisterRequest containing device info
+     * @param userId The authenticated user's ID
      * @return BiometricRegisterResponse with registration status
      */
-    public Object registerBiometric(BiometricRegisterRequest request) {
+    public Object registerBiometric(BiometricRegisterRequest request, Long userId) {
         try {
-            // Find user by email or phone
-            Optional<User> userOpt = userRepository.findByEmail(request.getIdentifier());
-            if (userOpt.isEmpty()) {
-                userOpt = userRepository.findByPhoneNumber(request.getIdentifier());
-            }
+            // Find user by ID
+            Optional<User> userOpt = userRepository.findById(userId);
 
             if (userOpt.isEmpty()) {
                 BiometricRegisterResponse response = new BiometricRegisterResponse();
-                response.setSuccess(false);
+                response.setStatus("error");
                 response.setMessage("User not found");
                 return response;
             }
@@ -58,35 +56,46 @@ public class BiometricService {
             Optional<BiometricAuth> existingAuth = biometricAuthRepository.findByDeviceId(request.getDevice_id());
             if (existingAuth.isPresent()) {
                 BiometricRegisterResponse response = new BiometricRegisterResponse();
-                response.setSuccess(false);
+                response.setStatus("error");
                 response.setMessage("Device already registered for biometric authentication");
                 return response;
             }
+
+            // Extract device name from device_info
+            String deviceName = request.getDevice_info() != null ? 
+                request.getDevice_info().getDevice_name() : "Unknown Device";
+            
+            // For now, we'll determine platform from device info, or default to "unknown"
+            String platform = "unknown";
 
             // Create new biometric auth record
             BiometricAuth biometricAuth = new BiometricAuth(
                 user,
                 request.getDevice_id(),
-                request.getDevice_name(),
+                deviceName,
                 request.getPublic_key(),
                 request.getBiometric_type(),
-                request.getPlatform()
+                platform
             );
 
             biometricAuthRepository.save(biometricAuth);
 
             // Generate success response
             BiometricRegisterResponse response = new BiometricRegisterResponse();
-            response.setSuccess(true);
+            response.setStatus("success");
             response.setMessage("Biometric authentication registered successfully");
-            response.setDevice_id(request.getDevice_id());
-            response.setRegistered_at(biometricAuth.getRegisteredAt().toString());
+            
+            BiometricRegisterResponse.Data data = new BiometricRegisterResponse.Data();
+            data.setBiometric_id(biometricAuth.getId().toString());
+            data.setDevice_id(request.getDevice_id());
+            data.setEnabled_at(java.time.ZonedDateTime.now());
+            response.setData(data);
 
             return response;
 
         } catch (Exception e) {
             BiometricRegisterResponse response = new BiometricRegisterResponse();
-            response.setSuccess(false);
+            response.setStatus("error");
             response.setMessage("Failed to register biometric authentication: " + e.getMessage());
             return response;
         }

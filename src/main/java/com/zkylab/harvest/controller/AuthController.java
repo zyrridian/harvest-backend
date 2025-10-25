@@ -7,6 +7,7 @@ import com.zkylab.harvest.service.LoginService;
 import com.zkylab.harvest.service.SocialLoginService;
 import com.zkylab.harvest.service.TokenService;
 import com.zkylab.harvest.service.PasswordService;
+import com.zkylab.harvest.service.BiometricService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -1306,6 +1307,9 @@ public class AuthController {
         )
     })
     public ResponseEntity<?> registerBiometric(
+            @Parameter(description = "Bearer token", example = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...")
+            @RequestHeader(value = "Authorization", required = false) String authorization,
+
             @io.swagger.v3.oas.annotations.parameters.RequestBody(
                 description = "Biometric registration data",
                 required = true,
@@ -1316,23 +1320,29 @@ public class AuthController {
                         name = "Register Fingerprint",
                         value = """
                         {
-                          "identifier": "john@example.com",
                           "device_id": "device-12345-xyz",
-                          "device_name": "Samsung Galaxy S21",
-                          "public_key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA...",
                           "biometric_type": "fingerprint",
-                          "platform": "android"
+                          "public_key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA...",
+                          "device_info": {
+                            "device_name": "Samsung Galaxy S21",
+                            "os_version": "Android 12"
+                          }
                         }
                         """
                     )
                 )
             )
             @Valid @RequestBody BiometricRegisterRequest request) {
-        Object result = biometricService.registerBiometric(request);
+        
+        // TODO: Extract user ID from JWT token in Authorization header
+        // For now, using a placeholder
+        Long userId = 1L; // This should be extracted from the JWT token
+        
+        Object result = biometricService.registerBiometric(request, userId);
         
         if (result instanceof BiometricRegisterResponse) {
             BiometricRegisterResponse response = (BiometricRegisterResponse) result;
-            if (response.isSuccess()) {
+            if ("success".equals(response.getStatus())) {
                 return ResponseEntity.ok(result);
             } else {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(result);
