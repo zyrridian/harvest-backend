@@ -396,15 +396,17 @@ export default function AdminDashboard() {
           Orders by Status
         </h3>
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          {Object.entries(stats.orders_by_status || {}).map(([status, count]) => (
-            <div
-              key={status}
-              className="text-center p-4 bg-gray-50 rounded-lg"
-            >
-              <p className="text-2xl font-bold text-gray-900">{count}</p>
-              <p className="text-sm text-gray-600 mt-1">{status}</p>
-            </div>
-          ))}
+          {Object.entries(stats.orders_by_status || {}).map(
+            ([status, count]) => (
+              <div
+                key={status}
+                className="text-center p-4 bg-gray-50 rounded-lg"
+              >
+                <p className="text-2xl font-bold text-gray-900">{count}</p>
+                <p className="text-sm text-gray-600 mt-1">{status}</p>
+              </div>
+            )
+          )}
         </div>
       </div>
     </div>
