@@ -16,7 +16,7 @@ const REFRESH_TOKEN_EXPIRY = "7d"; // 7 days
 
 export interface TokenPayload extends JWTPayload {
   userId: string;
-  userType: string;
+  user_type: string;
   type: "access" | "refresh";
 }
 
@@ -25,9 +25,9 @@ export interface TokenPayload extends JWTPayload {
  */
 export async function signAccessToken(
   userId: string,
-  userType: string
+  user_type: string
 ): Promise<string> {
-  return await new SignJWT({ userId, userType, type: "access" })
+  return await new SignJWT({ userId, user_type, type: "access" })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime(ACCESS_TOKEN_EXPIRY)
@@ -39,9 +39,9 @@ export async function signAccessToken(
  */
 export async function signRefreshToken(
   userId: string,
-  userType: string
+  user_type: string
 ): Promise<string> {
-  return await new SignJWT({ userId, userType, type: "refresh" })
+  return await new SignJWT({ userId, user_type, type: "refresh" })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime(REFRESH_TOKEN_EXPIRY)
@@ -55,7 +55,8 @@ export async function verifyToken(token: string): Promise<TokenPayload | null> {
   try {
     const { payload } = await jwtVerify(token, getSecret());
     return payload as TokenPayload;
-  } catch {
+  } catch (error) {
+    console.error("Token verification failed:", error);
     return null;
   }
 }
@@ -103,7 +104,10 @@ export function extractBearerToken(authHeader: string | null): string | null {
  */
 export async function verifyAuth(request: any): Promise<TokenPayload> {
   const authHeader = request.headers.get("authorization");
+  console.log("Auth header:", authHeader);
+
   const token = extractBearerToken(authHeader);
+  console.log("Extracted token:", token);
 
   if (!token) {
     throw new Error("Unauthorized: No token provided");
@@ -125,7 +129,7 @@ export async function verifyAuth(request: any): Promise<TokenPayload> {
 export async function verifyAdmin(request: any): Promise<TokenPayload> {
   const payload = await verifyAuth(request);
 
-  if (payload.userType !== "ADMIN") {
+  if (payload.user_type !== "ADMIN") {
     const error: any = new Error("Forbidden: Admin access required");
     error.status = 403;
     throw error;

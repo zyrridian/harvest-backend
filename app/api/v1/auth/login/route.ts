@@ -1,11 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
-import { 
-  comparePassword, 
-  signAccessToken, 
-  signRefreshToken, 
-  getRefreshTokenExpiry 
-} from '@/lib/auth';
+import { NextRequest, NextResponse } from "next/server";
+import prisma from "@/lib/prisma";
+import {
+  comparePassword,
+  signAccessToken,
+  signRefreshToken,
+  getRefreshTokenExpiry,
+} from "@/lib/auth";
 
 /**
  * @swagger
@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
     // Validation
     if (!email || !password) {
       return NextResponse.json(
-        { status: 'error', message: 'Email and password are required' },
+        { status: "error", message: "Email and password are required" },
         { status: 400 }
       );
     }
@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
 
     if (!user) {
       return NextResponse.json(
-        { status: 'error', message: 'Invalid credentials' },
+        { status: "error", message: "Invalid credentials" },
         { status: 401 }
       );
     }
@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
 
     if (!isValidPassword) {
       return NextResponse.json(
-        { status: 'error', message: 'Invalid credentials' },
+        { status: "error", message: "Invalid credentials" },
         { status: 401 }
       );
     }
@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
       data: { isOnline: true, lastSeen: new Date() },
     });
 
-    // Generate tokens
+    // Generate tokens (userType is Prisma's camelCase property for user_type field)
     const accessToken = await signAccessToken(user.id, user.userType);
     const refreshToken = await signRefreshToken(user.id, user.userType);
 
@@ -118,30 +118,30 @@ export async function POST(request: NextRequest) {
     };
 
     const response = NextResponse.json({
-      status: 'success',
+      status: "success",
       data: {
         user: userResponse,
         access_token: accessToken,
         refresh_token: refreshToken,
-        token_type: 'Bearer',
+        token_type: "Bearer",
         expires_in: 3600, // 1 hour in seconds
       },
     });
 
     // Set refresh token as HTTP-only cookie for web clients
-    response.cookies.set('refresh_token', refreshToken, {
+    response.cookies.set("refresh_token", refreshToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
       maxAge: 7 * 24 * 60 * 60, // 7 days
-      path: '/',
+      path: "/",
     });
 
     return response;
   } catch (error) {
-    console.error('Login error:', error);
+    console.error("Login error:", error);
     return NextResponse.json(
-      { status: 'error', message: 'Internal server error' },
+      { status: "error", message: "Internal server error" },
       { status: 500 }
     );
   }

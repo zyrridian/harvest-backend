@@ -1,11 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
-import { 
-  verifyToken, 
-  signAccessToken, 
-  signRefreshToken, 
-  getRefreshTokenExpiry 
-} from '@/lib/auth';
+import { NextRequest, NextResponse } from "next/server";
+import prisma from "@/lib/prisma";
+import {
+  verifyToken,
+  signAccessToken,
+  signRefreshToken,
+  getRefreshTokenExpiry,
+} from "@/lib/auth";
 
 /**
  * @swagger
@@ -65,12 +65,12 @@ export async function POST(request: NextRequest) {
 
     // If no token in body, try to get from cookie
     if (!refreshTokenValue) {
-      refreshTokenValue = request.cookies.get('refresh_token')?.value;
+      refreshTokenValue = request.cookies.get("refresh_token")?.value;
     }
 
     if (!refreshTokenValue) {
       return NextResponse.json(
-        { status: 'error', message: 'Refresh token is required' },
+        { status: "error", message: "Refresh token is required" },
         { status: 400 }
       );
     }
@@ -78,9 +78,9 @@ export async function POST(request: NextRequest) {
     // Verify the refresh token
     const payload = await verifyToken(refreshTokenValue);
 
-    if (!payload || payload.type !== 'refresh') {
+    if (!payload || payload.type !== "refresh") {
       return NextResponse.json(
-        { status: 'error', message: 'Invalid refresh token' },
+        { status: "error", message: "Invalid refresh token" },
         { status: 401 }
       );
     }
@@ -93,7 +93,7 @@ export async function POST(request: NextRequest) {
 
     if (!storedToken) {
       return NextResponse.json(
-        { status: 'error', message: 'Refresh token not found' },
+        { status: "error", message: "Refresh token not found" },
         { status: 401 }
       );
     }
@@ -104,14 +104,20 @@ export async function POST(request: NextRequest) {
         where: { id: storedToken.id },
       });
       return NextResponse.json(
-        { status: 'error', message: 'Refresh token expired' },
+        { status: "error", message: "Refresh token expired" },
         { status: 401 }
       );
     }
 
     // Generate new tokens
-    const newAccessToken = await signAccessToken(storedToken.user.id, storedToken.user.userType);
-    const newRefreshToken = await signRefreshToken(storedToken.user.id, storedToken.user.userType);
+    const newAccessToken = await signAccessToken(
+      storedToken.user.id,
+      storedToken.user.userType
+    );
+    const newRefreshToken = await signRefreshToken(
+      storedToken.user.id,
+      storedToken.user.userType
+    );
 
     // Update refresh token in database (rotate token)
     await prisma.refreshToken.update({
@@ -123,29 +129,29 @@ export async function POST(request: NextRequest) {
     });
 
     const response = NextResponse.json({
-      status: 'success',
+      status: "success",
       data: {
         access_token: newAccessToken,
         refresh_token: newRefreshToken,
-        token_type: 'Bearer',
+        token_type: "Bearer",
         expires_in: 3600, // 1 hour in seconds
       },
     });
 
     // Update the refresh token cookie
-    response.cookies.set('refresh_token', newRefreshToken, {
+    response.cookies.set("refresh_token", newRefreshToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
       maxAge: 7 * 24 * 60 * 60, // 7 days
-      path: '/',
+      path: "/",
     });
 
     return response;
   } catch (error) {
-    console.error('Token refresh error:', error);
+    console.error("Token refresh error:", error);
     return NextResponse.json(
-      { status: 'error', message: 'Internal server error' },
+      { status: "error", message: "Internal server error" },
       { status: 500 }
     );
   }
