@@ -11,15 +11,60 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+  // url      = env("DATABASE_URL")
 }
 
+// ============================================
+// USERS & AUTHENTICATION
+// ============================================
+
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  password  String   // Hashed
-  role      String   @default("USER") // ADMIN, FARMER, BUYER
-  createdAt DateTime @default(now())
+  id           String    @id @default(uuid())
+  email        String    @unique
+  password     String    // Hashed with bcrypt
+  name         String
+  phoneNumber  String?   @map("phone_number")
+  avatarUrl    String?   @map("avatar_url")
+  userType     UserType  @default(CONSUMER) @map("user_type")
+  isVerified   Boolean   @default(false) @map("is_verified")
+  isOnline     Boolean   @default(false) @map("is_online")
+  lastSeen     DateTime? @map("last_seen")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  refreshTokens RefreshToken[]
+  products      Product[]
+
+  @@index([email])
+  @@index([userType])
+  @@map("users")
 }
+
+enum UserType {
+  CONSUMER
+  PRODUCER
+  ADMIN
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  token     String   @unique
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("refresh_tokens")
+}
+
+// ============================================
+// PRODUCTS
+// ============================================
 
 model Product {
   id          String   @id @default(uuid())
@@ -27,5 +72,13 @@ model Product {
   description String?
   price       Float
   stock       Int
-  createdAt   DateTime @default(now())
+  sellerId    String   @map("seller_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  seller User @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+
+  @@index([sellerId])
+  @@map("products")
 }
