@@ -1,31 +1,34 @@
-import { SignJWT, jwtVerify, JWTPayload } from 'jose';
-import bcrypt from 'bcryptjs';
+import { SignJWT, jwtVerify, JWTPayload } from "jose";
+import bcrypt from "bcryptjs";
 
 // JWT Secret - must be set in environment variables
 const getSecret = () => {
   const secret = process.env.JWT_SECRET;
   if (!secret) {
-    throw new Error('JWT_SECRET environment variable is not set');
+    throw new Error("JWT_SECRET environment variable is not set");
   }
   return new TextEncoder().encode(secret);
 };
 
 // Token expiration times
-const ACCESS_TOKEN_EXPIRY = '1h'; // 1 hour
-const REFRESH_TOKEN_EXPIRY = '7d'; // 7 days
+const ACCESS_TOKEN_EXPIRY = "1h"; // 1 hour
+const REFRESH_TOKEN_EXPIRY = "7d"; // 7 days
 
 export interface TokenPayload extends JWTPayload {
   userId: string;
   userType: string;
-  type: 'access' | 'refresh';
+  type: "access" | "refresh";
 }
 
 /**
  * Sign an access token
  */
-export async function signAccessToken(userId: string, userType: string): Promise<string> {
-  return await new SignJWT({ userId, userType, type: 'access' })
-    .setProtectedHeader({ alg: 'HS256' })
+export async function signAccessToken(
+  userId: string,
+  userType: string
+): Promise<string> {
+  return await new SignJWT({ userId, userType, type: "access" })
+    .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime(ACCESS_TOKEN_EXPIRY)
     .sign(getSecret());
@@ -34,9 +37,12 @@ export async function signAccessToken(userId: string, userType: string): Promise
 /**
  * Sign a refresh token
  */
-export async function signRefreshToken(userId: string, userType: string): Promise<string> {
-  return await new SignJWT({ userId, userType, type: 'refresh' })
-    .setProtectedHeader({ alg: 'HS256' })
+export async function signRefreshToken(
+  userId: string,
+  userType: string
+): Promise<string> {
+  return await new SignJWT({ userId, userType, type: "refresh" })
+    .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime(REFRESH_TOKEN_EXPIRY)
     .sign(getSecret());
@@ -65,7 +71,10 @@ export async function hashPassword(password: string): Promise<string> {
 /**
  * Compare a password with its hash
  */
-export async function comparePassword(password: string, hash: string): Promise<boolean> {
+export async function comparePassword(
+  password: string,
+  hash: string
+): Promise<boolean> {
   return await bcrypt.compare(password, hash);
 }
 
@@ -82,8 +91,29 @@ export function getRefreshTokenExpiry(): Date {
  * Extract bearer token from Authorization header
  */
 export function extractBearerToken(authHeader: string | null): string | null {
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
     return null;
   }
   return authHeader.slice(7);
+}
+
+/**
+ * Verify authentication from NextRequest
+ * Helper function that combines extractBearerToken and verifyToken
+ */
+export async function verifyAuth(request: any): Promise<TokenPayload> {
+  const authHeader = request.headers.get("authorization");
+  const token = extractBearerToken(authHeader);
+
+  if (!token) {
+    throw new Error("Unauthorized: No token provided");
+  }
+
+  const payload = await verifyToken(token);
+
+  if (!payload) {
+    throw new Error("Unauthorized: Invalid token");
+  }
+
+  return payload;
 }

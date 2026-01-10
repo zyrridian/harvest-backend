@@ -33,16 +33,22 @@ model User {
   updatedAt    DateTime  @updatedAt @map("updated_at")
 
   // Relations
-  refreshTokens RefreshToken[]
-  products      Product[]
-  profile       UserProfile?
-  farmer        Farmer?
-  favorites     Favorite[]
-  productViews  ProductView[]
-  cart          Cart?
-  buyerOrders   Order[]       @relation("BuyerOrders")
-  sellerOrders  Order[]       @relation("SellerOrders")
-  addresses     Address[]
+  refreshTokens         RefreshToken[]
+  products              Product[]
+  profile               UserProfile?
+  farmer                Farmer?
+  favorites             Favorite[]
+  productViews          ProductView[]
+  cart                  Cart?
+  buyerOrders           Order[]              @relation("BuyerOrders")
+  sellerOrders          Order[]              @relation("SellerOrders")
+  addresses             Address[]
+  reviews               Review[]
+  reviewHelpful         ReviewHelpful[]
+  searchHistory         SearchHistory[]
+  conversationsAsP1     Conversation[]       @relation("Participant1")
+  conversationsAsP2     Conversation[]       @relation("Participant2")
+  sentMessages          Message[]
 
   @@index([email])
   @@index([userType])
@@ -170,6 +176,8 @@ model Product {
   views             ProductView[]
   cartItems         CartItem[]
   orderItems        OrderItem[]
+  reviews           Review[]
+  conversations     Conversation[]
 
   @@index([sellerId])
   @@index([categoryId])
@@ -432,6 +440,8 @@ model Order {
   seller          User        @relation("SellerOrders", fields: [sellerId], references: [id], onDelete: Cascade)
   deliveryAddress Address?    @relation(fields: [deliveryAddressId], references: [id], onDelete: SetNull)
   items           OrderItem[]
+  reviews         Review[]
+  conversations   Conversation[]
 
   @@index([buyerId])
   @@index([sellerId])
@@ -495,4 +505,192 @@ model Address {
   @@index([userId])
   @@index([latitude, longitude])
   @@map("addresses")
+}
+
+// ============================================
+// REVIEWS
+// ============================================
+
+model Review {
+  id                 String    @id @default(uuid())
+  productId          String    @map("product_id")
+  userId             String    @map("user_id")
+  orderId            String?   @map("order_id")
+  rating             Float
+  title              String?
+  comment            String?   @db.Text
+  isVerifiedPurchase Boolean   @default(false) @map("is_verified_purchase")
+  helpfulCount       Int       @default(0) @map("helpful_count")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  product        Product          @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  order          Order?           @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  images         ReviewImage[]
+  helpfulMarks   ReviewHelpful[]
+  sellerResponse SellerResponse?
+
+  @@index([productId])
+  @@index([userId])
+  @@index([rating])
+  @@map("reviews")
+}
+
+model ReviewImage {
+  id           String @id @default(uuid())
+  reviewId     String @map("review_id")
+  url          String @db.Text
+  thumbnailUrl String? @map("thumbnail_url") @db.Text
+  displayOrder Int    @default(0) @map("display_order")
+
+  // Relations
+  review Review @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+
+  @@index([reviewId])
+  @@map("review_images")
+}
+
+model ReviewHelpful {
+  reviewId  String   @map("review_id")
+  userId    String   @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  review Review @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([reviewId, userId])
+  @@map("review_helpful")
+}
+
+model SellerResponse {
+  id          String   @id @default(uuid())
+  reviewId    String   @unique @map("review_id")
+  comment     String   @db.Text
+  respondedAt DateTime @default(now()) @map("responded_at")
+
+  // Relations
+  review Review @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+
+  @@map("seller_responses")
+}
+
+// ============================================
+// SEARCH
+// ============================================
+
+model SearchHistory {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  query       String
+  resultCount Int      @default(0) @map("result_count")
+  searchedAt  DateTime @default(now()) @map("searched_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([searchedAt])
+  @@map("search_history")
+}
+
+// ============================================
+// MESSAGING
+// ============================================
+
+model Conversation {
+  id             String           @id @default(uuid())
+  type           ConversationType @default(GENERAL)
+  participant1Id String           @map("participant_1_id")
+  participant2Id String           @map("participant_2_id")
+  orderId        String?          @map("order_id")
+  productId      String?          @map("product_id")
+  isMutedP1      Boolean          @default(false) @map("is_muted_p1")
+  isMutedP2      Boolean          @default(false) @map("is_muted_p2")
+  isPinnedP1     Boolean          @default(false) @map("is_pinned_p1")
+  isPinnedP2     Boolean          @default(false) @map("is_pinned_p2")
+  createdAt      DateTime         @default(now()) @map("created_at")
+  updatedAt      DateTime         @updatedAt @map("updated_at")
+
+  // Relations
+  participant1 User      @relation("Participant1", fields: [participant1Id], references: [id], onDelete: Cascade)
+  participant2 User      @relation("Participant2", fields: [participant2Id], references: [id], onDelete: Cascade)
+  order        Order?    @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  product      Product?  @relation(fields: [productId], references: [id], onDelete: SetNull)
+  messages     Message[]
+
+  @@unique([participant1Id, participant2Id, orderId])
+  @@index([participant1Id])
+  @@index([participant2Id])
+  @@index([orderId])
+  @@index([productId])
+  @@map("conversations")
+}
+
+model Message {
+  id                    String      @id @default(uuid())
+  conversationId        String      @map("conversation_id")
+  senderId              String      @map("sender_id")
+  type                  MessageType @default(TEXT)
+  content               String?     @db.Text
+  replyToMessageId      String?     @map("reply_to_message_id")
+  isRead                Boolean     @default(false) @map("is_read")
+  readAt                DateTime?   @map("read_at")
+  isEdited              Boolean     @default(false) @map("is_edited")
+  editedAt              DateTime?   @map("edited_at")
+  deletedForSender      Boolean     @default(false) @map("deleted_for_sender")
+  deletedForRecipient   Boolean     @default(false) @map("deleted_for_recipient")
+  createdAt             DateTime    @default(now()) @map("created_at")
+
+  // Relations
+  conversation  Conversation   @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender        User           @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  replyTo       Message?       @relation("MessageReplies", fields: [replyToMessageId], references: [id], onDelete: SetNull)
+  replies       Message[]      @relation("MessageReplies")
+  images        MessageImage[]
+
+  @@index([conversationId])
+  @@index([senderId])
+  @@index([createdAt])
+  @@map("messages")
+}
+
+model MessageImage {
+  id           String  @id @default(uuid())
+  messageId    String  @map("message_id")
+  url          String  @db.Text
+  thumbnailUrl String? @map("thumbnail_url") @db.Text
+  width        Int?
+  height       Int?
+
+  // Relations
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@index([messageId])
+  @@map("message_images")
+}
+
+// ============================================
+// ENUMS
+// ============================================
+
+enum ConversationType {
+  GENERAL
+  ORDER
+  PRODUCT
+
+  @@map("conversation_type")
+}
+
+enum MessageType {
+  TEXT
+  IMAGE
+  PRODUCT
+  ORDER
+  VOICE
+  SYSTEM
+
+  @@map("message_type")
 }
