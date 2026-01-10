@@ -49,6 +49,12 @@ model User {
   conversationsAsP1     Conversation[]       @relation("Participant1")
   conversationsAsP2     Conversation[]       @relation("Participant2")
   sentMessages          Message[]
+  notifications         Notification[]
+  notificationSettings  NotificationSettings?
+  communityPosts        CommunityPost[]
+  postLikes             PostLike[]
+  postComments          PostComment[]
+  commentLikes          CommentLike[]
 
   @@index([email])
   @@index([userType])
@@ -693,4 +699,256 @@ enum MessageType {
   SYSTEM
 
   @@map("message_type")
+}
+
+// ============================================
+// NOTIFICATIONS
+// ============================================
+
+model Notification {
+  id            String           @id @default(uuid())
+  userId        String           @map("user_id")
+  type          NotificationType
+  title         String
+  message       String           @db.Text
+  relatedType   String?          @map("related_type")
+  relatedId     String?          @map("related_id")
+  imageUrl      String?          @map("image_url") @db.Text
+  actionUrl     String?          @map("action_url") @db.Text
+  isRead        Boolean          @default(false) @map("is_read")
+  readAt        DateTime?        @map("read_at")
+  createdAt     DateTime         @default(now()) @map("created_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+model NotificationSettings {
+  userId                  String  @id @map("user_id")
+  enablePushNotifications Boolean @default(true) @map("enable_push_notifications")
+  enableOrderUpdates      Boolean @default(true) @map("enable_order_updates")
+  enableNewMessages       Boolean @default(true) @map("enable_new_messages")
+  enableReviews           Boolean @default(true) @map("enable_reviews")
+  enablePromotions        Boolean @default(true) @map("enable_promotions")
+  enableCommunity         Boolean @default(true) @map("enable_community")
+  enableEmailNotifications Boolean @default(true) @map("enable_email_notifications")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notification_settings")
+}
+
+enum NotificationType {
+  ORDER_PLACED
+  ORDER_CONFIRMED
+  ORDER_SHIPPED
+  ORDER_DELIVERED
+  ORDER_CANCELLED
+  NEW_MESSAGE
+  NEW_REVIEW
+  REVIEW_RESPONSE
+  PROMOTION
+  COMMUNITY_LIKE
+  COMMUNITY_COMMENT
+  SYSTEM
+
+  @@map("notification_type")
+}
+
+// ============================================
+// COMMUNITY POSTS
+// ============================================
+
+model CommunityPost {
+  id           String      @id @default(uuid())
+  userId       String      @map("user_id")
+  title        String
+  content      String      @db.Text
+  likesCount   Int         @default(0) @map("likes_count")
+  commentsCount Int        @default(0) @map("comments_count")
+  createdAt    DateTime    @default(now()) @map("created_at")
+  updatedAt    DateTime    @updatedAt @map("updated_at")
+
+  // Relations
+  user     User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  images   PostImage[]
+  tags     PostTag[]
+  likes    PostLike[]
+  comments PostComment[]
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("community_posts")
+}
+
+model PostImage {
+  id           String  @id @default(uuid())
+  postId       String  @map("post_id")
+  url          String  @db.Text
+  thumbnailUrl String? @map("thumbnail_url") @db.Text
+  displayOrder Int     @default(0) @map("display_order")
+
+  // Relations
+  post CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+  @@map("post_images")
+}
+
+model PostTag {
+  postId String @map("post_id")
+  tag    String
+
+  // Relations
+  post CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@id([postId, tag])
+  @@index([tag])
+  @@map("post_tags")
+}
+
+model PostLike {
+  postId    String   @map("post_id")
+  userId    String   @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  post CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([postId, userId])
+  @@index([userId])
+  @@map("post_likes")
+}
+
+model PostComment {
+  id         String        @id @default(uuid())
+  postId     String        @map("post_id")
+  userId     String        @map("user_id")
+  content    String        @db.Text
+  likesCount Int           @default(0) @map("likes_count")
+  createdAt  DateTime      @default(now()) @map("created_at")
+
+  // Relations
+  post  CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user  User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  likes CommentLike[]
+
+  @@index([postId])
+  @@index([userId])
+  @@map("post_comments")
+}
+
+model CommentLike {
+  commentId String   @map("comment_id")
+  userId    String   @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  comment PostComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user    User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([commentId, userId])
+  @@index([userId])
+  @@map("comment_likes")
+}
+
+// ============================================
+// UTILITY & MEDIA
+// ============================================
+
+model Province {
+  id     Int     @id
+  name   String
+  code   String?
+  cities City[]
+
+  @@index([name])
+  @@map("provinces")
+}
+
+model City {
+  id         Int        @id
+  provinceId Int        @map("province_id")
+  name       String
+  type       String?
+  postalCode String?    @map("postal_code")
+  districts  District[]
+
+  // Relations
+  province Province @relation(fields: [provinceId], references: [id], onDelete: Cascade)
+
+  @@index([provinceId])
+  @@index([name])
+  @@map("cities")
+}
+
+model District {
+  id     Int    @id
+  cityId Int    @map("city_id")
+  name   String
+
+  // Relations
+  city City @relation(fields: [cityId], references: [id], onDelete: Cascade)
+
+  @@index([cityId])
+  @@index([name])
+  @@map("districts")
+}
+
+model UploadedImage {
+  id          String   @id @default(uuid())
+  userId      String?  @map("user_id")
+  url         String   @db.Text
+  thumbnailUrl String? @map("thumbnail_url") @db.Text
+  mediumUrl   String?  @map("medium_url") @db.Text
+  fileName    String   @map("file_name")
+  fileSize    Int      @map("file_size")
+  mimeType    String   @map("mime_type")
+  width       Int?
+  height      Int?
+  type        String?
+  uploadedAt  DateTime @default(now()) @map("uploaded_at")
+
+  @@index([userId])
+  @@index([type])
+  @@map("uploaded_images")
+}
+
+model UploadedVideo {
+  id           String   @id @default(uuid())
+  userId       String?  @map("user_id")
+  url          String   @db.Text
+  thumbnailUrl String?  @map("thumbnail_url") @db.Text
+  fileName     String   @map("file_name")
+  fileSize     Int      @map("file_size")
+  mimeType     String   @map("mime_type")
+  duration     Int?
+  width        Int?
+  height       Int?
+  type         String?
+  uploadStatus String   @default("pending") @map("upload_status")
+  uploadedAt   DateTime @default(now()) @map("uploaded_at")
+
+  @@index([userId])
+  @@index([uploadStatus])
+  @@map("uploaded_videos")
+}
+
+model ShareLink {
+  id           String   @id @default(uuid())
+  referenceType String  @map("reference_type")
+  referenceId  String   @map("reference_id")
+  shortCode    String   @unique @map("short_code")
+  shareCount   Int      @default(0) @map("share_count")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@index([referenceId])
+  @@map("share_links")
 }
