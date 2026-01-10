@@ -35,6 +35,7 @@ model User {
   // Relations
   refreshTokens RefreshToken[]
   products      Product[]
+  profile       UserProfile?
 
   @@index([email])
   @@index([userType])
@@ -60,6 +61,20 @@ model RefreshToken {
   @@index([userId])
   @@index([expiresAt])
   @@map("refresh_tokens")
+}
+
+model UserProfile {
+  userId         String   @id @map("user_id")
+  bio            String?
+  followersCount Int      @default(0) @map("followers_count")
+  responseRate   Float    @default(0) @map("response_rate")
+  responseTime   String?  @map("response_time")
+  joinedSince    DateTime @default(now()) @map("joined_since")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_profiles")
 }
 
 // ============================================
