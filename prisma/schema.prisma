@@ -39,6 +39,10 @@ model User {
   farmer        Farmer?
   favorites     Favorite[]
   productViews  ProductView[]
+  cart          Cart?
+  buyerOrders   Order[]       @relation("BuyerOrders")
+  sellerOrders  Order[]       @relation("SellerOrders")
+  addresses     Address[]
 
   @@index([email])
   @@index([userType])
@@ -164,6 +168,8 @@ model Product {
   discounts         ProductDiscount[]
   favorites         Favorite[]
   views             ProductView[]
+  cartItems         CartItem[]
+  orderItems        OrderItem[]
 
   @@index([sellerId])
   @@index([categoryId])
@@ -348,4 +354,145 @@ model FarmerSpecialty {
   @@id([farmerId, specialty])
   @@index([specialty])
   @@map("farmer_specialties")
+}
+
+// ============================================
+// CART
+// ============================================
+
+model Cart {
+  id        String   @id @default(uuid())
+  userId    String   @unique @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  user  User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items CartItem[]
+
+  @@map("carts")
+}
+
+model CartItem {
+  id            String   @id @default(uuid())
+  cartId        String   @map("cart_id")
+  productId     String   @map("product_id")
+  quantity      Int      @default(1)
+  unitPrice     Float    @map("unit_price")
+  discountPrice Float?   @map("discount_price")
+  subtotal      Float
+  notes         String?
+  isSelected    Boolean  @default(true) @map("is_selected")
+  isAvailable   Boolean  @default(true) @map("is_available")
+  addedAt       DateTime @default(now()) @map("added_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  cart    Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([cartId, productId])
+  @@index([cartId])
+  @@index([productId])
+  @@map("cart_items")
+}
+
+// ============================================
+// ORDERS
+// ============================================
+
+model Order {
+  id                  String    @id @default(uuid())
+  orderNumber         String    @unique @map("order_number")
+  buyerId             String    @map("buyer_id")
+  sellerId            String    @map("seller_id")
+  status              String    @default("pending_payment")
+  subtotal            Float
+  deliveryFee         Float     @default(0) @map("delivery_fee")
+  serviceFee          Float     @default(0) @map("service_fee")
+  totalDiscount       Float     @default(0) @map("total_discount")
+  totalAmount         Float     @map("total_amount")
+  paymentMethod       String?   @map("payment_method")
+  paymentStatus       String?   @map("payment_status")
+  deliveryMethod      String?   @map("delivery_method")
+  deliveryAddressId   String?   @map("delivery_address_id")
+  deliveryDate        DateTime? @map("delivery_date")
+  deliveryTimeSlot    String?   @map("delivery_time_slot")
+  trackingNumber      String?   @map("tracking_number")
+  estimatedArrival    DateTime? @map("estimated_arrival")
+  notes               String?
+  cancelledReason     String?   @map("cancelled_reason")
+  cancelledAt         DateTime? @map("cancelled_at")
+  paidAt              DateTime? @map("paid_at")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  buyer           User        @relation("BuyerOrders", fields: [buyerId], references: [id], onDelete: Cascade)
+  seller          User        @relation("SellerOrders", fields: [sellerId], references: [id], onDelete: Cascade)
+  deliveryAddress Address?    @relation(fields: [deliveryAddressId], references: [id], onDelete: SetNull)
+  items           OrderItem[]
+
+  @@index([buyerId])
+  @@index([sellerId])
+  @@index([status])
+  @@index([orderNumber])
+  @@index([createdAt])
+  @@map("orders")
+}
+
+model OrderItem {
+  id           String  @id @default(uuid())
+  orderId      String  @map("order_id")
+  productId    String  @map("product_id")
+  productName  String  @map("product_name")
+  productImage String? @map("product_image")
+  quantity     Int
+  unitPrice    Float   @map("unit_price")
+  discount     Float   @default(0)
+  subtotal     Float
+
+  // Relations
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@index([orderId])
+  @@index([productId])
+  @@map("order_items")
+}
+
+// ============================================
+// ADDRESSES
+// ============================================
+
+model Address {
+  id            String   @id @default(uuid())
+  userId        String   @map("user_id")
+  label         String
+  recipientName String   @map("recipient_name")
+  phone         String
+  fullAddress   String   @map("full_address")
+  province      String
+  provinceId    Int      @map("province_id")
+  city          String
+  cityId        Int      @map("city_id")
+  district      String
+  districtId    Int      @map("district_id")
+  subdistrict   String?
+  postalCode    String   @map("postal_code")
+  latitude      Float?
+  longitude     Float?
+  notes         String?
+  isPrimary     Boolean  @default(false) @map("is_primary")
+  isVerified    Boolean  @default(false) @map("is_verified")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orders Order[]
+
+  @@index([userId])
+  @@index([latitude, longitude])
+  @@map("addresses")
 }
