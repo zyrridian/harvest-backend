@@ -117,3 +117,19 @@ export async function verifyAuth(request: any): Promise<TokenPayload> {
 
   return payload;
 }
+
+/**
+ * Verify admin authentication from NextRequest
+ * Ensures the user is authenticated AND has ADMIN role
+ */
+export async function verifyAdmin(request: any): Promise<TokenPayload> {
+  const payload = await verifyAuth(request);
+
+  if (payload.userType !== "ADMIN") {
+    const error: any = new Error("Forbidden: Admin access required");
+    error.status = 403;
+    throw error;
+  }
+
+  return payload;
+}
