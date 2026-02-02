@@ -20,32 +20,10 @@ import {
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required:
- *               - email
- *               - password
- *               - name
- *             properties:
- *               email:
- *                 type: string
- *                 format: email
- *                 example: user@example.com
- *               password:
- *                 type: string
- *                 minLength: 8
- *                 example: securepassword123
- *               name:
- *                 type: string
- *                 example: John Doe
- *               phone_number:
- *                 type: string
- *                 example: "+6281234567890"
- *               user_type:
- *                 type: string
- *                 enum: [CONSUMER, PRODUCER, ADMIN]
- *                 default: CONSUMER
- *                 description: Account type - CONSUMER (buyer), PRODUCER (farmer/seller), or ADMIN
- *                 example: CONSUMER
+ *             $ref: '#/components/schemas/RegisterRequest'
+ *         multipart/form-data:
+ *           schema:
+ *             $ref: '#/components/schemas/RegisterRequest'
  *     responses:
  *       201:
  *         description: Registration successful
@@ -62,8 +40,26 @@ import {
  */
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    // Parse body - support both JSON and form-data
+    let body;
+    const contentType = request.headers.get("content-type") || "";
+
+    if (contentType.includes("multipart/form-data")) {
+      const formData = await request.formData();
+      body = {
+        email: formData.get("email"),
+        password: formData.get("password"),
+        name: formData.get("name"),
+        phone_number: formData.get("phone_number"),
+        user_type: formData.get("user_type"),
+      };
+    } else {
+      body = await request.json();
+    }
+
     const { email, password, name, phone_number, user_type } = body;
+
+    console.log("Registration request:", { email, name, user_type }); // Debug log
 
     // Validation
     if (!email || !password || !name) {
@@ -86,7 +82,14 @@ export async function POST(request: NextRequest) {
     // Validate user_type if provided
     const validUserTypes = ["CONSUMER", "PRODUCER", "ADMIN"];
     const userType =
-      user_type && validUserTypes.includes(user_type) ? user_type : "CONSUMER";
+      user_type && validUserTypes.includes(user_type.toString().toUpperCase())
+        ? user_type.toString().toUpperCase()
+        : "CONSUMER";
+
+    console.log("User type validation:", {
+      received: user_type,
+      normalized: userType,
+    }); // Debug log
 
     // Check if email already exists
     const existingUser = await prisma.user.findUnique({

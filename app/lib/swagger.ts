@@ -37,6 +37,62 @@ export const getApiDocs = async () => {
           },
         },
         schemas: {
+          RegisterRequest: {
+            type: "object",
+            required: ["email", "password", "name"],
+            properties: {
+              email: {
+                type: "string",
+                format: "email",
+                example: "user@example.com",
+                description: "User's email address",
+              },
+              password: {
+                type: "string",
+                minLength: 8,
+                example: "securepassword123",
+                description: "Password (minimum 8 characters)",
+              },
+              name: {
+                type: "string",
+                example: "John Doe",
+                description: "User's full name",
+              },
+              phone_number: {
+                type: "string",
+                example: "+6281234567890",
+                description: "User's phone number (optional)",
+              },
+              user_type: {
+                type: "string",
+                enum: ["CONSUMER", "PRODUCER", "ADMIN"],
+                default: "CONSUMER",
+                example: "CONSUMER",
+                description:
+                  "Account type:\n" +
+                  "- CONSUMER: Regular buyer\n" +
+                  "- PRODUCER: Farmer/seller\n" +
+                  "- ADMIN: System administrator",
+              },
+            },
+          },
+          LoginRequest: {
+            type: "object",
+            required: ["email", "password"],
+            properties: {
+              email: {
+                type: "string",
+                format: "email",
+                example: "user@example.com",
+                description: "User's email address",
+              },
+              password: {
+                type: "string",
+                example: "securepassword123",
+                description: "User's password",
+              },
+            },
+          },
           User: {
             type: "object",
             properties: {

@@ -20,18 +20,10 @@ import {
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required:
- *               - email
- *               - password
- *             properties:
- *               email:
- *                 type: string
- *                 format: email
- *                 example: user@example.com
- *               password:
- *                 type: string
- *                 example: securepassword123
+ *             $ref: '#/components/schemas/LoginRequest'
+ *         multipart/form-data:
+ *           schema:
+ *             $ref: '#/components/schemas/LoginRequest'
  *     responses:
  *       200:
  *         description: Login successful
@@ -48,14 +40,27 @@ import {
  */
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    // Parse body - support both JSON and form-data
+    let body;
+    const contentType = request.headers.get("content-type") || "";
+
+    if (contentType.includes("multipart/form-data")) {
+      const formData = await request.formData();
+      body = {
+        email: formData.get("email"),
+        password: formData.get("password"),
+      };
+    } else {
+      body = await request.json();
+    }
+
     const { email, password } = body;
 
     // Validation
     if (!email || !password) {
       return NextResponse.json(
         { status: "error", message: "Email and password are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -67,7 +72,7 @@ export async function POST(request: NextRequest) {
     if (!user) {
       return NextResponse.json(
         { status: "error", message: "Invalid credentials" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -77,7 +82,7 @@ export async function POST(request: NextRequest) {
     if (!isValidPassword) {
       return NextResponse.json(
         { status: "error", message: "Invalid credentials" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -142,7 +147,7 @@ export async function POST(request: NextRequest) {
     console.error("Login error:", error);
     return NextResponse.json(
       { status: "error", message: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
