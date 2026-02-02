@@ -26,10 +26,13 @@ import { verifyToken, extractBearerToken } from "@/lib/auth";
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Verify authentication
+        // Await params in Next.js 15+
+    const { id } = await params;
+
+// Verify authentication
     const authHeader = request.headers.get("authorization");
     const token = extractBearerToken(authHeader);
     if (!token) {
@@ -50,7 +53,7 @@ export async function GET(
 
     // Get order
     const order = await prisma.order.findUnique({
-      where: { id: params.id },
+      where: { id: id },
       include: {
         seller: {
           select: {

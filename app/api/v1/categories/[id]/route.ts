@@ -21,12 +21,15 @@ import prisma from "@/lib/prisma";
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const category = await prisma.category.findFirst({
+        // Await params in Next.js 15+
+    const { id } = await params;
+
+const category = await prisma.category.findFirst({
       where: {
-        OR: [{ id: params.id }, { slug: params.id }],
+        OR: [{ id: id }, { slug: id }],
       },
       include: {
         _count: {

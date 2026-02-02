@@ -35,10 +35,13 @@ import { verifyToken, extractBearerToken } from "@/lib/auth";
  */
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Verify authentication
+        // Await params in Next.js 15+
+    const { id } = await params;
+
+// Verify authentication
     const authHeader = request.headers.get("authorization");
     const token = extractBearerToken(authHeader);
     if (!token) {
@@ -62,7 +65,7 @@ export async function PUT(
 
     // Get cart item
     const cartItem = await prisma.cartItem.findUnique({
-      where: { id: params.id },
+      where: { id: id },
       include: {
         cart: true,
         product: {
@@ -110,7 +113,7 @@ export async function PUT(
 
     // Update cart item
     const updated = await prisma.cartItem.update({
-      where: { id: params.id },
+      where: { id: id },
       data: {
         ...(quantity !== undefined && { quantity, subtotal: newSubtotal }),
         ...(notes !== undefined && { notes }),
@@ -171,7 +174,7 @@ export async function PUT(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Verify authentication
@@ -195,7 +198,7 @@ export async function DELETE(
 
     // Get cart item
     const cartItem = await prisma.cartItem.findUnique({
-      where: { id: params.id },
+      where: { id: id },
       include: {
         cart: true,
       },
@@ -218,7 +221,7 @@ export async function DELETE(
 
     // Delete cart item
     await prisma.cartItem.delete({
-      where: { id: params.id },
+      where: { id: id },
     });
 
     // Get remaining cart items

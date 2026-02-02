@@ -41,10 +41,13 @@ import { verifyToken, extractBearerToken } from "@/lib/auth";
  */
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Verify authentication
+        // Await params in Next.js 15+
+    const { id } = await params;
+
+// Verify authentication
     const authHeader = request.headers.get("authorization");
     const token = extractBearerToken(authHeader);
     if (!token) {
@@ -68,7 +71,7 @@ export async function PUT(
 
     // Get address
     const address = await prisma.address.findUnique({
-      where: { id: params.id },
+      where: { id: id },
     });
 
     if (!address) {
@@ -88,7 +91,7 @@ export async function PUT(
 
     // Update address
     const updated = await prisma.address.update({
-      where: { id: params.id },
+      where: { id: id },
       data: {
         ...(label && { label }),
         ...(recipient_name && { recipientName: recipient_name }),
@@ -142,7 +145,7 @@ export async function PUT(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Verify authentication
@@ -166,7 +169,7 @@ export async function DELETE(
 
     // Get address
     const address = await prisma.address.findUnique({
-      where: { id: params.id },
+      where: { id: id },
     });
 
     if (!address) {
@@ -186,7 +189,7 @@ export async function DELETE(
 
     // Delete address
     await prisma.address.delete({
-      where: { id: params.id },
+      where: { id: id },
     });
 
     return NextResponse.json({

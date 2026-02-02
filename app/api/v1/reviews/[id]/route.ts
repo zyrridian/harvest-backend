@@ -49,7 +49,10 @@ export async function PUT(
   context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const payload = await verifyAuth(request);
+        // Await params in Next.js 15+
+    const { id } = await params;
+
+const payload = await verifyAuth(request);
     const { id: reviewId } = await context.params;
     const body = await request.json();
 

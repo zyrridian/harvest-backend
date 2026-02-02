@@ -31,10 +31,13 @@ import prisma from "@/lib/prisma";
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { searchParams } = new URL(request.url);
+        // Await params in Next.js 15+
+    const { id } = await params;
+
+const { searchParams } = new URL(request.url);
 
     // Pagination
     const page = parseInt(searchParams.get("page") || "1");
@@ -43,7 +46,7 @@ export async function GET(
 
     // Find farmer
     const farmer = await prisma.farmer.findUnique({
-      where: { id: params.id },
+      where: { id: id },
       select: { userId: true },
     });
 

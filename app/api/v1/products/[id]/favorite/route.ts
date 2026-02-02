@@ -24,10 +24,13 @@ import { verifyToken, extractBearerToken } from "@/lib/auth";
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Verify authentication
+        // Await params in Next.js 15+
+    const { id } = await params;
+
+// Verify authentication
     const authHeader = request.headers.get("authorization");
     const token = extractBearerToken(authHeader);
     if (!token) {
@@ -48,7 +51,7 @@ export async function POST(
 
     // Check if product exists
     const product = await prisma.product.findUnique({
-      where: { id: params.id },
+      where: { id: id },
     });
 
     if (!product) {
@@ -63,7 +66,7 @@ export async function POST(
       where: {
         userId_productId: {
           userId,
-          productId: params.id,
+          productId: id,
         },
       },
     });
@@ -73,7 +76,7 @@ export async function POST(
         status: "success",
         message: "Product already in favorites",
         data: {
-          product_id: params.id,
+          product_id: id,
           is_favorited: true,
         },
       });
@@ -83,7 +86,7 @@ export async function POST(
     await prisma.favorite.create({
       data: {
         userId,
-        productId: params.id,
+        productId: id,
       },
     });
 
@@ -91,7 +94,7 @@ export async function POST(
       status: "success",
       message: "Product added to favorites",
       data: {
-        product_id: params.id,
+        product_id: id,
         is_favorited: true,
       },
     });
@@ -130,7 +133,7 @@ export async function POST(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Verify authentication
@@ -156,7 +159,7 @@ export async function DELETE(
     await prisma.favorite.deleteMany({
       where: {
         userId,
-        productId: params.id,
+        productId: id,
       },
     });
 
@@ -164,7 +167,7 @@ export async function DELETE(
       status: "success",
       message: "Product removed from favorites",
       data: {
-        product_id: params.id,
+        product_id: id,
         is_favorited: false,
       },
     });

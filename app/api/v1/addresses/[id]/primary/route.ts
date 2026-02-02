@@ -24,9 +24,12 @@ import { verifyToken, extractBearerToken } from "@/lib/auth";
  */
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Await params in Next.js 15+
+    const { id } = await params;
+
     // Verify authentication
     const authHeader = request.headers.get("authorization");
     const token = extractBearerToken(authHeader);
@@ -48,7 +51,7 @@ export async function PATCH(
 
     // Get address
     const address = await prisma.address.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!address) {
@@ -74,7 +77,7 @@ export async function PATCH(
 
     // Set this address as primary
     const updated = await prisma.address.update({
-      where: { id: params.id },
+      where: { id },
       data: { isPrimary: true },
     });
 

@@ -48,7 +48,10 @@ export async function GET(
   context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const payload = await verifyAuth(request);
+        // Await params in Next.js 15+
+    const { id } = await params;
+
+const payload = await verifyAuth(request);
     const { id: conversationId } = await context.params;
     const { searchParams } = new URL(request.url);
 

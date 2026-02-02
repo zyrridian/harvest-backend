@@ -32,7 +32,10 @@ export async function DELETE(
   context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const payload = await verifyAuth(request);
+        // Await params in Next.js 15+
+    const { id } = await params;
+
+const payload = await verifyAuth(request);
     const { id } = await context.params;
 
     // Find and verify ownership

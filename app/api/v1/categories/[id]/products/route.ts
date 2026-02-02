@@ -36,10 +36,13 @@ import prisma from "@/lib/prisma";
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { searchParams } = new URL(request.url);
+        // Await params in Next.js 15+
+    const { id } = await params;
+
+const { searchParams } = new URL(request.url);
 
     // Pagination
     const page = parseInt(searchParams.get("page") || "1");
@@ -50,7 +53,7 @@ export async function GET(
     // Find category by ID or slug
     const category = await prisma.category.findFirst({
       where: {
-        OR: [{ id: params.id }, { slug: params.id }],
+        OR: [{ id: id }, { slug: id }],
       },
     });
 

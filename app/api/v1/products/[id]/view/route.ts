@@ -20,10 +20,13 @@ import { verifyToken, extractBearerToken } from "@/lib/auth";
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Get user ID if authenticated (optional)
+        // Await params in Next.js 15+
+    const { id } = await params;
+
+// Get user ID if authenticated (optional)
     let userId: string | null = null;
     const authHeader = request.headers.get("authorization");
     const token = extractBearerToken(authHeader);
@@ -40,7 +43,7 @@ export async function POST(
 
     // Check if product exists
     const product = await prisma.product.findUnique({
-      where: { id: params.id },
+      where: { id: id },
     });
 
     if (!product) {
@@ -54,12 +57,12 @@ export async function POST(
     await prisma.$transaction([
       prisma.productView.create({
         data: {
-          productId: params.id,
+          productId: id,
           userId,
         },
       }),
       prisma.product.update({
-        where: { id: params.id },
+        where: { id: id },
         data: {
           viewCount: {
             increment: 1,

@@ -46,7 +46,10 @@ export async function GET(
   context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id: productId } = await context.params;
+        // Await params in Next.js 15+
+    const { id } = await params;
+
+const { id: productId } = await context.params;
     const { searchParams } = new URL(request.url);
 
     const page = parseInt(searchParams.get("page") || "1");

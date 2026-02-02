@@ -33,10 +33,13 @@ import { verifyToken, extractBearerToken } from "@/lib/auth";
  */
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Verify authentication
+        // Await params in Next.js 15+
+    const { id } = await params;
+
+// Verify authentication
     const authHeader = request.headers.get("authorization");
     const token = extractBearerToken(authHeader);
     if (!token) {
@@ -67,7 +70,7 @@ export async function PATCH(
 
     // Get cart item
     const cartItem = await prisma.cartItem.findUnique({
-      where: { id: params.id },
+      where: { id: id },
       include: {
         cart: true,
       },
@@ -90,7 +93,7 @@ export async function PATCH(
 
     // Update selection
     const updated = await prisma.cartItem.update({
-      where: { id: params.id },
+      where: { id: id },
       data: { isSelected: is_selected },
     });
 

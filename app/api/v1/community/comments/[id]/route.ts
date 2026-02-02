@@ -28,10 +28,13 @@ import { verifyAuth } from "@/lib/auth";
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const user = await verifyAuth(request);
+        // Await params in Next.js 15+
+    const { id } = await params;
+
+const user = await verifyAuth(request);
     const { id } = params;
 
     const comment = await prisma.postComment.findUnique({

@@ -39,10 +39,13 @@ import { verifyAdmin } from "@/lib/auth";
  */
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await verifyAdmin(request);
+        // Await params in Next.js 15+
+    const { id } = await params;
+
+await verifyAdmin(request);
     const { id } = params;
     const body = await request.json();
 
@@ -117,7 +120,7 @@ export async function PUT(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await verifyAdmin(request);
