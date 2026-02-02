@@ -1,36 +1,186 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Harvest Backend API
+
+REST API for the Harvest Mobile App - connecting farmers with consumers.
 
 ## Getting Started
 
-First, run the development server:
+### Development Setup
+
+1. Install dependencies:
+
+```bash
+npm install
+```
+
+2. Set up environment variables:
+
+```bash
+# Copy .env.example to .env and fill in your values
+DATABASE_URL="your_database_url"
+DIRECT_URL="your_direct_database_url"
+JWT_SECRET="your_secret_key"
+NODE_ENV="development"
+```
+
+3. Run database migrations:
+
+```bash
+npx prisma db push
+# or for versioned migrations:
+npx prisma migrate dev --name your_migration_name
+```
+
+4. Run the development server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+5. Open [http://localhost:3000/docs](http://localhost:3000/docs) to view the Swagger API documentation.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Database Migrations
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### When You Change the Database Schema
+
+**Important:** After modifying `prisma/schema.prisma`, you must apply the changes:
+
+#### For Development:
+
+```bash
+npx prisma db push
+```
+
+This syncs your database with the schema without creating migration files.
+
+#### For Production (Recommended):
+
+```bash
+npx prisma migrate dev --name describe_your_change
+```
+
+This creates a migration file and applies it. Commit the migration file to git.
+
+### After Pulling Changes
+
+If someone else changed the schema:
+
+```bash
+npx prisma db push
+# or
+npx prisma migrate deploy
+```
+
+## Deployment
+
+### Vercel Auto-Deployment
+
+**Yes, your code auto-updates when you push to GitHub!**
+
+The project is connected to Vercel and will automatically deploy when you:
+
+1. Push commits to the `main` branch
+2. Vercel detects the changes
+3. Builds and deploys automatically
+
+You can view deployment status at: [Vercel Dashboard](https://vercel.com/dashboard)
+
+### Manual Deployment Steps
+
+If you need to manually trigger deployment:
+
+1. Commit your changes:
+
+```bash
+git add .
+git commit -m "your message"
+git push origin main
+```
+
+2. Vercel will automatically:
+   - Pull the latest code
+   - Run `npm run build`
+   - Deploy to production
+
+### Environment Variables in Vercel
+
+Make sure these are set in Vercel Dashboard → Settings → Environment Variables:
+
+- `DATABASE_URL`
+- `DIRECT_URL`
+- `JWT_SECRET`
+- `NODE_ENV=production`
+
+## API Documentation
+
+- **Production:** [https://harvest-backend-ugjh.vercel.app/docs](https://harvest-backend-ugjh.vercel.app/docs)
+- **Local:** [http://localhost:3000/docs](http://localhost:3000/docs)
+
+## Important Commands
+
+```bash
+# Install dependencies
+npm install
+
+# Run development server
+npm run dev
+
+# Build for production
+npm run build
+
+# Start production server
+npm start
+
+# Apply database changes (development)
+npx prisma db push
+
+# Create migration (production recommended)
+npx prisma migrate dev --name migration_name
+
+# Apply migrations (production)
+npx prisma migrate deploy
+
+# Reset database (⚠️ DELETES ALL DATA)
+npx prisma migrate reset
+
+# Open Prisma Studio (database GUI)
+npx prisma studio
+
+# Generate Prisma Client
+npx prisma generate
+```
+
+## Project Structure
+
+```
+app/
+├── api/v1/          # API endpoints
+├── admin/           # Admin panel UI
+├── docs/            # Swagger documentation
+├── lib/             # Utilities (auth, prisma, swagger)
+└── generated/       # Generated Prisma Client
+
+prisma/
+├── schema.prisma    # Database schema
+└── migrations/      # Migration history
+```
+
+## Quick Reference
+
+### After Changing Database Schema:
+
+1. Edit `prisma/schema.prisma`
+2. Run `npx prisma db push` (or `npx prisma migrate dev --name change_name`)
+3. Commit and push to GitHub
+4. Vercel auto-deploys (no manual action needed!)
+
+### Creating Admin User:
+
+```sql
+UPDATE "User" SET "userType" = 'ADMIN' WHERE email = 'your@email.com';
+```
 
 ## Learn More
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- [Next.js Documentation](https://nextjs.org/docs)
+- [Prisma Documentation](https://www.prisma.io/docs)
+- [Vercel Documentation](https://vercel.com/docs)
