@@ -43,13 +43,13 @@ import prisma from "@/lib/prisma";
  */
 export async function GET(
   request: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  context: { params: Promise<{ id: string }> },
 ) {
   try {
-        // Await params in Next.js 15+
-    const { id } = await params;
+    // Await params in Next.js 15+
+    const { id } = await context.params;
 
-const { id: productId } = await context.params;
+    const { id: productId } = await context.params;
     const { searchParams } = new URL(request.url);
 
     const page = parseInt(searchParams.get("page") || "1");
@@ -184,7 +184,7 @@ const { id: productId } = await context.params;
     console.error("Get reviews error:", error);
     return NextResponse.json(
       { status: "error", message: "Failed to fetch reviews" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -239,7 +239,7 @@ const { id: productId } = await context.params;
  */
 export async function POST(
   request: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  context: { params: Promise<{ id: string }> },
 ) {
   try {
     const payload = await verifyAuth(request);
@@ -252,7 +252,7 @@ export async function POST(
     if (!rating || rating < 1 || rating > 5) {
       return NextResponse.json(
         { status: "error", message: "Rating must be between 1 and 5" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -264,7 +264,7 @@ export async function POST(
     if (!product) {
       return NextResponse.json(
         { status: "error", message: "Product not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -299,7 +299,7 @@ export async function POST(
               status: "error",
               message: "You have already reviewed this product from this order",
             },
-            { status: 400 }
+            { status: 400 },
           );
         }
       }
@@ -337,13 +337,13 @@ export async function POST(
           created_at: review.createdAt.toISOString(),
         },
       },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error) {
     console.error("Create review error:", error);
     return NextResponse.json(
       { status: "error", message: "Failed to create review" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

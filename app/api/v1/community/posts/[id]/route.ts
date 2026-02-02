@@ -22,13 +22,10 @@ import { verifyAuth } from "@/lib/auth";
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-        // Await params in Next.js 15+
     const { id } = await params;
-
-const { id } = params;
 
     let userId: string | undefined;
     try {
@@ -67,7 +64,7 @@ const { id } = params;
           status: "error",
           message: "Post not found",
         },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -98,7 +95,7 @@ const { id } = params;
         status: "error",
         message: error.message || "Failed to get post",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -140,11 +137,11 @@ const { id } = params;
  */
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
+    const { id } = await params;
     const user = await verifyAuth(request);
-    const { id } = params;
     const body = await request.json();
 
     const post = await prisma.communityPost.findUnique({
@@ -157,7 +154,7 @@ export async function PUT(
           status: "error",
           message: "Post not found",
         },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -167,7 +164,7 @@ export async function PUT(
           status: "error",
           message: "You do not have permission to update this post",
         },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -203,7 +200,7 @@ export async function PUT(
         status: "error",
         message: error.message || "Failed to update post",
       },
-      { status: error.status || 500 }
+      { status: error.status || 500 },
     );
   }
 }
@@ -234,11 +231,11 @@ export async function PUT(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
+    const { id } = await params;
     const user = await verifyAuth(request);
-    const { id } = params;
 
     const post = await prisma.communityPost.findUnique({
       where: { id },
@@ -250,7 +247,7 @@ export async function DELETE(
           status: "error",
           message: "Post not found",
         },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -260,7 +257,7 @@ export async function DELETE(
           status: "error",
           message: "You do not have permission to delete this post",
         },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -279,7 +276,7 @@ export async function DELETE(
         status: "error",
         message: error.message || "Failed to delete post",
       },
-      { status: error.status || 500 }
+      { status: error.status || 500 },
     );
   }
 }

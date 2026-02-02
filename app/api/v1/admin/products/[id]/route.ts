@@ -39,14 +39,11 @@ import { verifyAdmin } from "@/lib/auth";
  */
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-        // Await params in Next.js 15+
     const { id } = await params;
-
-await verifyAdmin(request);
-    const { id } = params;
+    await verifyAdmin(request);
     const body = await request.json();
 
     const product = await prisma.product.findUnique({
@@ -59,7 +56,7 @@ await verifyAdmin(request);
           status: "error",
           message: "Product not found",
         },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -89,7 +86,7 @@ await verifyAdmin(request);
         status: "error",
         message: error.message || "Failed to update product",
       },
-      { status: error.status || 500 }
+      { status: error.status || 500 },
     );
   }
 }
@@ -120,11 +117,11 @@ await verifyAdmin(request);
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
+    const { id } = await params;
     await verifyAdmin(request);
-    const { id } = params;
 
     const product = await prisma.product.findUnique({
       where: { id },
@@ -136,7 +133,7 @@ export async function DELETE(
           status: "error",
           message: "Product not found",
         },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -155,7 +152,7 @@ export async function DELETE(
         status: "error",
         message: error.message || "Failed to delete product",
       },
-      { status: error.status || 500 }
+      { status: error.status || 500 },
     );
   }
 }

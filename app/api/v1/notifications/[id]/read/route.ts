@@ -28,14 +28,11 @@ import { verifyAuth } from "@/lib/auth";
  */
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-        // Await params in Next.js 15+
     const { id } = await params;
-
-const user = await verifyAuth(request);
-    const { id } = params;
+    const user = await verifyAuth(request);
 
     const notification = await prisma.notification.findUnique({
       where: { id },
@@ -47,7 +44,7 @@ const user = await verifyAuth(request);
           status: "error",
           message: "Notification not found",
         },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -57,7 +54,7 @@ const user = await verifyAuth(request);
           status: "error",
           message: "You do not have permission to update this notification",
         },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -81,7 +78,7 @@ const user = await verifyAuth(request);
         status: "error",
         message: error.message || "Failed to mark notification as read",
       },
-      { status: error.status || 500 }
+      { status: error.status || 500 },
     );
   }
 }

@@ -28,14 +28,11 @@ import { verifyAuth } from "@/lib/auth";
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-        // Await params in Next.js 15+
     const { id } = await params;
-
-const user = await verifyAuth(request);
-    const { id } = params;
+    const user = await verifyAuth(request);
 
     const comment = await prisma.postComment.findUnique({
       where: { id },
@@ -47,7 +44,7 @@ const user = await verifyAuth(request);
           status: "error",
           message: "Comment not found",
         },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -57,7 +54,7 @@ const user = await verifyAuth(request);
           status: "error",
           message: "You do not have permission to delete this comment",
         },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -86,7 +83,7 @@ const user = await verifyAuth(request);
         status: "error",
         message: error.message || "Failed to delete comment",
       },
-      { status: error.status || 500 }
+      { status: error.status || 500 },
     );
   }
 }

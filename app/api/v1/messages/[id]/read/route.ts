@@ -33,7 +33,7 @@ export async function PATCH(
 ) {
   try {
         // Await params in Next.js 15+
-    const { id } = await params;
+    const { id } = await context.params;
 
 const payload = await verifyAuth(request);
     const { id: messageId } = await context.params;

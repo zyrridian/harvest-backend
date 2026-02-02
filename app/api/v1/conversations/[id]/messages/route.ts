@@ -47,13 +47,10 @@ import prisma from "@/lib/prisma";
  */
 export async function POST(
   request: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  context: { params: Promise<{ id: string }> },
 ) {
   try {
-        // Await params in Next.js 15+
-    const { id } = await params;
-
-const payload = await verifyAuth(request);
+    const payload = await verifyAuth(request);
     const { id: conversationId } = await context.params;
     const body = await request.json();
 
@@ -67,7 +64,7 @@ const payload = await verifyAuth(request);
     if (!conversation) {
       return NextResponse.json(
         { status: "error", message: "Conversation not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -77,7 +74,7 @@ const payload = await verifyAuth(request);
     ) {
       return NextResponse.json(
         { status: "error", message: "Unauthorized" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -85,7 +82,7 @@ const payload = await verifyAuth(request);
     if (type === "text" && (!content || content.trim() === "")) {
       return NextResponse.json(
         { status: "error", message: "Message content is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -119,13 +116,13 @@ const payload = await verifyAuth(request);
           is_read: false,
         },
       },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error) {
     console.error("Send message error:", error);
     return NextResponse.json(
       { status: "error", message: "Failed to send message" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

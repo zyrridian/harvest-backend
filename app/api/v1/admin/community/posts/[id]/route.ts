@@ -28,14 +28,11 @@ import { verifyAdmin } from "@/lib/auth";
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-        // Await params in Next.js 15+
     const { id } = await params;
-
-await verifyAdmin(request);
-    const { id } = params;
+    await verifyAdmin(request);
 
     const post = await prisma.communityPost.findUnique({
       where: { id },
@@ -47,7 +44,7 @@ await verifyAdmin(request);
           status: "error",
           message: "Post not found",
         },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -66,7 +63,7 @@ await verifyAdmin(request);
         status: "error",
         message: error.message || "Failed to delete post",
       },
-      { status: error.status || 500 }
+      { status: error.status || 500 },
     );
   }
 }

@@ -41,14 +41,11 @@ import { verifyAdmin } from "@/lib/auth";
  */
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-        // Await params in Next.js 15+
     const { id } = await params;
-
-await verifyAdmin(request);
-    const { id } = params;
+    await verifyAdmin(request);
     const body = await request.json();
 
     const { is_verified, verification_badge } = body;
@@ -59,7 +56,7 @@ await verifyAdmin(request);
           status: "error",
           message: "is_verified is required",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -73,7 +70,7 @@ await verifyAdmin(request);
           status: "error",
           message: "Farmer not found",
         },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -100,7 +97,7 @@ await verifyAdmin(request);
         status: "error",
         message: error.message || "Failed to verify farmer",
       },
-      { status: error.status || 500 }
+      { status: error.status || 500 },
     );
   }
 }

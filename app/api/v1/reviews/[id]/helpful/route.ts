@@ -29,13 +29,10 @@ import prisma from "@/lib/prisma";
  */
 export async function POST(
   request: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  context: { params: Promise<{ id: string }> },
 ) {
   try {
-        // Await params in Next.js 15+
-    const { id } = await params;
-
-const payload = await verifyAuth(request);
+    const payload = await verifyAuth(request);
     const { id: reviewId } = await context.params;
 
     // Check if review exists
@@ -46,7 +43,7 @@ const payload = await verifyAuth(request);
     if (!review) {
       return NextResponse.json(
         { status: "error", message: "Review not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -63,7 +60,7 @@ const payload = await verifyAuth(request);
     if (existing) {
       return NextResponse.json(
         { status: "error", message: "Already marked as helpful" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -96,7 +93,7 @@ const payload = await verifyAuth(request);
     console.error("Mark helpful error:", error);
     return NextResponse.json(
       { status: "error", message: "Failed to mark review as helpful" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -128,7 +125,7 @@ const payload = await verifyAuth(request);
  */
 export async function DELETE(
   request: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  context: { params: Promise<{ id: string }> },
 ) {
   try {
     const payload = await verifyAuth(request);
@@ -142,7 +139,7 @@ export async function DELETE(
     if (!review) {
       return NextResponse.json(
         { status: "error", message: "Review not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -159,7 +156,7 @@ export async function DELETE(
     if (!existing) {
       return NextResponse.json(
         { status: "error", message: "Not marked as helpful" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -194,7 +191,7 @@ export async function DELETE(
     console.error("Remove helpful error:", error);
     return NextResponse.json(
       { status: "error", message: "Failed to remove helpful mark" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

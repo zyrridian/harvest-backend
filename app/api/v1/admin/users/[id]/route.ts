@@ -28,14 +28,11 @@ import { verifyAdmin } from "@/lib/auth";
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-        // Await params in Next.js 15+
     const { id } = await params;
-
-await verifyAdmin(request);
-    const { id } = params;
+    await verifyAdmin(request);
 
     const user = await prisma.user.findUnique({
       where: { id },
@@ -61,7 +58,7 @@ await verifyAdmin(request);
           status: "error",
           message: "User not found",
         },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -79,7 +76,7 @@ await verifyAdmin(request);
         status: "error",
         message: error.message || "Failed to get user",
       },
-      { status: error.status || 500 }
+      { status: error.status || 500 },
     );
   }
 }
@@ -126,11 +123,11 @@ await verifyAdmin(request);
  */
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
+    const { id } = await params;
     await verifyAdmin(request);
-    const { id } = params;
     const body = await request.json();
 
     const user = await prisma.user.findUnique({
@@ -143,7 +140,7 @@ export async function PUT(
           status: "error",
           message: "User not found",
         },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -185,7 +182,7 @@ export async function PUT(
         status: "error",
         message: error.message || "Failed to update user",
       },
-      { status: error.status || 500 }
+      { status: error.status || 500 },
     );
   }
 }
@@ -216,11 +213,11 @@ export async function PUT(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
+    const { id } = await params;
     await verifyAdmin(request);
-    const { id } = params;
 
     const user = await prisma.user.findUnique({
       where: { id },
@@ -232,7 +229,7 @@ export async function DELETE(
           status: "error",
           message: "User not found",
         },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -251,7 +248,7 @@ export async function DELETE(
         status: "error",
         message: error.message || "Failed to delete user",
       },
-      { status: error.status || 500 }
+      { status: error.status || 500 },
     );
   }
 }

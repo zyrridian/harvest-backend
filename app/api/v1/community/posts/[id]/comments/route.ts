@@ -32,13 +32,10 @@ import { verifyAuth } from "@/lib/auth";
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-        // Await params in Next.js 15+
     const { id } = await params;
-
-const { id } = params;
     const { searchParams } = new URL(request.url);
 
     const page = parseInt(searchParams.get("page") || "1");
@@ -63,7 +60,7 @@ const { id } = params;
           status: "error",
           message: "Post not found",
         },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -133,7 +130,7 @@ const { id } = params;
         status: "error",
         message: error.message || "Failed to get comments",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -175,11 +172,11 @@ const { id } = params;
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
+    const { id } = await params;
     const user = await verifyAuth(request);
-    const { id } = params;
     const body = await request.json();
 
     const { content } = body;
@@ -190,7 +187,7 @@ export async function POST(
           status: "error",
           message: "Content is required",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -204,7 +201,7 @@ export async function POST(
           status: "error",
           message: "Post not found",
         },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -241,7 +238,7 @@ export async function POST(
         message: "Comment added successfully",
         data: comment,
       },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error: any) {
     console.error("Add comment error:", error);
@@ -250,7 +247,7 @@ export async function POST(
         status: "error",
         message: error.message || "Failed to add comment",
       },
-      { status: error.status || 500 }
+      { status: error.status || 500 },
     );
   }
 }

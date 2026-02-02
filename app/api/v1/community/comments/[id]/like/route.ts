@@ -28,14 +28,11 @@ import { verifyAuth } from "@/lib/auth";
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-        // Await params in Next.js 15+
     const { id } = await params;
-
-const user = await verifyAuth(request);
-    const { id } = params;
+    const user = await verifyAuth(request);
 
     const comment = await prisma.postComment.findUnique({
       where: { id },
@@ -47,7 +44,7 @@ const user = await verifyAuth(request);
           status: "error",
           message: "Comment not found",
         },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -67,7 +64,7 @@ const user = await verifyAuth(request);
           status: "error",
           message: "You have already liked this comment",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -100,7 +97,7 @@ const user = await verifyAuth(request);
         status: "error",
         message: error.message || "Failed to like comment",
       },
-      { status: error.status || 500 }
+      { status: error.status || 500 },
     );
   }
 }
@@ -131,11 +128,11 @@ const user = await verifyAuth(request);
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
+    const { id } = await params;
     const user = await verifyAuth(request);
-    const { id } = params;
 
     const comment = await prisma.postComment.findUnique({
       where: { id },
@@ -147,7 +144,7 @@ export async function DELETE(
           status: "error",
           message: "Comment not found",
         },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -167,7 +164,7 @@ export async function DELETE(
           status: "error",
           message: "You have not liked this comment",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -202,7 +199,7 @@ export async function DELETE(
         status: "error",
         message: error.message || "Failed to unlike comment",
       },
-      { status: error.status || 500 }
+      { status: error.status || 500 },
     );
   }
 }

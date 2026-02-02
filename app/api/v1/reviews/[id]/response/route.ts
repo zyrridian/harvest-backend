@@ -42,13 +42,10 @@ import prisma from "@/lib/prisma";
  */
 export async function POST(
   request: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  context: { params: Promise<{ id: string }> },
 ) {
   try {
-        // Await params in Next.js 15+
-    const { id } = await params;
-
-const payload = await verifyAuth(request);
+    const payload = await verifyAuth(request);
     const { id: reviewId } = await context.params;
     const body = await request.json();
 
@@ -57,7 +54,7 @@ const payload = await verifyAuth(request);
     if (!comment || comment.trim() === "") {
       return NextResponse.json(
         { status: "error", message: "Comment is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -75,7 +72,7 @@ const payload = await verifyAuth(request);
     if (!review) {
       return NextResponse.json(
         { status: "error", message: "Review not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -86,7 +83,7 @@ const payload = await verifyAuth(request);
           status: "error",
           message: "Only the seller can respond to this review",
         },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -97,7 +94,7 @@ const payload = await verifyAuth(request);
           status: "error",
           message: "Response already exists. Use PUT to update.",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -121,13 +118,13 @@ const payload = await verifyAuth(request);
           },
         },
       },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error) {
     console.error("Add seller response error:", error);
     return NextResponse.json(
       { status: "error", message: "Failed to add response" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

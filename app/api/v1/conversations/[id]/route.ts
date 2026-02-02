@@ -45,13 +45,10 @@ import prisma from "@/lib/prisma";
  */
 export async function GET(
   request: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  context: { params: Promise<{ id: string }> },
 ) {
   try {
-        // Await params in Next.js 15+
-    const { id } = await params;
-
-const payload = await verifyAuth(request);
+    const payload = await verifyAuth(request);
     const { id: conversationId } = await context.params;
     const { searchParams } = new URL(request.url);
 
@@ -95,7 +92,7 @@ const payload = await verifyAuth(request);
     if (!conversation) {
       return NextResponse.json(
         { status: "error", message: "Conversation not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -106,7 +103,7 @@ const payload = await verifyAuth(request);
     ) {
       return NextResponse.json(
         { status: "error", message: "Unauthorized access to conversation" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -218,7 +215,7 @@ const payload = await verifyAuth(request);
     console.error("Get conversation details error:", error);
     return NextResponse.json(
       { status: "error", message: "Failed to fetch conversation" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

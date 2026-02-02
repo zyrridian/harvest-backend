@@ -29,14 +29,11 @@ import prisma from "@/lib/prisma";
  */
 export async function DELETE(
   request: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  context: { params: Promise<{ id: string }> },
 ) {
   try {
-        // Await params in Next.js 15+
-    const { id } = await params;
-
-const payload = await verifyAuth(request);
     const { id } = await context.params;
+    const payload = await verifyAuth(request);
 
     // Find and verify ownership
     const historyItem = await prisma.searchHistory.findUnique({
@@ -46,14 +43,14 @@ const payload = await verifyAuth(request);
     if (!historyItem) {
       return NextResponse.json(
         { status: "error", message: "Search history item not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
     if (historyItem.userId !== payload.userId) {
       return NextResponse.json(
         { status: "error", message: "Unauthorized" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -70,7 +67,7 @@ const payload = await verifyAuth(request);
     console.error("Delete search history item error:", error);
     return NextResponse.json(
       { status: "error", message: "Failed to delete search history item" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

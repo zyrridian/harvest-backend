@@ -41,19 +41,17 @@ import { verifyToken, extractBearerToken } from "@/lib/auth";
  */
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-        // Await params in Next.js 15+
     const { id } = await params;
-
-// Verify authentication
+    // Verify authentication
     const authHeader = request.headers.get("authorization");
     const token = extractBearerToken(authHeader);
     if (!token) {
       return NextResponse.json(
         { status: "error", message: "Unauthorized" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -61,7 +59,7 @@ export async function PUT(
     if (!payload) {
       return NextResponse.json(
         { status: "error", message: "Invalid token" },
-        { status: 401 }
+        { status: 401 },
       );
     }
     const userId = payload.userId as string;
@@ -77,7 +75,7 @@ export async function PUT(
     if (!address) {
       return NextResponse.json(
         { status: "error", message: "Address not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -85,7 +83,7 @@ export async function PUT(
     if (address.userId !== userId) {
       return NextResponse.json(
         { status: "error", message: "Unauthorized" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -118,7 +116,7 @@ export async function PUT(
         message: "Failed to update address",
         error: error.message,
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -145,16 +143,17 @@ export async function PUT(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
+    const { id } = await params;
     // Verify authentication
     const authHeader = request.headers.get("authorization");
     const token = extractBearerToken(authHeader);
     if (!token) {
       return NextResponse.json(
         { status: "error", message: "Unauthorized" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -162,7 +161,7 @@ export async function DELETE(
     if (!payload) {
       return NextResponse.json(
         { status: "error", message: "Invalid token" },
-        { status: 401 }
+        { status: 401 },
       );
     }
     const userId = payload.userId as string;
@@ -175,7 +174,7 @@ export async function DELETE(
     if (!address) {
       return NextResponse.json(
         { status: "error", message: "Address not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -183,7 +182,7 @@ export async function DELETE(
     if (address.userId !== userId) {
       return NextResponse.json(
         { status: "error", message: "Unauthorized" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -204,7 +203,7 @@ export async function DELETE(
         message: "Failed to delete address",
         error: error.message,
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
