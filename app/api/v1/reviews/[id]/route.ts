@@ -50,7 +50,7 @@ export async function PUT(
 ) {
   try {
         // Await params in Next.js 15+
-    const { id } = await params;
+    const { id } = await context.params;
 
 const payload = await verifyAuth(request);
     const { id: reviewId } = await context.params;
