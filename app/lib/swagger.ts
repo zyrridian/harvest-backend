@@ -9,7 +9,13 @@ export const getApiDocs = async () => {
         title: "Harvest API",
         version: "1.0.0",
         description:
-          "REST API for the Harvest Mobile App - connecting farmers with consumers",
+          "REST API for the Harvest Mobile App - connecting farmers with consumers\n\n" +
+          "## User Roles\n\n" +
+          "The API supports three user types:\n\n" +
+          "- **CONSUMER**: Regular buyers who can browse products, place orders, and interact with farmers\n" +
+          "- **PRODUCER**: Farmers/sellers who can list products, manage inventory, and fulfill orders\n" +
+          "- **ADMIN**: System administrators with full access to manage users, products, and platform operations\n\n" +
+          "When registering, you can specify the `user_type` field. If not specified, it defaults to CONSUMER.",
       },
       servers: [
         {

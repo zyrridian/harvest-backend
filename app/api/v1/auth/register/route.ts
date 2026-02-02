@@ -40,6 +40,12 @@ import {
  *               phone_number:
  *                 type: string
  *                 example: "+6281234567890"
+ *               user_type:
+ *                 type: string
+ *                 enum: [CONSUMER, PRODUCER, ADMIN]
+ *                 default: CONSUMER
+ *                 description: Account type - CONSUMER (buyer), PRODUCER (farmer/seller), or ADMIN
+ *                 example: CONSUMER
  *     responses:
  *       201:
  *         description: Registration successful
@@ -57,13 +63,13 @@ import {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { email, password, name, phone_number } = body;
+    const { email, password, name, phone_number, user_type } = body;
 
     // Validation
     if (!email || !password || !name) {
       return NextResponse.json(
         { status: "error", message: "Email, password, and name are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -73,9 +79,14 @@ export async function POST(request: NextRequest) {
           status: "error",
           message: "Password must be at least 8 characters long",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
+
+    // Validate user_type if provided
+    const validUserTypes = ["CONSUMER", "PRODUCER", "ADMIN"];
+    const userType =
+      user_type && validUserTypes.includes(user_type) ? user_type : "CONSUMER";
 
     // Check if email already exists
     const existingUser = await prisma.user.findUnique({
@@ -85,7 +96,7 @@ export async function POST(request: NextRequest) {
     if (existingUser) {
       return NextResponse.json(
         { status: "error", message: "Email already registered" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -99,6 +110,7 @@ export async function POST(request: NextRequest) {
         password: hashedPassword,
         name,
         phoneNumber: phone_number || null,
+        userType: userType,
       },
     });
 
@@ -140,7 +152,7 @@ export async function POST(request: NextRequest) {
           expires_in: 3600, // 1 hour in seconds
         },
       },
-      { status: 201 }
+      { status: 201 },
     );
 
     // Set refresh token as HTTP-only cookie for web clients
@@ -157,7 +169,7 @@ export async function POST(request: NextRequest) {
     console.error("Registration error:", error);
     return NextResponse.json(
       { status: "error", message: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
