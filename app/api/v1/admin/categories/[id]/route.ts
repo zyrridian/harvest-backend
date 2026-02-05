@@ -89,13 +89,14 @@ import { verifyAdmin } from "@/lib/auth";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     await verifyAdmin(request);
+    const { id } = await params;
 
     const category = await prisma.category.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         _count: {
           select: { products: true, subcategories: true },
@@ -150,10 +151,11 @@ export async function GET(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     await verifyAdmin(request);
+    const { id } = await params;
 
     const body = await request.json();
     const {
@@ -168,7 +170,7 @@ export async function PATCH(
 
     // Check if category exists
     const existingCategory = await prisma.category.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!existingCategory) {
@@ -207,7 +209,7 @@ export async function PATCH(
     if (is_active !== undefined) updateData.isActive = is_active;
 
     const category = await prisma.category.update({
-      where: { id: params.id },
+      where: { id },
       data: updateData,
     });
 
@@ -250,17 +252,18 @@ export async function PATCH(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     await verifyAdmin(request);
+    const { id } = await params;
 
     const { searchParams } = new URL(request.url);
     const force = searchParams.get("force") === "true";
 
     // Check if category exists
     const category = await prisma.category.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         _count: {
           select: { products: true },
@@ -280,13 +283,13 @@ export async function DELETE(
       if (force) {
         // Force delete: set all products' categoryId to null
         await prisma.product.updateMany({
-          where: { categoryId: params.id },
+          where: { categoryId: id },
           data: { categoryId: null },
         });
 
         // Delete the category
         await prisma.category.delete({
-          where: { id: params.id },
+          where: { id },
         });
 
         return NextResponse.json({
@@ -296,7 +299,7 @@ export async function DELETE(
       } else {
         // Soft delete: just deactivate
         await prisma.category.update({
-          where: { id: params.id },
+          where: { id },
           data: { isActive: false },
         });
 
@@ -313,7 +316,7 @@ export async function DELETE(
 
     // No products, safe to delete
     await prisma.category.delete({
-      where: { id: params.id },
+      where: { id },
     });
 
     return NextResponse.json({
