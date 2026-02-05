@@ -1,6 +1,33 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import {
+  Search,
+  ShieldCheck,
+  ShieldX,
+  X,
+  AlertCircle,
+  Award,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
+
+// Design System Colors
+const colors = {
+  background: "#FAFAF9",
+  white: "#FFFFFF",
+  heading: "#18181b",
+  body: "#475569",
+  accent: "#166534",
+  accentHover: "#14532d",
+  border: "#E4E4E7",
+  success: "#16a34a",
+  successBg: "#dcfce7",
+  warning: "#ea580c",
+  warningBg: "#ffedd5",
+  error: "#dc2626",
+  errorBg: "#fee2e2",
+};
 
 interface Farmer {
   id: string;
@@ -88,16 +115,14 @@ export default function FarmersPage() {
             is_verified: !editingFarmer.is_verified,
             verification_badge: verificationBadge || null,
           }),
-        }
+        },
       );
 
       const data = await response.json();
       if (!response.ok) throw new Error(data.message);
 
       alert(
-        `Farmer ${
-          editingFarmer.is_verified ? "unverified" : "verified"
-        } successfully`
+        `Farmer ${editingFarmer.is_verified ? "unverified" : "verified"} successfully`,
       );
       setShowVerifyModal(false);
       fetchFarmers();
@@ -110,26 +135,55 @@ export default function FarmersPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Farmer Management</h1>
-        <p className="text-gray-600 mt-1">
+        <h1
+          className="text-2xl font-bold tracking-tight"
+          style={{ color: colors.heading }}
+        >
+          Farmer Management
+        </h1>
+        <p className="text-sm mt-1" style={{ color: colors.body }}>
           Verify and manage farmers on your platform
         </p>
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+      <div
+        className="border p-6"
+        style={{
+          backgroundColor: colors.white,
+          borderColor: colors.border,
+          borderRadius: "4px",
+        }}
+      >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <input
-            type="text"
-            placeholder="Search by farm name or description..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"
-          />
+          <div className="relative">
+            <Search
+              size={16}
+              className="absolute left-3 top-1/2 -translate-y-1/2"
+              style={{ color: colors.body }}
+            />
+            <input
+              type="text"
+              placeholder="Search by farm name or description..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 text-sm border outline-none"
+              style={{
+                borderColor: colors.border,
+                borderRadius: "4px",
+                color: colors.heading,
+              }}
+            />
+          </div>
           <select
             value={filterVerified}
             onChange={(e) => setFilterVerified(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"
+            className="px-4 py-2 text-sm border outline-none"
+            style={{
+              borderColor: colors.border,
+              borderRadius: "4px",
+              color: colors.heading,
+            }}
           >
             <option value="">All Verification Status</option>
             <option value="true">Verified</option>
@@ -139,109 +193,178 @@ export default function FarmersPage() {
       </div>
 
       {/* Farmers Table */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+      <div
+        className="border overflow-hidden"
+        style={{
+          backgroundColor: colors.white,
+          borderColor: colors.border,
+          borderRadius: "4px",
+        }}
+      >
         {loading ? (
-          <div className="p-8 text-center text-gray-600">
+          <div className="p-8 text-center" style={{ color: colors.body }}>
             Loading farmers...
           </div>
         ) : error ? (
-          <div className="p-8 text-center text-red-600">{error}</div>
+          <div
+            className="p-8 text-center flex items-center justify-center gap-2"
+            style={{ color: colors.error }}
+          >
+            <AlertCircle size={18} />
+            {error}
+          </div>
         ) : farmers.length === 0 ? (
-          <div className="p-8 text-center text-gray-600">No farmers found</div>
+          <div className="p-8 text-center" style={{ color: colors.body }}>
+            No farmers found
+          </div>
         ) : (
           <>
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-gray-50 border-b border-gray-200">
+                <thead
+                  className="border-b"
+                  style={{
+                    backgroundColor: colors.background,
+                    borderColor: colors.border,
+                  }}
+                >
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      Farm
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      Owner
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      Contact
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      Location
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      Products
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      Status
-                    </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                      Actions
-                    </th>
+                    {[
+                      "Farm",
+                      "Owner",
+                      "Contact",
+                      "Location",
+                      "Products",
+                      "Status",
+                      "Actions",
+                    ].map((h) => (
+                      <th
+                        key={h}
+                        className={`px-6 py-3 text-xs font-medium uppercase tracking-wider ${h === "Actions" ? "text-right" : "text-left"}`}
+                        style={{ color: colors.body }}
+                      >
+                        {h}
+                      </th>
+                    ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200">
+                <tbody>
                   {farmers.map((farmer) => (
-                    <tr key={farmer.id} className="hover:bg-gray-50">
+                    <tr
+                      key={farmer.id}
+                      className="border-b last:border-b-0"
+                      style={{ borderColor: colors.border }}
+                    >
                       <td className="px-6 py-4">
-                        <div>
-                          <div className="font-medium text-gray-900">
-                            {farmer.farm_name}
-                          </div>
-                          <div className="text-sm text-gray-600 truncate max-w-xs">
-                            {farmer.description}
-                          </div>
-                          {farmer.verification_badge && (
-                            <div className="mt-1">
-                              <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded">
-                                🏅 {farmer.verification_badge}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-gray-900">{farmer.user.name}</div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div>
-                          <div className="text-sm text-gray-900">
-                            {farmer.user.email}
-                          </div>
-                          {farmer.user.phone_number && (
-                            <div className="text-xs text-gray-600">
-                              {farmer.user.phone_number}
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-gray-900">{farmer.location}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-gray-900">
-                          {farmer.user._count.products} products
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span
-                          className={`px-2 py-1 text-xs rounded-full ${
-                            farmer.is_verified
-                              ? "bg-green-100 text-green-700"
-                              : "bg-orange-100 text-orange-700"
-                          }`}
+                        <div
+                          className="font-medium text-sm"
+                          style={{ color: colors.heading }}
                         >
-                          {farmer.is_verified ? "✓ Verified" : "Not Verified"}
+                          {farmer.farm_name}
+                        </div>
+                        <div
+                          className="text-xs truncate max-w-xs mt-1"
+                          style={{ color: colors.body }}
+                        >
+                          {farmer.description}
+                        </div>
+                        {farmer.verification_badge && (
+                          <div className="flex items-center gap-1 mt-2">
+                            <Award
+                              size={12}
+                              style={{ color: colors.warning }}
+                            />
+                            <span
+                              className="text-xs px-2 py-0.5"
+                              style={{
+                                backgroundColor: colors.warningBg,
+                                color: colors.warning,
+                                borderRadius: "4px",
+                              }}
+                            >
+                              {farmer.verification_badge}
+                            </span>
+                          </div>
+                        )}
+                      </td>
+                      <td
+                        className="px-6 py-4 text-sm"
+                        style={{ color: colors.heading }}
+                      >
+                        {farmer.user.name}
+                      </td>
+                      <td className="px-6 py-4">
+                        <div
+                          className="text-sm"
+                          style={{ color: colors.heading }}
+                        >
+                          {farmer.user.email}
+                        </div>
+                        {farmer.user.phone_number && (
+                          <div
+                            className="text-xs mt-0.5"
+                            style={{ color: colors.body }}
+                          >
+                            {farmer.user.phone_number}
+                          </div>
+                        )}
+                      </td>
+                      <td
+                        className="px-6 py-4 text-sm"
+                        style={{ color: colors.heading }}
+                      >
+                        {farmer.location}
+                      </td>
+                      <td
+                        className="px-6 py-4 text-sm"
+                        style={{ color: colors.heading }}
+                      >
+                        {farmer.user._count.products} products
+                      </td>
+                      <td className="px-6 py-4">
+                        <span
+                          className="px-2 py-1 text-xs font-medium"
+                          style={{
+                            backgroundColor: farmer.is_verified
+                              ? colors.successBg
+                              : colors.warningBg,
+                            color: farmer.is_verified
+                              ? colors.success
+                              : colors.warning,
+                            borderRadius: "4px",
+                          }}
+                        >
+                          {farmer.is_verified ? "Verified" : "Not Verified"}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
-                        <button
-                          onClick={() => openVerifyModal(farmer)}
-                          className={`font-medium ${
-                            farmer.is_verified
-                              ? "text-orange-600 hover:text-orange-800"
-                              : "text-green-600 hover:text-green-800"
-                          }`}
-                        >
-                          {farmer.is_verified ? "Unverify" : "Verify"}
-                        </button>
+                      <td className="px-6 py-4">
+                        <div className="flex justify-end">
+                          <button
+                            onClick={() => openVerifyModal(farmer)}
+                            className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium border transition-colors hover:bg-stone-50"
+                            style={{
+                              borderColor: farmer.is_verified
+                                ? colors.warning
+                                : colors.success,
+                              color: farmer.is_verified
+                                ? colors.warning
+                                : colors.success,
+                              borderRadius: "4px",
+                            }}
+                          >
+                            {farmer.is_verified ? (
+                              <>
+                                <ShieldX size={14} strokeWidth={1.5} />
+                                Unverify
+                              </>
+                            ) : (
+                              <>
+                                <ShieldCheck size={14} strokeWidth={1.5} />
+                                Verify
+                              </>
+                            )}
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -250,26 +373,31 @@ export default function FarmersPage() {
             </div>
 
             {/* Pagination */}
-            <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
-              <div className="text-sm text-gray-600">
+            <div
+              className="px-6 py-4 border-t flex items-center justify-between"
+              style={{ borderColor: colors.border }}
+            >
+              <div className="text-sm" style={{ color: colors.body }}>
                 Page {currentPage} of {totalPages}
               </div>
               <div className="flex gap-2">
                 <button
                   onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                   disabled={currentPage === 1}
-                  className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                  className="p-2 border disabled:opacity-50 disabled:cursor-not-allowed hover:bg-stone-50"
+                  style={{ borderColor: colors.border, borderRadius: "4px" }}
                 >
-                  Previous
+                  <ChevronLeft size={16} style={{ color: colors.body }} />
                 </button>
                 <button
                   onClick={() =>
                     setCurrentPage((p) => Math.min(totalPages, p + 1))
                   }
                   disabled={currentPage === totalPages}
-                  className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                  className="p-2 border disabled:opacity-50 disabled:cursor-not-allowed hover:bg-stone-50"
+                  style={{ borderColor: colors.border, borderRadius: "4px" }}
                 >
-                  Next
+                  <ChevronRight size={16} style={{ color: colors.body }} />
                 </button>
               </div>
             </div>
@@ -279,18 +407,48 @@ export default function FarmersPage() {
 
       {/* Verification Modal */}
       {showVerifyModal && editingFarmer && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl max-w-md w-full p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">
-              {editingFarmer.is_verified ? "Unverify Farmer" : "Verify Farmer"}
-            </h2>
-            <p className="text-sm text-gray-600 mb-4">
-              {editingFarmer.farm_name}
-            </p>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/20"
+            onClick={() => setShowVerifyModal(false)}
+          />
+          <div
+            className="relative w-full max-w-md border p-6"
+            style={{
+              backgroundColor: colors.white,
+              borderColor: colors.border,
+              borderRadius: "4px",
+            }}
+          >
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2
+                  className="text-lg font-bold"
+                  style={{ color: colors.heading }}
+                >
+                  {editingFarmer.is_verified
+                    ? "Unverify Farmer"
+                    : "Verify Farmer"}
+                </h2>
+                <p className="text-sm mt-1" style={{ color: colors.body }}>
+                  {editingFarmer.farm_name}
+                </p>
+              </div>
+              <button
+                onClick={() => setShowVerifyModal(false)}
+                className="p-1 hover:bg-stone-100"
+                style={{ borderRadius: "4px" }}
+              >
+                <X size={20} style={{ color: colors.body }} />
+              </button>
+            </div>
             <form onSubmit={handleVerification} className="space-y-4">
               {!editingFarmer.is_verified && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label
+                    className="block text-sm font-medium mb-2"
+                    style={{ color: colors.heading }}
+                  >
                     Verification Badge (Optional)
                   </label>
                   <input
@@ -298,15 +456,27 @@ export default function FarmersPage() {
                     value={verificationBadge}
                     onChange={(e) => setVerificationBadge(e.target.value)}
                     placeholder="e.g., Organic Certified, Premium Farmer"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
+                    className="w-full px-4 py-2 text-sm border outline-none"
+                    style={{
+                      borderColor: colors.border,
+                      borderRadius: "4px",
+                      color: colors.heading,
+                    }}
                   />
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs mt-2" style={{ color: colors.body }}>
                     Optional badge to display on farmer's profile
                   </p>
                 </div>
               )}
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <p className="text-sm text-gray-700">
+              <div
+                className="p-4 border"
+                style={{
+                  backgroundColor: colors.background,
+                  borderColor: colors.border,
+                  borderRadius: "4px",
+                }}
+              >
+                <p className="text-sm" style={{ color: colors.body }}>
                   {editingFarmer.is_verified
                     ? "This will remove the verification status and badge from this farmer."
                     : "This will mark the farmer as verified and display the badge on their profile."}
@@ -314,23 +484,31 @@ export default function FarmersPage() {
               </div>
               <div className="flex gap-3 pt-4">
                 <button
+                  type="button"
+                  onClick={() => setShowVerifyModal(false)}
+                  className="flex-1 px-4 py-2 text-sm font-medium border transition-colors hover:bg-stone-50"
+                  style={{
+                    borderColor: colors.border,
+                    color: colors.body,
+                    borderRadius: "4px",
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
                   type="submit"
-                  className={`flex-1 font-semibold py-2 rounded-lg ${
-                    editingFarmer.is_verified
-                      ? "bg-orange-600 hover:bg-orange-700 text-white"
-                      : "bg-green-600 hover:bg-green-700 text-white"
-                  }`}
+                  className="flex-1 px-4 py-2 text-sm font-medium transition-colors"
+                  style={{
+                    backgroundColor: editingFarmer.is_verified
+                      ? colors.warning
+                      : colors.accent,
+                    color: colors.white,
+                    borderRadius: "4px",
+                  }}
                 >
                   {editingFarmer.is_verified
                     ? "Unverify Farmer"
                     : "Verify Farmer"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowVerifyModal(false)}
-                  className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 rounded-lg"
-                >
-                  Cancel
                 </button>
               </div>
             </form>

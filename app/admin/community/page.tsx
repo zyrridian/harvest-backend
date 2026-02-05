@@ -1,6 +1,30 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import {
+  Search,
+  Trash2,
+  Heart,
+  MessageSquare,
+  AlertCircle,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
+
+// Design System Colors
+const colors = {
+  background: "#FAFAF9",
+  white: "#FFFFFF",
+  heading: "#18181b",
+  body: "#475569",
+  accent: "#166534",
+  accentHover: "#14532d",
+  border: "#E4E4E7",
+  success: "#16a34a",
+  successBg: "#dcfce7",
+  error: "#dc2626",
+  errorBg: "#fee2e2",
+};
 
 interface Post {
   id: string;
@@ -92,7 +116,7 @@ export default function CommunityPage() {
         `/api/v1/admin/community/comments?${params}`,
         {
           headers: { Authorization: `Bearer ${token}` },
-        }
+        },
       );
 
       const data = await response.json();
@@ -137,7 +161,7 @@ export default function CommunityPage() {
         {
           method: "DELETE",
           headers: { Authorization: `Bearer ${token}` },
-        }
+        },
       );
 
       const data = await response.json();
@@ -164,17 +188,27 @@ export default function CommunityPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">
+        <h1
+          className="text-2xl font-bold tracking-tight"
+          style={{ color: colors.heading }}
+        >
           Community Moderation
         </h1>
-        <p className="text-gray-600 mt-1">
+        <p className="text-sm mt-1" style={{ color: colors.body }}>
           Moderate posts and comments from the community
         </p>
       </div>
 
-      {/* Tabs */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-        <div className="border-b border-gray-200">
+      {/* Tabs and Search */}
+      <div
+        className="border"
+        style={{
+          backgroundColor: colors.white,
+          borderColor: colors.border,
+          borderRadius: "4px",
+        }}
+      >
+        <div className="border-b" style={{ borderColor: colors.border }}>
           <div className="flex gap-4 px-6">
             <button
               onClick={() => {
@@ -182,11 +216,11 @@ export default function CommunityPage() {
                 setCurrentPage(1);
                 setSearchTerm("");
               }}
-              className={`py-4 px-2 border-b-2 font-medium transition-colors ${
-                activeTab === "posts"
-                  ? "border-green-600 text-green-600"
-                  : "border-transparent text-gray-500 hover:text-gray-700"
-              }`}
+              className="py-4 px-2 font-medium transition-colors"
+              style={{
+                borderBottom: `2px solid ${activeTab === "posts" ? colors.accent : "transparent"}`,
+                color: activeTab === "posts" ? colors.accent : colors.body,
+              }}
             >
               Posts
             </button>
@@ -196,11 +230,11 @@ export default function CommunityPage() {
                 setCurrentPage(1);
                 setSearchTerm("");
               }}
-              className={`py-4 px-2 border-b-2 font-medium transition-colors ${
-                activeTab === "comments"
-                  ? "border-green-600 text-green-600"
-                  : "border-transparent text-gray-500 hover:text-gray-700"
-              }`}
+              className="py-4 px-2 font-medium transition-colors"
+              style={{
+                borderBottom: `2px solid ${activeTab === "comments" ? colors.accent : "transparent"}`,
+                color: activeTab === "comments" ? colors.accent : colors.body,
+              }}
             >
               Comments
             </button>
@@ -209,53 +243,109 @@ export default function CommunityPage() {
 
         {/* Search */}
         <div className="p-6">
-          <input
-            type="text"
-            placeholder={`Search ${activeTab}...`}
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"
-          />
+          <div className="relative">
+            <Search
+              size={16}
+              className="absolute left-3 top-1/2 -translate-y-1/2"
+              style={{ color: colors.body }}
+            />
+            <input
+              type="text"
+              placeholder={`Search ${activeTab}...`}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 text-sm border outline-none"
+              style={{
+                borderColor: colors.border,
+                borderRadius: "4px",
+                color: colors.heading,
+              }}
+            />
+          </div>
         </div>
       </div>
 
       {/* Content */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+      <div
+        className="border"
+        style={{
+          backgroundColor: colors.white,
+          borderColor: colors.border,
+          borderRadius: "4px",
+        }}
+      >
         {loading ? (
-          <div className="p-8 text-center text-gray-600">
+          <div className="p-8 text-center" style={{ color: colors.body }}>
             Loading {activeTab}...
           </div>
         ) : error ? (
-          <div className="p-8 text-center text-red-600">{error}</div>
+          <div
+            className="p-8 text-center flex items-center justify-center gap-2"
+            style={{ color: colors.error }}
+          >
+            <AlertCircle size={18} />
+            {error}
+          </div>
         ) : activeTab === "posts" ? (
           posts.length === 0 ? (
-            <div className="p-8 text-center text-gray-600">No posts found</div>
+            <div className="p-8 text-center" style={{ color: colors.body }}>
+              No posts found
+            </div>
           ) : (
             <>
-              <div className="divide-y divide-gray-200">
-                {posts.map((post) => (
-                  <div key={post.id} className="p-6 hover:bg-gray-50">
+              <div>
+                {posts.map((post, index) => (
+                  <div
+                    key={post.id}
+                    className={`p-6 ${index < posts.length - 1 ? "border-b" : ""}`}
+                    style={{ borderColor: colors.border }}
+                  >
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
-                        <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                        <h3
+                          className="text-base font-semibold mb-2"
+                          style={{ color: colors.heading }}
+                        >
                           {post.title}
                         </h3>
-                        <p className="text-gray-700 mb-3">{post.content}</p>
-                        <div className="flex items-center gap-4 text-sm text-gray-600">
+                        <p
+                          className="text-sm mb-3"
+                          style={{ color: colors.body }}
+                        >
+                          {post.content}
+                        </p>
+                        <div
+                          className="flex items-center gap-4 text-xs"
+                          style={{ color: colors.body }}
+                        >
                           <span>By: {post.user.name}</span>
-                          <span>•</span>
+                          <span style={{ color: colors.border }}>|</span>
                           <span>{formatDate(post.created_at)}</span>
-                          <span>•</span>
-                          <span>❤️ {post._count.likes} likes</span>
-                          <span>•</span>
-                          <span>💬 {post._count.comments} comments</span>
+                          <span style={{ color: colors.border }}>|</span>
+                          <span className="flex items-center gap-1">
+                            <Heart size={12} style={{ color: colors.error }} />
+                            {post._count.likes} likes
+                          </span>
+                          <span style={{ color: colors.border }}>|</span>
+                          <span className="flex items-center gap-1">
+                            <MessageSquare
+                              size={12}
+                              style={{ color: colors.body }}
+                            />
+                            {post._count.comments} comments
+                          </span>
                         </div>
                       </div>
                       <button
                         onClick={() => handleDeletePost(post.id)}
-                        className="ml-4 px-4 py-2 text-sm font-medium text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors"
+                        className="ml-4 p-2 transition-colors hover:bg-red-50"
+                        style={{ borderRadius: "4px" }}
                       >
-                        Delete
+                        <Trash2
+                          size={16}
+                          strokeWidth={1.5}
+                          style={{ color: colors.error }}
+                        />
                       </button>
                     </div>
                   </div>
@@ -263,58 +353,88 @@ export default function CommunityPage() {
               </div>
 
               {/* Pagination */}
-              <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
-                <div className="text-sm text-gray-600">
+              <div
+                className="px-6 py-4 border-t flex items-center justify-between"
+                style={{ borderColor: colors.border }}
+              >
+                <div className="text-sm" style={{ color: colors.body }}>
                   Page {currentPage} of {totalPages}
                 </div>
                 <div className="flex gap-2">
                   <button
                     onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                     disabled={currentPage === 1}
-                    className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                    className="p-2 border disabled:opacity-50 disabled:cursor-not-allowed hover:bg-stone-50"
+                    style={{ borderColor: colors.border, borderRadius: "4px" }}
                   >
-                    Previous
+                    <ChevronLeft size={16} style={{ color: colors.body }} />
                   </button>
                   <button
                     onClick={() =>
                       setCurrentPage((p) => Math.min(totalPages, p + 1))
                     }
                     disabled={currentPage === totalPages}
-                    className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                    className="p-2 border disabled:opacity-50 disabled:cursor-not-allowed hover:bg-stone-50"
+                    style={{ borderColor: colors.border, borderRadius: "4px" }}
                   >
-                    Next
+                    <ChevronRight size={16} style={{ color: colors.body }} />
                   </button>
                 </div>
               </div>
             </>
           )
         ) : comments.length === 0 ? (
-          <div className="p-8 text-center text-gray-600">No comments found</div>
+          <div className="p-8 text-center" style={{ color: colors.body }}>
+            No comments found
+          </div>
         ) : (
           <>
-            <div className="divide-y divide-gray-200">
-              {comments.map((comment) => (
-                <div key={comment.id} className="p-6 hover:bg-gray-50">
+            <div>
+              {comments.map((comment, index) => (
+                <div
+                  key={comment.id}
+                  className={`p-6 ${index < comments.length - 1 ? "border-b" : ""}`}
+                  style={{ borderColor: colors.border }}
+                >
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
-                      <p className="text-gray-900 mb-3">{comment.content}</p>
-                      <div className="text-sm text-gray-600 mb-2">
+                      <p
+                        className="text-sm mb-3"
+                        style={{ color: colors.heading }}
+                      >
+                        {comment.content}
+                      </p>
+                      <div
+                        className="text-xs mb-2"
+                        style={{ color: colors.body }}
+                      >
                         <span className="font-medium">On post:</span>{" "}
                         {comment.post.title}
                       </div>
-                      <div className="flex items-center gap-4 text-sm text-gray-600">
+                      <div
+                        className="flex items-center gap-4 text-xs"
+                        style={{ color: colors.body }}
+                      >
                         <span>By: {comment.user.name}</span>
-                        <span>•</span>
+                        <span style={{ color: colors.border }}>|</span>
                         <span>{formatDate(comment.created_at)}</span>
-                        <span>•</span>
-                        <span>❤️ {comment._count.likes} likes</span>
+                        <span style={{ color: colors.border }}>|</span>
+                        <span className="flex items-center gap-1">
+                          <Heart size={12} style={{ color: colors.error }} />
+                          {comment._count.likes} likes
+                        </span>
                       </div>
                     </div>
                     <button
                       onClick={() => handleDeleteComment(comment.id)}
-                      className="ml-4 px-4 py-2 text-sm font-medium text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors"
+                      className="ml-4 p-2 transition-colors hover:bg-red-50"
+                      style={{ borderRadius: "4px" }}
                     >
-                      Delete
+                      <Trash2
+                        size={16}
+                        strokeWidth={1.5}
+                        style={{ color: colors.error }}
+                      />
                     </button>
                   </div>
                 </div>
@@ -322,26 +442,31 @@ export default function CommunityPage() {
             </div>
 
             {/* Pagination */}
-            <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
-              <div className="text-sm text-gray-600">
+            <div
+              className="px-6 py-4 border-t flex items-center justify-between"
+              style={{ borderColor: colors.border }}
+            >
+              <div className="text-sm" style={{ color: colors.body }}>
                 Page {currentPage} of {totalPages}
               </div>
               <div className="flex gap-2">
                 <button
                   onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                   disabled={currentPage === 1}
-                  className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                  className="p-2 border disabled:opacity-50 disabled:cursor-not-allowed hover:bg-stone-50"
+                  style={{ borderColor: colors.border, borderRadius: "4px" }}
                 >
-                  Previous
+                  <ChevronLeft size={16} style={{ color: colors.body }} />
                 </button>
                 <button
                   onClick={() =>
                     setCurrentPage((p) => Math.min(totalPages, p + 1))
                   }
                   disabled={currentPage === totalPages}
-                  className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                  className="p-2 border disabled:opacity-50 disabled:cursor-not-allowed hover:bg-stone-50"
+                  style={{ borderColor: colors.border, borderRadius: "4px" }}
                 >
-                  Next
+                  <ChevronRight size={16} style={{ color: colors.body }} />
                 </button>
               </div>
             </div>

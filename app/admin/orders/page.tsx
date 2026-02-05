@@ -1,6 +1,34 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import {
+  Package,
+  X,
+  AlertCircle,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
+
+// Design System Colors
+const colors = {
+  background: "#FAFAF9",
+  white: "#FFFFFF",
+  heading: "#18181b",
+  body: "#475569",
+  accent: "#166534",
+  accentHover: "#14532d",
+  border: "#E4E4E7",
+  success: "#16a34a",
+  successBg: "#dcfce7",
+  warning: "#ea580c",
+  warningBg: "#ffedd5",
+  error: "#dc2626",
+  errorBg: "#fee2e2",
+  info: "#2563eb",
+  infoBg: "#dbeafe",
+  purple: "#7c3aed",
+  purpleBg: "#f3e8ff",
+};
 
 interface Order {
   id: string;
@@ -81,7 +109,7 @@ export default function OrdersPage() {
             status: newStatus,
             ...(newTrackingNumber && { tracking_number: newTrackingNumber }),
           }),
-        }
+        },
       );
 
       const data = await response.json();
@@ -120,20 +148,20 @@ export default function OrdersPage() {
     });
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusStyle = (status: string) => {
     switch (status) {
       case "PENDING":
-        return "bg-yellow-100 text-yellow-700";
+        return { bg: colors.warningBg, color: colors.warning };
       case "PROCESSING":
-        return "bg-blue-100 text-blue-700";
+        return { bg: colors.infoBg, color: colors.info };
       case "SHIPPED":
-        return "bg-purple-100 text-purple-700";
+        return { bg: colors.purpleBg, color: colors.purple };
       case "DELIVERED":
-        return "bg-green-100 text-green-700";
+        return { bg: colors.successBg, color: colors.success };
       case "CANCELLED":
-        return "bg-red-100 text-red-700";
+        return { bg: colors.errorBg, color: colors.error };
       default:
-        return "bg-gray-100 text-gray-700";
+        return { bg: colors.background, color: colors.body };
     }
   };
 
@@ -141,16 +169,35 @@ export default function OrdersPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Order Management</h1>
-        <p className="text-gray-600 mt-1">Monitor and manage all orders</p>
+        <h1
+          className="text-2xl font-bold tracking-tight"
+          style={{ color: colors.heading }}
+        >
+          Order Management
+        </h1>
+        <p className="text-sm mt-1" style={{ color: colors.body }}>
+          Monitor and manage all orders
+        </p>
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+      <div
+        className="border p-6"
+        style={{
+          backgroundColor: colors.white,
+          borderColor: colors.border,
+          borderRadius: "4px",
+        }}
+      >
         <select
           value={filterStatus}
           onChange={(e) => setFilterStatus(e.target.value)}
-          className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"
+          className="px-4 py-2 text-sm border outline-none"
+          style={{
+            borderColor: colors.border,
+            borderRadius: "4px",
+            color: colors.heading,
+          }}
         >
           <option value="">All Order Status</option>
           <option value="PENDING">Pending</option>
@@ -162,130 +209,186 @@ export default function OrdersPage() {
       </div>
 
       {/* Orders Table */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+      <div
+        className="border overflow-hidden"
+        style={{
+          backgroundColor: colors.white,
+          borderColor: colors.border,
+          borderRadius: "4px",
+        }}
+      >
         {loading ? (
-          <div className="p-8 text-center text-gray-600">Loading orders...</div>
+          <div className="p-8 text-center" style={{ color: colors.body }}>
+            Loading orders...
+          </div>
         ) : error ? (
-          <div className="p-8 text-center text-red-600">{error}</div>
+          <div
+            className="p-8 text-center flex items-center justify-center gap-2"
+            style={{ color: colors.error }}
+          >
+            <AlertCircle size={18} />
+            {error}
+          </div>
         ) : orders.length === 0 ? (
-          <div className="p-8 text-center text-gray-600">No orders found</div>
+          <div className="p-8 text-center" style={{ color: colors.body }}>
+            No orders found
+          </div>
         ) : (
           <>
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-gray-50 border-b border-gray-200">
+                <thead
+                  className="border-b"
+                  style={{
+                    backgroundColor: colors.background,
+                    borderColor: colors.border,
+                  }}
+                >
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      Order
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      Buyer
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      Seller
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      Items
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      Total
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      Status
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      Date
-                    </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                      Actions
-                    </th>
+                    {[
+                      "Order",
+                      "Buyer",
+                      "Seller",
+                      "Items",
+                      "Total",
+                      "Status",
+                      "Date",
+                      "Actions",
+                    ].map((h) => (
+                      <th
+                        key={h}
+                        className={`px-6 py-3 text-xs font-medium uppercase tracking-wider ${h === "Actions" ? "text-right" : "text-left"}`}
+                        style={{ color: colors.body }}
+                      >
+                        {h}
+                      </th>
+                    ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {orders.map((order) => (
-                    <tr key={order.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div>
-                          <div className="font-medium text-gray-900">
+                <tbody>
+                  {orders.map((order) => {
+                    const statusStyle = getStatusStyle(order.status);
+                    return (
+                      <tr
+                        key={order.id}
+                        className="border-b last:border-b-0"
+                        style={{ borderColor: colors.border }}
+                      >
+                        <td className="px-6 py-4">
+                          <div
+                            className="font-medium text-sm"
+                            style={{ color: colors.heading }}
+                          >
                             #{order.order_number}
                           </div>
                           {order.tracking_number && (
-                            <div className="text-xs text-gray-500">
+                            <div
+                              className="text-xs mt-0.5"
+                              style={{ color: colors.body }}
+                            >
                               Track: {order.tracking_number}
                             </div>
                           )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div>
-                          <div className="font-medium text-gray-900">
+                        </td>
+                        <td className="px-6 py-4">
+                          <div
+                            className="font-medium text-sm"
+                            style={{ color: colors.heading }}
+                          >
                             {order.buyer.name}
                           </div>
-                          <div className="text-xs text-gray-500">
+                          <div
+                            className="text-xs mt-0.5"
+                            style={{ color: colors.body }}
+                          >
                             {order.buyer.email}
                           </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-gray-900">{order.seller.name}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-gray-900">
+                        </td>
+                        <td
+                          className="px-6 py-4 text-sm"
+                          style={{ color: colors.heading }}
+                        >
+                          {order.seller.name}
+                        </td>
+                        <td
+                          className="px-6 py-4 text-sm"
+                          style={{ color: colors.heading }}
+                        >
                           {order.items_count} items
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="font-medium text-gray-900">
+                        </td>
+                        <td
+                          className="px-6 py-4 font-medium text-sm"
+                          style={{ color: colors.heading }}
+                        >
                           {formatCurrency(order.total_price)}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span
-                          className={`px-2 py-1 text-xs rounded-full ${getStatusColor(
-                            order.status
-                          )}`}
+                        </td>
+                        <td className="px-6 py-4">
+                          <span
+                            className="px-2 py-1 text-xs font-medium"
+                            style={{
+                              backgroundColor: statusStyle.bg,
+                              color: statusStyle.color,
+                              borderRadius: "4px",
+                            }}
+                          >
+                            {order.status}
+                          </span>
+                        </td>
+                        <td
+                          className="px-6 py-4 text-sm"
+                          style={{ color: colors.body }}
                         >
-                          {order.status}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                        {formatDate(order.created_at)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
-                        <button
-                          onClick={() => openStatusModal(order)}
-                          className="text-blue-600 hover:text-blue-800 font-medium"
-                        >
-                          Update Status
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
+                          {formatDate(order.created_at)}
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex justify-end">
+                            <button
+                              onClick={() => openStatusModal(order)}
+                              className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium border transition-colors hover:bg-stone-50"
+                              style={{
+                                borderColor: colors.border,
+                                color: colors.heading,
+                                borderRadius: "4px",
+                              }}
+                            >
+                              <Package size={14} strokeWidth={1.5} />
+                              Update
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
 
             {/* Pagination */}
-            <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
-              <div className="text-sm text-gray-600">
+            <div
+              className="px-6 py-4 border-t flex items-center justify-between"
+              style={{ borderColor: colors.border }}
+            >
+              <div className="text-sm" style={{ color: colors.body }}>
                 Page {currentPage} of {totalPages}
               </div>
               <div className="flex gap-2">
                 <button
                   onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                   disabled={currentPage === 1}
-                  className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                  className="p-2 border disabled:opacity-50 disabled:cursor-not-allowed hover:bg-stone-50"
+                  style={{ borderColor: colors.border, borderRadius: "4px" }}
                 >
-                  Previous
+                  <ChevronLeft size={16} style={{ color: colors.body }} />
                 </button>
                 <button
                   onClick={() =>
                     setCurrentPage((p) => Math.min(totalPages, p + 1))
                   }
                   disabled={currentPage === totalPages}
-                  className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                  className="p-2 border disabled:opacity-50 disabled:cursor-not-allowed hover:bg-stone-50"
+                  style={{ borderColor: colors.border, borderRadius: "4px" }}
                 >
-                  Next
+                  <ChevronRight size={16} style={{ color: colors.body }} />
                 </button>
               </div>
             </div>
@@ -295,23 +398,56 @@ export default function OrdersPage() {
 
       {/* Status Update Modal */}
       {showStatusModal && editingOrder && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl max-w-md w-full p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">
-              Update Order Status
-            </h2>
-            <p className="text-sm text-gray-600 mb-4">
-              Order #{editingOrder.order_number}
-            </p>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/20"
+            onClick={() => setShowStatusModal(false)}
+          />
+          <div
+            className="relative w-full max-w-md border p-6"
+            style={{
+              backgroundColor: colors.white,
+              borderColor: colors.border,
+              borderRadius: "4px",
+            }}
+          >
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2
+                  className="text-lg font-bold"
+                  style={{ color: colors.heading }}
+                >
+                  Update Order Status
+                </h2>
+                <p className="text-sm mt-1" style={{ color: colors.body }}>
+                  Order #{editingOrder.order_number}
+                </p>
+              </div>
+              <button
+                onClick={() => setShowStatusModal(false)}
+                className="p-1 hover:bg-stone-100"
+                style={{ borderRadius: "4px" }}
+              >
+                <X size={20} style={{ color: colors.body }} />
+              </button>
+            </div>
             <form onSubmit={handleUpdateStatus} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label
+                  className="block text-sm font-medium mb-2"
+                  style={{ color: colors.heading }}
+                >
                   Status
                 </label>
                 <select
                   value={newStatus}
                   onChange={(e) => setNewStatus(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
+                  className="w-full px-4 py-2 text-sm border outline-none"
+                  style={{
+                    borderColor: colors.border,
+                    borderRadius: "4px",
+                    color: colors.heading,
+                  }}
                   required
                 >
                   <option value="PENDING">Pending</option>
@@ -322,7 +458,10 @@ export default function OrdersPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label
+                  className="block text-sm font-medium mb-2"
+                  style={{ color: colors.heading }}
+                >
                   Tracking Number (Optional)
                 </label>
                 <input
@@ -330,22 +469,37 @@ export default function OrdersPage() {
                   value={newTrackingNumber}
                   onChange={(e) => setNewTrackingNumber(e.target.value)}
                   placeholder="Enter tracking number"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
+                  className="w-full px-4 py-2 text-sm border outline-none"
+                  style={{
+                    borderColor: colors.border,
+                    borderRadius: "4px",
+                    color: colors.heading,
+                  }}
                 />
               </div>
               <div className="flex gap-3 pt-4">
                 <button
-                  type="submit"
-                  className="flex-1 bg-green-600 hover:bg-green-700 text-white font-semibold py-2 rounded-lg"
-                >
-                  Update Status
-                </button>
-                <button
                   type="button"
                   onClick={() => setShowStatusModal(false)}
-                  className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 rounded-lg"
+                  className="flex-1 px-4 py-2 text-sm font-medium border transition-colors hover:bg-stone-50"
+                  style={{
+                    borderColor: colors.border,
+                    color: colors.body,
+                    borderRadius: "4px",
+                  }}
                 >
                   Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 px-4 py-2 text-sm font-medium transition-colors"
+                  style={{
+                    backgroundColor: colors.accent,
+                    color: colors.white,
+                    borderRadius: "4px",
+                  }}
+                >
+                  Update Status
                 </button>
               </div>
             </form>

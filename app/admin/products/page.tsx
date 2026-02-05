@@ -1,6 +1,30 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import {
+  Search,
+  ToggleLeft,
+  ToggleRight,
+  Trash2,
+  AlertCircle,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
+
+// Design System Colors
+const colors = {
+  background: "#FAFAF9",
+  white: "#FFFFFF",
+  heading: "#18181b",
+  body: "#475569",
+  accent: "#166534",
+  accentHover: "#14532d",
+  border: "#E4E4E7",
+  success: "#16a34a",
+  successBg: "#dcfce7",
+  error: "#dc2626",
+  errorBg: "#fee2e2",
+};
 
 interface Product {
   id: string;
@@ -63,7 +87,7 @@ export default function ProductsPage() {
 
   const handleToggleAvailability = async (
     productId: string,
-    currentStatus: boolean
+    currentStatus: boolean,
   ) => {
     try {
       const token = localStorage.getItem("accessToken");
@@ -118,26 +142,55 @@ export default function ProductsPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Product Management</h1>
-        <p className="text-gray-600 mt-1">
+        <h1
+          className="text-2xl font-bold tracking-tight"
+          style={{ color: colors.heading }}
+        >
+          Product Management
+        </h1>
+        <p className="text-sm mt-1" style={{ color: colors.body }}>
           Manage and moderate products on your platform
         </p>
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+      <div
+        className="border p-6"
+        style={{
+          backgroundColor: colors.white,
+          borderColor: colors.border,
+          borderRadius: "4px",
+        }}
+      >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <input
-            type="text"
-            placeholder="Search by product name or description..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"
-          />
+          <div className="relative">
+            <Search
+              size={16}
+              className="absolute left-3 top-1/2 -translate-y-1/2"
+              style={{ color: colors.body }}
+            />
+            <input
+              type="text"
+              placeholder="Search by product name or description..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 text-sm border outline-none"
+              style={{
+                borderColor: colors.border,
+                borderRadius: "4px",
+                color: colors.heading,
+              }}
+            />
+          </div>
           <select
             value={filterAvailability}
             onChange={(e) => setFilterAvailability(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"
+            className="px-4 py-2 text-sm border outline-none"
+            style={{
+              borderColor: colors.border,
+              borderRadius: "4px",
+              color: colors.heading,
+            }}
           >
             <option value="">All Availability Status</option>
             <option value="true">Available</option>
@@ -147,109 +200,175 @@ export default function ProductsPage() {
       </div>
 
       {/* Products Table */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+      <div
+        className="border overflow-hidden"
+        style={{
+          backgroundColor: colors.white,
+          borderColor: colors.border,
+          borderRadius: "4px",
+        }}
+      >
         {loading ? (
-          <div className="p-8 text-center text-gray-600">
+          <div className="p-8 text-center" style={{ color: colors.body }}>
             Loading products...
           </div>
         ) : error ? (
-          <div className="p-8 text-center text-red-600">{error}</div>
+          <div
+            className="p-8 text-center flex items-center justify-center gap-2"
+            style={{ color: colors.error }}
+          >
+            <AlertCircle size={18} />
+            {error}
+          </div>
         ) : products.length === 0 ? (
-          <div className="p-8 text-center text-gray-600">No products found</div>
+          <div className="p-8 text-center" style={{ color: colors.body }}>
+            No products found
+          </div>
         ) : (
           <>
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-gray-50 border-b border-gray-200">
+                <thead
+                  className="border-b"
+                  style={{
+                    backgroundColor: colors.background,
+                    borderColor: colors.border,
+                  }}
+                >
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      Product
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      Seller
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      Category
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      Price
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      Stock
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      Status
-                    </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                      Actions
-                    </th>
+                    {[
+                      "Product",
+                      "Seller",
+                      "Category",
+                      "Price",
+                      "Stock",
+                      "Status",
+                      "Actions",
+                    ].map((h) => (
+                      <th
+                        key={h}
+                        className={`px-6 py-3 text-xs font-medium uppercase tracking-wider ${h === "Actions" ? "text-right" : "text-left"}`}
+                        style={{ color: colors.body }}
+                      >
+                        {h}
+                      </th>
+                    ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200">
+                <tbody>
                   {products.map((product) => (
-                    <tr key={product.id} className="hover:bg-gray-50">
+                    <tr
+                      key={product.id}
+                      className="border-b last:border-b-0"
+                      style={{ borderColor: colors.border }}
+                    >
                       <td className="px-6 py-4">
-                        <div>
-                          <div className="font-medium text-gray-900">
-                            {product.name}
-                          </div>
-                          <div className="text-sm text-gray-600 truncate max-w-xs">
-                            {product.description}
-                          </div>
+                        <div
+                          className="font-medium text-sm"
+                          style={{ color: colors.heading }}
+                        >
+                          {product.name}
+                        </div>
+                        <div
+                          className="text-xs truncate max-w-xs mt-1"
+                          style={{ color: colors.body }}
+                        >
+                          {product.description}
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-gray-900">
-                          {product.seller.name}
-                        </div>
+                      <td
+                        className="px-6 py-4 text-sm"
+                        style={{ color: colors.heading }}
+                      >
+                        {product.seller.name}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded-full">
+                      <td className="px-6 py-4">
+                        <span
+                          className="px-2 py-1 text-xs font-medium"
+                          style={{
+                            backgroundColor: colors.background,
+                            color: colors.body,
+                            borderRadius: "4px",
+                          }}
+                        >
                           {product.category.name}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="font-medium text-gray-900">
+                      <td className="px-6 py-4">
+                        <div
+                          className="font-medium text-sm"
+                          style={{ color: colors.heading }}
+                        >
                           {formatCurrency(product.price)}
                         </div>
-                        <div className="text-xs text-gray-500">
+                        <div
+                          className="text-xs mt-0.5"
+                          style={{ color: colors.body }}
+                        >
                           per {product.unit}
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-gray-900">
-                          {product.stock} {product.unit}
-                        </div>
+                      <td
+                        className="px-6 py-4 text-sm"
+                        style={{ color: colors.heading }}
+                      >
+                        {product.stock} {product.unit}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-6 py-4">
                         <span
-                          className={`px-2 py-1 text-xs rounded-full ${
-                            product.is_available
-                              ? "bg-green-100 text-green-700"
-                              : "bg-red-100 text-red-700"
-                          }`}
+                          className="px-2 py-1 text-xs font-medium"
+                          style={{
+                            backgroundColor: product.is_available
+                              ? colors.successBg
+                              : colors.errorBg,
+                            color: product.is_available
+                              ? colors.success
+                              : colors.error,
+                            borderRadius: "4px",
+                          }}
                         >
                           {product.is_available ? "Available" : "Unavailable"}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
-                        <button
-                          onClick={() =>
-                            handleToggleAvailability(
-                              product.id,
-                              product.is_available
-                            )
-                          }
-                          className="text-blue-600 hover:text-blue-800 font-medium mr-3"
-                        >
-                          {product.is_available ? "Disable" : "Enable"}
-                        </button>
-                        <button
-                          onClick={() => handleDelete(product.id)}
-                          className="text-red-600 hover:text-red-800 font-medium"
-                        >
-                          Delete
-                        </button>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() =>
+                              handleToggleAvailability(
+                                product.id,
+                                product.is_available,
+                              )
+                            }
+                            className="p-2 transition-colors hover:bg-stone-100"
+                            style={{ borderRadius: "4px" }}
+                            title={product.is_available ? "Disable" : "Enable"}
+                          >
+                            {product.is_available ? (
+                              <ToggleRight
+                                size={18}
+                                strokeWidth={1.5}
+                                style={{ color: colors.success }}
+                              />
+                            ) : (
+                              <ToggleLeft
+                                size={18}
+                                strokeWidth={1.5}
+                                style={{ color: colors.body }}
+                              />
+                            )}
+                          </button>
+                          <button
+                            onClick={() => handleDelete(product.id)}
+                            className="p-2 transition-colors hover:bg-red-50"
+                            style={{ borderRadius: "4px" }}
+                          >
+                            <Trash2
+                              size={16}
+                              strokeWidth={1.5}
+                              style={{ color: colors.error }}
+                            />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -258,26 +377,31 @@ export default function ProductsPage() {
             </div>
 
             {/* Pagination */}
-            <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
-              <div className="text-sm text-gray-600">
+            <div
+              className="px-6 py-4 border-t flex items-center justify-between"
+              style={{ borderColor: colors.border }}
+            >
+              <div className="text-sm" style={{ color: colors.body }}>
                 Page {currentPage} of {totalPages}
               </div>
               <div className="flex gap-2">
                 <button
                   onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                   disabled={currentPage === 1}
-                  className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                  className="p-2 border disabled:opacity-50 disabled:cursor-not-allowed hover:bg-stone-50"
+                  style={{ borderColor: colors.border, borderRadius: "4px" }}
                 >
-                  Previous
+                  <ChevronLeft size={16} style={{ color: colors.body }} />
                 </button>
                 <button
                   onClick={() =>
                     setCurrentPage((p) => Math.min(totalPages, p + 1))
                   }
                   disabled={currentPage === totalPages}
-                  className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                  className="p-2 border disabled:opacity-50 disabled:cursor-not-allowed hover:bg-stone-50"
+                  style={{ borderColor: colors.border, borderRadius: "4px" }}
                 >
-                  Next
+                  <ChevronRight size={16} style={{ color: colors.body }} />
                 </button>
               </div>
             </div>

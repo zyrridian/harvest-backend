@@ -2,6 +2,20 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Leaf, AlertCircle } from "lucide-react";
+
+// Design System Colors
+const colors = {
+  background: "#FAFAF9",
+  white: "#FFFFFF",
+  heading: "#18181b",
+  body: "#475569",
+  accent: "#166534",
+  accentHover: "#14532d",
+  border: "#E4E4E7",
+  error: "#dc2626",
+  errorBg: "#fef2f2",
+};
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -18,7 +32,6 @@ export default function AdminLoginPage() {
     setLoading(true);
 
     try {
-      // Clear any old tokens before attempting login
       localStorage.removeItem("accessToken");
       localStorage.removeItem("refreshToken");
 
@@ -36,16 +49,13 @@ export default function AdminLoginPage() {
         throw new Error(data.message || "Login failed");
       }
 
-      // Check if user is admin (field name is user_type in snake_case)
       if (data.data.user.user_type !== "ADMIN") {
         throw new Error("Access denied. Admin privileges required.");
       }
 
-      // Store new tokens (API returns snake_case: access_token, refresh_token)
       localStorage.setItem("accessToken", data.data.access_token);
       localStorage.setItem("refreshToken", data.data.refresh_token);
 
-      // Redirect to dashboard
       router.push("/admin");
     } catch (err: any) {
       setError(err.message || "An error occurred during login");
@@ -55,26 +65,56 @@ export default function AdminLoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-green-100 flex items-center justify-center p-4">
+    <div
+      className="min-h-screen flex items-center justify-center p-4"
+      style={{ backgroundColor: colors.background }}
+    >
       <div className="w-full max-w-md">
-        <div className="bg-white rounded-2xl shadow-xl p-8">
+        <div
+          className="border p-8"
+          style={{
+            backgroundColor: colors.white,
+            borderColor: colors.border,
+            borderRadius: "4px",
+          }}
+        >
           {/* Logo */}
           <div className="text-center mb-8">
-            <h1 className="text-4xl font-bold text-green-600 mb-2">
-              🌾 Harvest
-            </h1>
-            <h2 className="text-2xl font-semibold text-gray-800">
+            <div className="flex items-center justify-center gap-2 mb-4">
+              <Leaf size={32} style={{ color: colors.accent }} />
+              <span
+                className="text-2xl font-bold tracking-tight"
+                style={{ color: colors.heading }}
+              >
+                Harvest
+              </span>
+            </div>
+            <h2 className="text-xl font-bold" style={{ color: colors.heading }}>
               Admin Panel
             </h2>
-            <p className="text-gray-600 mt-2">
+            <p className="text-sm mt-2" style={{ color: colors.body }}>
               Sign in to manage your platform
             </p>
           </div>
 
           {/* Error Message */}
           {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-red-600 text-sm">{error}</p>
+            <div
+              className="mb-6 p-4 border flex items-start gap-3"
+              style={{
+                backgroundColor: colors.errorBg,
+                borderColor: colors.error,
+                borderRadius: "4px",
+              }}
+            >
+              <AlertCircle
+                size={18}
+                style={{ color: colors.error }}
+                className="flex-shrink-0 mt-0.5"
+              />
+              <p className="text-sm" style={{ color: colors.error }}>
+                {error}
+              </p>
             </div>
           )}
 
@@ -83,7 +123,8 @@ export default function AdminLoginPage() {
             <div>
               <label
                 htmlFor="email"
-                className="block text-sm font-medium text-gray-700 mb-2"
+                className="block text-sm font-medium mb-2"
+                style={{ color: colors.heading }}
               >
                 Email Address
               </label>
@@ -95,7 +136,12 @@ export default function AdminLoginPage() {
                 onChange={(e) =>
                   setFormData({ ...formData, email: e.target.value })
                 }
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition"
+                className="w-full px-4 py-3 text-sm border outline-none transition-colors"
+                style={{
+                  borderColor: colors.border,
+                  borderRadius: "4px",
+                  color: colors.heading,
+                }}
                 placeholder="admin@harvest.com"
               />
             </div>
@@ -103,7 +149,8 @@ export default function AdminLoginPage() {
             <div>
               <label
                 htmlFor="password"
-                className="block text-sm font-medium text-gray-700 mb-2"
+                className="block text-sm font-medium mb-2"
+                style={{ color: colors.heading }}
               >
                 Password
               </label>
@@ -115,22 +162,42 @@ export default function AdminLoginPage() {
                 onChange={(e) =>
                   setFormData({ ...formData, password: e.target.value })
                 }
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition"
-                placeholder="••••••••"
+                className="w-full px-4 py-3 text-sm border outline-none transition-colors"
+                style={{
+                  borderColor: colors.border,
+                  borderRadius: "4px",
+                  color: colors.heading,
+                }}
+                placeholder="Enter your password"
               />
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full py-3 text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{
+                backgroundColor: colors.accent,
+                color: colors.white,
+                borderRadius: "4px",
+              }}
+              onMouseEnter={(e) => {
+                if (!loading) {
+                  e.currentTarget.style.backgroundColor = colors.accentHover;
+                }
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = colors.accent;
+              }}
             >
               {loading ? "Signing in..." : "Sign In"}
             </button>
           </form>
 
-          <div className="mt-6 text-center text-sm text-gray-600">
-            <p>Admin access only</p>
+          <div className="mt-6 text-center">
+            <p className="text-xs" style={{ color: colors.body }}>
+              Admin access only
+            </p>
           </div>
         </div>
       </div>
