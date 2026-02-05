@@ -71,7 +71,9 @@ export default function CategoriesPage() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.message);
 
-      setCategories(data.data.categories || []);
+      setCategories(
+        Array.isArray(data.data) ? data.data : data.data.categories || [],
+      );
     } catch (err: any) {
       setError(err.message);
     } finally {
