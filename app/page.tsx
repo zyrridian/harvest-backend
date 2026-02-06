@@ -79,7 +79,7 @@ function Navbar() {
           {/* CTA Button */}
           <div className="hidden md:block">
             <a
-              href="/api/v1/auth/register"
+              href="/login"
               className="inline-flex items-center px-4 py-2 text-sm font-medium border transition-colors"
               style={{
                 color: colors.accent,
@@ -149,7 +149,7 @@ function Navbar() {
                 About
               </a>
               <a
-                href="/api/v1/auth/register"
+                href="/login"
                 className="inline-flex items-center justify-center px-4 py-2 text-sm font-medium border"
                 style={{
                   color: colors.accent,
@@ -196,7 +196,7 @@ function Hero() {
             </p>
             <div className="mt-8 flex flex-col sm:flex-row gap-4">
               <a
-                href="/api/v1/auth/register"
+                href="/login"
                 className="inline-flex items-center justify-center px-6 py-3 text-base font-medium transition-colors"
                 style={{
                   backgroundColor: colors.accent,
