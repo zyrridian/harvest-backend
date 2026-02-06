@@ -157,8 +157,10 @@ const product = await prisma.product.findUnique({
           title: vid.title,
         })),
         seller: {
+          seller_id: product.seller.id,
           user_id: product.seller.id,
           name: product.seller.name,
+          avatar_url: product.seller.avatarUrl,
           profile_picture: product.seller.avatarUrl,
           rating: farmerInfo?.rating || 0,
           reviews_count: farmerInfo?.totalReviews || 0,
@@ -176,8 +178,17 @@ const product = await prisma.product.findUnique({
           response_time: sellerProfile?.responseTime,
           total_products: farmerInfo?.totalProducts || 0,
           joined_since: sellerProfile?.joinedSince,
+          joined_date: farmerInfo?.joinedDate,
           followers_count: farmerInfo?.followersCount || 0,
         },
+        farmer: farmerInfo ? {
+          name: farmerInfo.name,
+          farm_name: farmerInfo.name,
+          city: farmerInfo.city,
+          is_verified: farmerInfo.isVerified,
+          rating: farmerInfo.rating,
+          total_products: farmerInfo.totalProducts,
+        } : null,
         specifications: product.specifications.map((spec) => ({
           key: spec.specKey,
           value: spec.specValue,
@@ -202,6 +213,16 @@ const product = await prisma.product.findUnique({
             "2_star": 0,
             "1_star": 0,
           },
+        },
+        attributes: {
+          is_organic: product.isOrganic,
+          is_local: false, // TODO: Add to schema if needed
+          is_seasonal: false, // TODO: Add to schema if needed
+          harvest_date: product.harvestDate,
+          expiry_date: null, // TODO: Add to schema if needed
+          origin: null, // TODO: Add to schema if needed
+          storage_instructions: null, // TODO: Add to schema if needed
+          nutritional_info: null, // TODO: Add to schema if needed
         },
         is_organic: product.isOrganic,
         is_available: product.isAvailable,

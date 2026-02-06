@@ -160,23 +160,39 @@ export async function GET(request: NextRequest) {
       prisma.product.count({ where }),
     ]);
 
+    // Get farmer data for products
+    const sellerIds = [...new Set(products.map((p) => p.sellerId))];
+    const farmers = await prisma.farmer.findMany({
+      where: { userId: { in: sellerIds } },
+      select: {
+        userId: true,
+        name: true,
+        profileImage: true,
+        isVerified: true,
+      },
+    });
+    const farmerMap = new Map(farmers.map((f) => [f.userId, f]));
+
     // Format response
     const formattedProducts = products.map((product) => {
       const primaryImage = product.images[0];
       const activeDiscount = product.discounts[0];
+      const farmer = farmerMap.get(product.sellerId);
 
       return {
         id: product.id,
         name: product.name,
+        slug: product.slug,
         description: product.description,
         category: product.category?.name || null,
         price: product.price,
+        currency: product.currency,
         unit: product.unit,
-        image_url: primaryImage?.url || null,
+        image: primaryImage?.url || primaryImage?.thumbnailUrl || null,
         images: product.images.map((img) => img.url),
         is_organic: product.isOrganic,
         is_available: product.isAvailable,
-        stock: product.stockQuantity,
+        stock_quantity: product.stockQuantity,
         discount: activeDiscount
           ? activeDiscount.type === "percentage"
             ? activeDiscount.value
@@ -184,8 +200,17 @@ export async function GET(request: NextRequest) {
           : null,
         rating: product.rating,
         review_count: product.reviewCount,
-        farmer_id: product.sellerId,
-        farmer_name: product.seller.name,
+        farmer: farmer
+          ? {
+              name: farmer.name,
+              profile_image: farmer.profileImage,
+              is_verified: farmer.isVerified,
+            }
+          : {
+              name: product.seller.name,
+              profile_image: product.seller.avatarUrl,
+              is_verified: false,
+            },
         harvest_date: product.harvestDate,
         tags: product.tags.map((t) => t.tag),
         created_at: product.createdAt,
@@ -196,14 +221,16 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       status: "success",
-      data: formattedProducts,
-      pagination: {
-        current_page: page,
-        total_pages: totalPages,
-        total_items: totalItems,
-        items_per_page: limit,
-        has_next: page < totalPages,
-        has_previous: page > 1,
+      data: {
+        products: formattedProducts,
+        pagination: {
+          current_page: page,
+          total_pages: totalPages,
+          total_items: totalItems,
+          items_per_page: limit,
+          has_next: page < totalPages,
+          has_previous: page > 1,
+        },
       },
     });
   } catch (error: any) {
@@ -214,7 +241,7 @@ export async function GET(request: NextRequest) {
         message: "Failed to fetch products",
         error: error.message,
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

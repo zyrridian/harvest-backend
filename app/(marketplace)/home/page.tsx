@@ -120,7 +120,18 @@ export default function HomePage() {
         throw new Error(data.message || "Failed to load home data");
       }
 
-      setHomeData(data.data);
+      // Transform snake_case API response to camelCase
+      const apiData = data.data;
+      setHomeData({
+        categories: apiData.categories || [],
+        preOrders: apiData.pre_orders || [],
+        nearbyFarmers: apiData.nearby_farmers || {
+          count: 0,
+          radius_km: 0,
+          farmers: [],
+        },
+        freshToday: apiData.fresh_today || [],
+      });
     } catch (err: any) {
       setError(err.message);
     } finally {
