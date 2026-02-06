@@ -21,13 +21,13 @@ import prisma from "@/lib/prisma";
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-        // Await params in Next.js 15+
+    // Await params in Next.js 15+
     const { id } = await params;
 
-const product = await prisma.product.findUnique({
+    const product = await prisma.product.findUnique({
       where: { id: id },
       include: {
         category: {
@@ -80,7 +80,7 @@ const product = await prisma.product.findUnique({
           status: "error",
           message: "Product not found",
         },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -181,14 +181,16 @@ const product = await prisma.product.findUnique({
           joined_date: farmerInfo?.joinedDate,
           followers_count: farmerInfo?.followersCount || 0,
         },
-        farmer: farmerInfo ? {
-          name: farmerInfo.name,
-          farm_name: farmerInfo.name,
-          city: farmerInfo.city,
-          is_verified: farmerInfo.isVerified,
-          rating: farmerInfo.rating,
-          total_products: farmerInfo.totalProducts,
-        } : null,
+        farmer: farmerInfo
+          ? {
+              name: farmerInfo.name,
+              farm_name: farmerInfo.name,
+              city: farmerInfo.city,
+              is_verified: farmerInfo.isVerified,
+              rating: farmerInfo.rating,
+              total_products: farmerInfo.totalProducts,
+            }
+          : null,
         specifications: product.specifications.map((spec) => ({
           key: spec.specKey,
           value: spec.specValue,
@@ -203,17 +205,8 @@ const product = await prisma.product.findUnique({
           verified: cert.verified,
           badge_url: cert.badgeUrl,
         })),
-        rating: {
-          average: product.rating,
-          count: product.reviewCount,
-          distribution: {
-            "5_star": 0, // TODO: Implement when reviews are added
-            "4_star": 0,
-            "3_star": 0,
-            "2_star": 0,
-            "1_star": 0,
-          },
-        },
+        rating: product.rating,
+        review_count: product.reviewCount,
         attributes: {
           is_organic: product.isOrganic,
           is_local: false, // TODO: Add to schema if needed
@@ -243,7 +236,7 @@ const product = await prisma.product.findUnique({
         message: "Failed to fetch product",
         error: error.message,
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

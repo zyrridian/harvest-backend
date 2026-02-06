@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
@@ -25,7 +25,7 @@ const colors = {
   successBg: "#dcfce7",
 };
 
-export default function SearchPage() {
+function SearchContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const initialQuery = searchParams.get("q") || "";
@@ -46,7 +46,7 @@ export default function SearchPage() {
     setLoading(true);
     try {
       const response = await fetch(
-        `/api/v1/products?search=${encodeURIComponent(searchQuery)}`
+        `/api/v1/products?search=${encodeURIComponent(searchQuery)}`,
       );
       const data = await response.json();
       if (response.ok) {
@@ -174,21 +174,23 @@ export default function SearchPage() {
                     >
                       {product.name}
                     </h3>
-                    {product.farmer && ( <p
-                      className="text-xs mb-2 flex items-center gap-1"
-                      style={{ color: colors.body }}
-                    >
-                      {product.farmer.name}
-                      {product.farmer.is_verified && (
-                        <CheckCircle
-                          size={12}
-                          style={{ color: colors.success }}
-                        />
-                      )}
-                    </p>
+                    {product.farmer && (
+                      <p
+                        className="text-xs mb-2 flex items-center gap-1"
+                        style={{ color: colors.body }}
+                      >
+                        {product.farmer.name}
+                        {product.farmer.is_verified && (
+                          <CheckCircle
+                            size={12}
+                            style={{ color: colors.success }}
+                          />
+                        )}
+                      </p>
                     )}
                     <p className="font-bold" style={{ color: colors.accent }}>
-                      {product.currency} {Number(product.price).toLocaleString()}
+                      {product.currency}{" "}
+                      {Number(product.price).toLocaleString()}
                       <span
                         className="text-xs font-normal"
                         style={{ color: colors.body }}
@@ -245,5 +247,26 @@ export default function SearchPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function SearchPage() {
+  return (
+    <Suspense
+      fallback={
+        <div
+          style={{ backgroundColor: colors.background }}
+          className="min-h-screen flex items-center justify-center"
+        >
+          <Loader2
+            size={32}
+            className="animate-spin"
+            style={{ color: colors.accent }}
+          />
+        </div>
+      }
+    >
+      <SearchContent />
+    </Suspense>
   );
 }

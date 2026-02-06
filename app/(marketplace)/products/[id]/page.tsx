@@ -287,10 +287,21 @@ export default function ProductDetailPage() {
   const images =
     product.images.length > 0
       ? product.images
-      : [{ image_id: "placeholder", url: "", thumbnail_url: null, alt_text: null, is_primary: true }];
+      : [
+          {
+            image_id: "placeholder",
+            url: "",
+            thumbnail_url: null,
+            alt_text: null,
+            is_primary: true,
+          },
+        ];
 
   return (
-    <div style={{ backgroundColor: colors.background }} className="min-h-screen pb-24 md:pb-8">
+    <div
+      style={{ backgroundColor: colors.background }}
+      className="min-h-screen pb-24 md:pb-8"
+    >
       {/* Breadcrumb */}
       <div
         className="border-b"
@@ -298,11 +309,19 @@ export default function ProductDetailPage() {
       >
         <div className="max-w-7xl mx-auto px-4 py-3">
           <nav className="flex items-center gap-2 text-sm">
-            <Link href="/home" style={{ color: colors.body }} className="hover:underline">
+            <Link
+              href="/home"
+              style={{ color: colors.body }}
+              className="hover:underline"
+            >
               Home
             </Link>
             <span style={{ color: colors.body }}>/</span>
-            <Link href="/products" style={{ color: colors.body }} className="hover:underline">
+            <Link
+              href="/products"
+              style={{ color: colors.body }}
+              className="hover:underline"
+            >
               Products
             </Link>
             {product.category && (
@@ -383,7 +402,7 @@ export default function ProductDetailPage() {
                   <button
                     onClick={() =>
                       setSelectedImage((prev) =>
-                        prev === 0 ? images.length - 1 : prev - 1
+                        prev === 0 ? images.length - 1 : prev - 1,
                       )
                     }
                     className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center border"
@@ -398,7 +417,7 @@ export default function ProductDetailPage() {
                   <button
                     onClick={() =>
                       setSelectedImage((prev) =>
-                        prev === images.length - 1 ? 0 : prev + 1
+                        prev === images.length - 1 ? 0 : prev + 1,
                       )
                     }
                     className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center border"
@@ -482,16 +501,20 @@ export default function ProductDetailPage() {
                   <Star
                     key={star}
                     size={18}
-                    fill={star <= (product.rating || 0) ? colors.warning : "none"}
+                    fill={
+                      star <= (product.rating || 0) ? colors.warning : "none"
+                    }
                     style={{
                       color:
-                        star <= (product.rating || 0) ? colors.warning : colors.border,
+                        star <= (product.rating || 0)
+                          ? colors.warning
+                          : colors.border,
                     }}
                   />
                 ))}
                 <span className="ml-2 text-sm" style={{ color: colors.body }}>
-                  {product.rating?.toFixed(1) || "No ratings"} ({product.review_count}{" "}
-                  reviews)
+                  {product.rating?.toFixed(1) || "No ratings"} (
+                  {product.review_count} reviews)
                 </span>
               </div>
             </div>
@@ -538,7 +561,9 @@ export default function ProductDetailPage() {
                   className="text-sm"
                   style={{
                     color:
-                      product.stock_quantity < 10 ? colors.warning : colors.success,
+                      product.stock_quantity < 10
+                        ? colors.warning
+                        : colors.success,
                   }}
                 >
                   {product.stock_quantity < 10
@@ -564,7 +589,9 @@ export default function ProductDetailPage() {
                 <div className="flex items-center gap-3">
                   <button
                     onClick={() =>
-                      setQuantity((q) => Math.max(product.minimum_order || 1, q - 1))
+                      setQuantity((q) =>
+                        Math.max(product.minimum_order || 1, q - 1),
+                      )
                     }
                     className="w-10 h-10 flex items-center justify-center border"
                     style={{
@@ -580,7 +607,8 @@ export default function ProductDetailPage() {
                     onChange={(e) => {
                       const val = parseInt(e.target.value) || 1;
                       const min = product.minimum_order || 1;
-                      const max = product.maximum_order || product.stock_quantity;
+                      const max =
+                        product.maximum_order || product.stock_quantity;
                       setQuantity(Math.min(Math.max(min, val), max));
                     }}
                     className="w-20 h-10 text-center border outline-none"
@@ -595,8 +623,8 @@ export default function ProductDetailPage() {
                       setQuantity((q) =>
                         Math.min(
                           product.maximum_order || product.stock_quantity,
-                          q + 1
-                        )
+                          q + 1,
+                        ),
                       )
                     }
                     className="w-10 h-10 flex items-center justify-center border"
@@ -676,19 +704,31 @@ export default function ProductDetailPage() {
               }}
             >
               <div className="text-center">
-                <Truck size={24} className="mx-auto mb-1" style={{ color: colors.accent }} />
+                <Truck
+                  size={24}
+                  className="mx-auto mb-1"
+                  style={{ color: colors.accent }}
+                />
                 <p className="text-xs" style={{ color: colors.body }}>
                   Fast Delivery
                 </p>
               </div>
               <div className="text-center">
-                <Shield size={24} className="mx-auto mb-1" style={{ color: colors.accent }} />
+                <Shield
+                  size={24}
+                  className="mx-auto mb-1"
+                  style={{ color: colors.accent }}
+                />
                 <p className="text-xs" style={{ color: colors.body }}>
                   Quality Guaranteed
                 </p>
               </div>
               <div className="text-center">
-                <Leaf size={24} className="mx-auto mb-1" style={{ color: colors.accent }} />
+                <Leaf
+                  size={24}
+                  className="mx-auto mb-1"
+                  style={{ color: colors.accent }}
+                />
                 <p className="text-xs" style={{ color: colors.body }}>
                   Farm Fresh
                 </p>
@@ -731,17 +771,30 @@ export default function ProductDetailPage() {
                     >
                       {product.farmer.name}
                       {product.farmer.is_verified && (
-                        <CheckCircle size={14} style={{ color: colors.success }} />
+                        <CheckCircle
+                          size={14}
+                          style={{ color: colors.success }}
+                        />
                       )}
                     </p>
                     {product.farmer.farm_name && (
-                      <p className="text-sm truncate" style={{ color: colors.body }}>
+                      <p
+                        className="text-sm truncate"
+                        style={{ color: colors.body }}
+                      >
                         {product.farmer.farm_name}
                       </p>
                     )}
-                    <div className="flex items-center gap-3 mt-1 text-xs" style={{ color: colors.body }}>
+                    <div
+                      className="flex items-center gap-3 mt-1 text-xs"
+                      style={{ color: colors.body }}
+                    >
                       <span className="flex items-center gap-1">
-                        <Star size={12} fill={colors.warning} style={{ color: colors.warning }} />
+                        <Star
+                          size={12}
+                          fill={colors.warning}
+                          style={{ color: colors.warning }}
+                        />
                         {product.farmer.rating?.toFixed(1) || "New"}
                       </span>
                       {product.farmer.city && (
@@ -778,7 +831,9 @@ export default function ProductDetailPage() {
                 color: colors.body,
               }}
             >
-              {product.long_description || product.description || "No description available."}
+              {product.long_description ||
+                product.description ||
+                "No description available."}
             </div>
 
             {/* Specifications */}
@@ -880,14 +935,24 @@ export default function ProductDetailPage() {
                                 <Star
                                   key={star}
                                   size={12}
-                                  fill={star <= review.rating ? colors.warning : "none"}
+                                  fill={
+                                    star <= review.rating
+                                      ? colors.warning
+                                      : "none"
+                                  }
                                   style={{
-                                    color: star <= review.rating ? colors.warning : colors.border,
+                                    color:
+                                      star <= review.rating
+                                        ? colors.warning
+                                        : colors.border,
                                   }}
                                 />
                               ))}
                             </div>
-                            <span className="text-xs" style={{ color: colors.body }}>
+                            <span
+                              className="text-xs"
+                              style={{ color: colors.body }}
+                            >
                               {new Date(review.created_at).toLocaleDateString()}
                             </span>
                           </div>
@@ -910,7 +975,11 @@ export default function ProductDetailPage() {
                     borderRadius: "4px",
                   }}
                 >
-                  <MessageSquare size={32} className="mx-auto mb-2" style={{ color: colors.border }} />
+                  <MessageSquare
+                    size={32}
+                    className="mx-auto mb-2"
+                    style={{ color: colors.border }}
+                  />
                   <p className="text-sm" style={{ color: colors.body }}>
                     No reviews yet. Be the first to review!
                   </p>
@@ -942,7 +1011,10 @@ export default function ProductDetailPage() {
                     <p className="text-xs" style={{ color: colors.body }}>
                       Origin
                     </p>
-                    <p className="text-sm font-medium" style={{ color: colors.heading }}>
+                    <p
+                      className="text-sm font-medium"
+                      style={{ color: colors.heading }}
+                    >
                       {product.attributes.origin}
                     </p>
                   </div>
@@ -956,8 +1028,13 @@ export default function ProductDetailPage() {
                     <p className="text-xs" style={{ color: colors.body }}>
                       Harvest Date
                     </p>
-                    <p className="text-sm font-medium" style={{ color: colors.heading }}>
-                      {new Date(product.attributes.harvest_date).toLocaleDateString()}
+                    <p
+                      className="text-sm font-medium"
+                      style={{ color: colors.heading }}
+                    >
+                      {new Date(
+                        product.attributes.harvest_date,
+                      ).toLocaleDateString()}
                     </p>
                   </div>
                 </div>
