@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
     if (!query || query.trim() === "") {
       return NextResponse.json(
         { status: "error", message: "Search query is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -113,6 +113,7 @@ export async function GET(request: NextRequest) {
       .filter((user) => user.farmer) // Extra safety
       .map((user) => ({
         id: user.farmer!.id,
+        user_id: user.id,
         name: user.name,
         description: user.farmer!.description || "",
         profile_image: user.avatarUrl,
@@ -142,7 +143,7 @@ export async function GET(request: NextRequest) {
     console.error("Search farmers error:", error);
     return NextResponse.json(
       { status: "error", message: "Failed to search farmers" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

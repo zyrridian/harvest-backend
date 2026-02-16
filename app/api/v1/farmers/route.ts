@@ -93,6 +93,7 @@ export async function GET(request: NextRequest) {
           },
           user: {
             select: {
+              id: true,
               isOnline: true,
             },
           },
@@ -103,6 +104,7 @@ export async function GET(request: NextRequest) {
 
     const formattedFarmers = farmers.map((farmer) => ({
       id: farmer.id,
+      user_id: farmer.user.id,
       name: farmer.name,
       description: farmer.description,
       profile_image: farmer.profileImage,

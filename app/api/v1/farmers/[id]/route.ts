@@ -21,13 +21,13 @@ import prisma from "@/lib/prisma";
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-        // Await params in Next.js 15+
+    // Await params in Next.js 15+
     const { id } = await params;
 
-const farmer = await prisma.farmer.findUnique({
+    const farmer = await prisma.farmer.findUnique({
       where: { id: id },
       include: {
         specialties: {
@@ -37,6 +37,7 @@ const farmer = await prisma.farmer.findUnique({
         },
         user: {
           select: {
+            id: true,
             isOnline: true,
             profile: {
               select: {
@@ -55,7 +56,7 @@ const farmer = await prisma.farmer.findUnique({
           status: "error",
           message: "Farmer not found",
         },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -63,6 +64,7 @@ const farmer = await prisma.farmer.findUnique({
       status: "success",
       data: {
         id: farmer.id,
+        user_id: farmer.user.id,
         name: farmer.name,
         description: farmer.description,
         profile_image: farmer.profileImage,
@@ -97,7 +99,7 @@ const farmer = await prisma.farmer.findUnique({
         message: "Failed to fetch farmer",
         error: error.message,
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

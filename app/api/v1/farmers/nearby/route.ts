@@ -121,6 +121,7 @@ export async function GET(request: NextRequest) {
 
     const formattedFarmers = farmersWithDistance.map((farmer) => ({
       id: farmer.id,
+      user_id: farmer.userId,
       name: farmer.name,
       profile_image: farmer.profileImage,
       latitude: farmer.latitude,

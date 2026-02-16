@@ -223,19 +223,19 @@ export default function ProfilePage() {
       icon: Heart,
       label: "Favorites",
       description: `${user.stats?.favorites_count || 0} items`,
-      href: "/favorites",
+      href: "/profile/favorites",
     },
     {
       icon: MapPin,
       label: "Addresses",
       description: "Manage delivery addresses",
-      href: "/addresses",
+      href: "/profile/addresses",
     },
     {
       icon: Bell,
       label: "Notifications",
       description: "Notification preferences",
-      href: "/notifications/settings",
+      href: "/notifications",
     },
     {
       icon: MessageSquare,
@@ -247,12 +247,15 @@ export default function ProfilePage() {
       icon: Settings,
       label: "Settings",
       description: "Account settings",
-      href: "/settings",
+      href: "/profile/settings",
     },
   ];
 
   return (
-    <div style={{ backgroundColor: colors.background }} className="min-h-screen pb-24 md:pb-8">
+    <div
+      style={{ backgroundColor: colors.background }}
+      className="min-h-screen pb-24 md:pb-8"
+    >
       {/* Header */}
       <div
         className="border-b"
