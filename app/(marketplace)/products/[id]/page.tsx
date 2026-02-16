@@ -296,6 +296,13 @@ export default function ProductDetailPage() {
             is_primary: true,
           },
         ];
+  const ratingValue =
+    typeof product.rating === "number"
+      ? product.rating
+      : typeof (product.rating as { average?: number } | null)?.average ===
+          "number"
+        ? (product.rating as { average: number }).average
+        : 0;
 
   return (
     <div
@@ -501,19 +508,15 @@ export default function ProductDetailPage() {
                   <Star
                     key={star}
                     size={18}
-                    fill={
-                      star <= (product.rating || 0) ? colors.warning : "none"
-                    }
+                    fill={star <= ratingValue ? colors.warning : "none"}
                     style={{
                       color:
-                        star <= (product.rating || 0)
-                          ? colors.warning
-                          : colors.border,
+                        star <= ratingValue ? colors.warning : colors.border,
                     }}
                   />
                 ))}
                 <span className="ml-2 text-sm" style={{ color: colors.body }}>
-                  {product.rating?.toFixed(1) || "No ratings"} (
+                  {ratingValue > 0 ? ratingValue.toFixed(1) : "No ratings"} (
                   {product.review_count} reviews)
                 </span>
               </div>

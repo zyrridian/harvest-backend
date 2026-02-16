@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     if (!token) {
       return NextResponse.json(
         { status: "error", message: "Unauthorized" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
     if (!payload) {
       return NextResponse.json(
         { status: "error", message: "Invalid token" },
-        { status: 401 }
+        { status: 401 },
       );
     }
     const userId = payload.userId as string;
@@ -185,7 +185,7 @@ export async function GET(request: NextRequest) {
         group.subtotal >= group.free_delivery_threshold,
       amount_for_free_delivery: Math.max(
         0,
-        group.free_delivery_threshold - group.subtotal
+        group.free_delivery_threshold - group.subtotal,
       ),
       total:
         group.subtotal +
@@ -198,19 +198,19 @@ export async function GET(request: NextRequest) {
     const selectedItems = formattedItems.filter((item) => item.is_selected);
     const subtotal = selectedItems.reduce(
       (sum, item) => sum + item.subtotal,
-      0
+      0,
     );
     const totalDiscount = selectedItems.reduce(
       (sum, item) =>
         sum +
         (item.unit_price - (item.discount_price || item.unit_price)) *
           item.quantity,
-      0
+      0,
     );
     const totalDeliveryFee = groupedArray.reduce(
       (sum, group) =>
         sum + (group.is_eligible_free_delivery ? 0 : group.delivery_fee),
-      0
+      0,
     );
     const serviceFee = 2000; // Fixed service fee
     const grandTotal = subtotal + totalDeliveryFee + serviceFee;
@@ -220,12 +220,19 @@ export async function GET(request: NextRequest) {
       data: {
         cart_id: cart.id,
         items: formattedItems,
+        // Flat fields for UI compatibility
+        item_count: formattedItems.length,
+        selected_count: selectedItems.length,
+        subtotal,
+        discount_total: totalDiscount,
+        total: grandTotal,
+        currency: "IDR",
         grouped_by_seller: groupedArray,
         summary: {
           total_items: formattedItems.length,
           total_quantity: formattedItems.reduce(
             (sum, item) => sum + item.quantity,
-            0
+            0,
           ),
           subtotal,
           total_discount: totalDiscount,
@@ -246,7 +253,7 @@ export async function GET(request: NextRequest) {
         message: "Failed to fetch cart",
         error: error.message,
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -273,7 +280,7 @@ export async function DELETE(request: NextRequest) {
     if (!token) {
       return NextResponse.json(
         { status: "error", message: "Unauthorized" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -281,7 +288,7 @@ export async function DELETE(request: NextRequest) {
     if (!payload) {
       return NextResponse.json(
         { status: "error", message: "Invalid token" },
-        { status: 401 }
+        { status: 401 },
       );
     }
     const userId = payload.userId as string;
@@ -307,7 +314,7 @@ export async function DELETE(request: NextRequest) {
         message: "Failed to clear cart",
         error: error.message,
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

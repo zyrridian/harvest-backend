@@ -1,3 +1,4 @@
+import "dotenv/config";
 import { PrismaClient } from "@/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import pg from "pg";
@@ -224,110 +225,262 @@ async function main() {
   // Create products
   console.log("🥬 Creating products...");
 
-  const products = [
+  const productsWithImages = [
     // Vegetables
     {
-      name: "Fresh Lettuce",
-      slug: "fresh-lettuce",
-      description: "Crisp and fresh lettuce",
-      categoryId: vegetablesCategory.id,
-      sellerId: farmer1.id,
-      price: 2.49,
-      currency: "USD",
-      unit: "head",
-      stockQuantity: 50,
-      isOrganic: true,
-      isAvailable: true,
+      product: {
+        name: "Fresh Lettuce",
+        slug: "fresh-lettuce",
+        description: "Crisp and fresh lettuce",
+        categoryId: vegetablesCategory.id,
+        sellerId: farmer1.id,
+        price: 2.49,
+        currency: "USD",
+        unit: "head",
+        stockQuantity: 50,
+        isOrganic: true,
+        isAvailable: true,
+      },
+      image:
+        "https://images.unsplash.com/photo-1622206151226-18ca2c9ab4a1?w=800&h=800&fit=crop",
     },
     {
-      name: "Organic Carrots",
-      slug: "organic-carrots",
-      description: "Sweet organic carrots",
-      categoryId: vegetablesCategory.id,
-      sellerId: farmer3.id,
-      price: 3.99,
-      currency: "USD",
-      unit: "kg",
-      stockQuantity: 100,
-      isOrganic: true,
-      isAvailable: true,
+      product: {
+        name: "Organic Carrots",
+        slug: "organic-carrots",
+        description: "Sweet organic carrots",
+        categoryId: vegetablesCategory.id,
+        sellerId: farmer3.id,
+        price: 3.99,
+        currency: "USD",
+        unit: "kg",
+        stockQuantity: 100,
+        isOrganic: true,
+        isAvailable: true,
+      },
+      image:
+        "https://images.unsplash.com/photo-1598170845058-32b9d6a5da37?w=800&h=800&fit=crop",
     },
     {
-      name: "Bell Peppers Mix",
-      slug: "bell-peppers-mix",
-      description: "Colorful bell peppers",
-      categoryId: vegetablesCategory.id,
-      sellerId: farmer2.id,
-      price: 5.49,
-      currency: "USD",
-      unit: "pack",
-      stockQuantity: 30,
-      isOrganic: false,
-      isAvailable: true,
+      product: {
+        name: "Bell Peppers Mix",
+        slug: "bell-peppers-mix",
+        description: "Colorful bell peppers",
+        categoryId: vegetablesCategory.id,
+        sellerId: farmer2.id,
+        price: 5.49,
+        currency: "USD",
+        unit: "pack",
+        stockQuantity: 30,
+        isOrganic: false,
+        isAvailable: true,
+      },
+      image:
+        "https://images.unsplash.com/photo-1563565375-f3fdfdbefa83?w=800&h=800&fit=crop",
     },
     {
-      name: "Organic Tomatoes",
-      slug: "organic-tomatoes",
-      description: "Vine-ripened tomatoes",
-      categoryId: vegetablesCategory.id,
-      sellerId: farmer1.id,
-      price: 25000,
-      currency: "IDR",
-      unit: "kg",
-      stockQuantity: 22,
-      isOrganic: true,
-      isAvailable: true,
-      harvestDate: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000), // Tomorrow
+      product: {
+        name: "Organic Tomatoes",
+        slug: "organic-tomatoes",
+        description: "Vine-ripened tomatoes",
+        categoryId: vegetablesCategory.id,
+        sellerId: farmer1.id,
+        price: 25000,
+        currency: "IDR",
+        unit: "kg",
+        stockQuantity: 22,
+        isOrganic: true,
+        isAvailable: true,
+        harvestDate: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000), // Tomorrow
+      },
+      image:
+        "https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=800&h=800&fit=crop",
     },
     // Fruits
     {
-      name: "Fresh Strawberries",
-      slug: "fresh-strawberries",
-      description: "Sweet strawberries",
-      categoryId: fruitsCategory.id,
-      sellerId: farmer2.id,
-      price: 85000,
-      currency: "IDR",
-      unit: "kg",
-      stockQuantity: 12,
-      isOrganic: true,
-      isAvailable: true,
-      harvestDate: new Date(Date.now() + 4 * 24 * 60 * 60 * 1000), // 4 days
+      product: {
+        name: "Fresh Strawberries",
+        slug: "fresh-strawberries",
+        description: "Sweet strawberries",
+        categoryId: fruitsCategory.id,
+        sellerId: farmer2.id,
+        price: 85000,
+        currency: "IDR",
+        unit: "kg",
+        stockQuantity: 12,
+        isOrganic: true,
+        isAvailable: true,
+        harvestDate: new Date(Date.now() + 4 * 24 * 60 * 60 * 1000), // 4 days
+      },
+      image:
+        "https://images.unsplash.com/photo-1464965911861-746a04b4bca6?w=800&h=800&fit=crop",
     },
     {
-      name: "Organic Apples",
-      slug: "organic-apples",
-      description: "Crisp organic apples",
-      categoryId: fruitsCategory.id,
-      sellerId: farmer1.id,
-      price: 4.99,
-      currency: "USD",
-      unit: "kg",
-      stockQuantity: 80,
-      isOrganic: true,
-      isAvailable: true,
+      product: {
+        name: "Organic Apples",
+        slug: "organic-apples",
+        description: "Crisp organic apples",
+        categoryId: fruitsCategory.id,
+        sellerId: farmer1.id,
+        price: 4.99,
+        currency: "USD",
+        unit: "kg",
+        stockQuantity: 80,
+        isOrganic: true,
+        isAvailable: true,
+      },
+      image:
+        "https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?w=800&h=800&fit=crop",
     },
     {
-      name: "Bananas",
-      slug: "bananas",
-      description: "Fresh yellow bananas",
-      categoryId: fruitsCategory.id,
-      sellerId: farmer3.id,
-      price: 2.99,
-      currency: "USD",
-      unit: "bunch",
-      stockQuantity: 60,
-      isOrganic: false,
-      isAvailable: true,
+      product: {
+        name: "Bananas",
+        slug: "bananas",
+        description: "Fresh yellow bananas",
+        categoryId: fruitsCategory.id,
+        sellerId: farmer3.id,
+        price: 2.99,
+        currency: "USD",
+        unit: "bunch",
+        stockQuantity: 60,
+        isOrganic: false,
+        isAvailable: true,
+      },
+      image:
+        "https://images.unsplash.com/photo-1603833665858-e61d17a86224?w=800&h=800&fit=crop",
+    },
+    {
+      product: {
+        name: "Fresh Spinach",
+        slug: "fresh-spinach",
+        description: "Nutritious fresh spinach leaves",
+        categoryId: vegetablesCategory.id,
+        sellerId: farmer1.id,
+        price: 3.49,
+        currency: "USD",
+        unit: "bunch",
+        stockQuantity: 35,
+        isOrganic: true,
+        isAvailable: true,
+      },
+      image:
+        "https://images.unsplash.com/photo-1576045057995-568f588f82fb?w=800&h=800&fit=crop",
+    },
+    {
+      product: {
+        name: "Sweet Corn",
+        slug: "sweet-corn",
+        description: "Fresh sweet corn on the cob",
+        categoryId: vegetablesCategory.id,
+        sellerId: farmer2.id,
+        price: 4.5,
+        currency: "USD",
+        unit: "piece",
+        stockQuantity: 45,
+        isOrganic: false,
+        isAvailable: true,
+      },
+      image:
+        "https://images.unsplash.com/photo-1551754655-cd27e38d2076?w=800&h=800&fit=crop",
+    },
+    {
+      product: {
+        name: "Cherry Tomatoes",
+        slug: "cherry-tomatoes",
+        description: "Sweet cherry tomatoes",
+        categoryId: vegetablesCategory.id,
+        sellerId: farmer3.id,
+        price: 18000,
+        currency: "IDR",
+        unit: "pack",
+        stockQuantity: 28,
+        isOrganic: true,
+        isAvailable: true,
+      },
+      image:
+        "https://images.unsplash.com/photo-1607305387299-a3d9611cd469?w=800&h=800&fit=crop",
+    },
+    {
+      product: {
+        name: "Orange Juice Oranges",
+        slug: "orange-juice-oranges",
+        description: "Perfect for fresh juice",
+        categoryId: fruitsCategory.id,
+        sellerId: farmer1.id,
+        price: 55000,
+        currency: "IDR",
+        unit: "kg",
+        stockQuantity: 40,
+        isOrganic: false,
+        isAvailable: true,
+      },
+      image:
+        "https://images.unsplash.com/photo-1580052614034-c55d20bfee3b?w=800&h=800&fit=crop",
+    },
+    {
+      product: {
+        name: "Fresh Blueberries",
+        slug: "fresh-blueberries",
+        description: "Antioxidant-rich blueberries",
+        categoryId: fruitsCategory.id,
+        sellerId: farmer2.id,
+        price: 95000,
+        currency: "IDR",
+        unit: "pack",
+        stockQuantity: 15,
+        isOrganic: true,
+        isAvailable: true,
+        harvestDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000), // 2 days
+      },
+      image:
+        "https://images.unsplash.com/photo-1498557850523-fd3d118b962e?w=800&h=800&fit=crop",
+    },
+    {
+      product: {
+        name: "Red Grapes",
+        slug: "red-grapes",
+        description: "Sweet seedless red grapes",
+        categoryId: fruitsCategory.id,
+        sellerId: farmer3.id,
+        price: 65000,
+        currency: "IDR",
+        unit: "kg",
+        stockQuantity: 25,
+        isOrganic: false,
+        isAvailable: true,
+      },
+      image:
+        "https://images.unsplash.com/photo-1635843116188-b67a2f1ef23f?fm=jpg&q=60&w=3000&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Nnx8cmVkJTIwZ3JhcGVzfGVufDB8fDB8fHww",
     },
   ];
 
-  for (const product of products) {
-    await prisma.product.upsert({
+  for (const { product, image } of productsWithImages) {
+    const createdProduct = await prisma.product.upsert({
       where: { slug: product.slug },
       update: {},
       create: product,
     });
+
+    // Add product image if it doesn't exist
+    const existingImage = await prisma.productImage.findFirst({
+      where: {
+        productId: createdProduct.id,
+        isPrimary: true,
+      },
+    });
+
+    if (!existingImage) {
+      await prisma.productImage.create({
+        data: {
+          productId: createdProduct.id,
+          url: image,
+          thumbnailUrl: image,
+          altText: product.name,
+          isPrimary: true,
+          displayOrder: 0,
+        },
+      });
+    }
   }
 
   console.log("✅ Products created");

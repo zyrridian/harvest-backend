@@ -33,7 +33,8 @@ import { verifyToken, extractBearerToken } from "@/lib/auth";
  *       401:
  *         description: Unauthorized
  */
-export async function PUT(
+// Shared handler for PUT and PATCH
+async function handleUpdate(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
@@ -148,6 +149,21 @@ export async function PUT(
       { status: 500 },
     );
   }
+}
+
+// Export PUT and PATCH using the same handler
+export async function PUT(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> },
+) {
+  return handleUpdate(request, context);
+}
+
+export async function PATCH(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> },
+) {
+  return handleUpdate(request, context);
 }
 
 /**

@@ -27,8 +27,14 @@ export async function GET(
     // Await params in Next.js 15+
     const { id } = await params;
 
-    const product = await prisma.product.findUnique({
-      where: { id: id },
+    // Try to find product by slug first, then by id
+    const product = await prisma.product.findFirst({
+      where: {
+        OR: [
+          { id: id },
+          { slug: id }
+        ]
+      },
       include: {
         category: {
           select: {

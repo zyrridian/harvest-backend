@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
     if (!token) {
       return NextResponse.json(
         { status: "error", message: "Unauthorized" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -64,7 +64,7 @@ export async function GET(request: NextRequest) {
     if (!payload) {
       return NextResponse.json(
         { status: "error", message: "Invalid token" },
-        { status: 401 }
+        { status: 401 },
       );
     }
     const userId = payload.userId as string;
@@ -123,16 +123,17 @@ export async function GET(request: NextRequest) {
         name: order.seller.name,
         profile_picture: order.seller.avatarUrl,
       },
-      items_preview: order.items.slice(0, 2).map((item) => ({
+      items: order.items.map((item) => ({
         product_id: item.productId,
-        name: item.productName,
+        product_name: item.productName,
         quantity: item.quantity,
         unit: item.product.unit,
         image: item.productImage,
       })),
-      total_items: order.items.length,
+      item_count: order.items.length,
       total_quantity: order.items.reduce((sum, item) => sum + item.quantity, 0),
       total_amount: order.totalAmount,
+      currency: "IDR",
       delivery: {
         method: order.deliveryMethod,
         date: order.deliveryDate,
@@ -162,7 +163,7 @@ export async function GET(request: NextRequest) {
         message: "Failed to fetch orders",
         error: error.message,
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -212,7 +213,7 @@ export async function POST(request: NextRequest) {
     if (!token) {
       return NextResponse.json(
         { status: "error", message: "Unauthorized" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -220,7 +221,7 @@ export async function POST(request: NextRequest) {
     if (!payload) {
       return NextResponse.json(
         { status: "error", message: "Invalid token" },
-        { status: 401 }
+        { status: 401 },
       );
     }
     const userId = payload.userId as string;
@@ -239,7 +240,7 @@ export async function POST(request: NextRequest) {
     if (!cart_item_ids || cart_item_ids.length === 0) {
       return NextResponse.json(
         { status: "error", message: "No cart items selected" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -265,7 +266,7 @@ export async function POST(request: NextRequest) {
     if (cartItems.length === 0) {
       return NextResponse.json(
         { status: "error", message: "No valid cart items found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -290,7 +291,7 @@ export async function POST(request: NextRequest) {
           sum +
           (item.unitPrice - (item.discountPrice || item.unitPrice)) *
             item.quantity,
-        0
+        0,
       );
       const totalAmount = subtotal + deliveryFee + serviceFee;
 
@@ -356,7 +357,7 @@ export async function POST(request: NextRequest) {
             total_orders: createdOrders.length,
             grand_total: createdOrders.reduce(
               (sum, order) => sum + order.total_amount,
-              0
+              0,
             ),
             payment_method,
             payment_instructions: {
@@ -365,14 +366,14 @@ export async function POST(request: NextRequest) {
               account_name: "Farm Market",
               amount: createdOrders.reduce(
                 (sum, order) => sum + order.total_amount,
-                0
+                0,
               ),
               valid_until: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
             },
           },
         },
       },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error: any) {
     console.error("Error creating order:", error);
@@ -382,7 +383,7 @@ export async function POST(request: NextRequest) {
         message: "Failed to create order",
         error: error.message,
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -38,7 +38,6 @@ interface OrderItem {
   product_name: string;
   quantity: number;
   unit: string;
-  unit_price: number;
   image: string | null;
 }
 
@@ -121,7 +120,7 @@ function OrdersContent() {
   const [pagination, setPagination] = useState<Pagination | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeStatus, setActiveStatus] = useState(
-    searchParams.get("status") || ""
+    searchParams.get("status") || "",
   );
 
   useEffect(() => {
@@ -181,7 +180,10 @@ function OrdersContent() {
   ];
 
   return (
-    <div style={{ backgroundColor: colors.background }} className="min-h-screen pb-24 md:pb-8">
+    <div
+      style={{ backgroundColor: colors.background }}
+      className="min-h-screen pb-24 md:pb-8"
+    >
       {/* Header */}
       <div
         className="border-b sticky top-0 z-10"
@@ -212,9 +214,7 @@ function OrdersContent() {
                       ? colors.successBg
                       : colors.white,
                   color:
-                    activeStatus === filter.value
-                      ? colors.accent
-                      : colors.body,
+                    activeStatus === filter.value ? colors.accent : colors.body,
                   borderRadius: "4px",
                 }}
               >
@@ -298,12 +298,18 @@ function OrdersContent() {
                       >
                         Order #{order.order_number}
                       </p>
-                      <p className="text-xs mt-0.5" style={{ color: colors.body }}>
-                        {new Date(order.created_at).toLocaleDateString("en-US", {
-                          year: "numeric",
-                          month: "long",
-                          day: "numeric",
-                        })}
+                      <p
+                        className="text-xs mt-0.5"
+                        style={{ color: colors.body }}
+                      >
+                        {new Date(order.created_at).toLocaleDateString(
+                          "en-US",
+                          {
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
+                          },
+                        )}
                       </p>
                     </div>
                     <span
@@ -375,7 +381,10 @@ function OrdersContent() {
                           {order.item_count > 1 &&
                             ` and ${order.item_count - 1} more items`}
                         </p>
-                        <p className="text-xs mt-1" style={{ color: colors.body }}>
+                        <p
+                          className="text-xs mt-1"
+                          style={{ color: colors.body }}
+                        >
                           From {order.seller.name}
                         </p>
                         <p
