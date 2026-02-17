@@ -30,10 +30,7 @@ export async function GET(
     // Try to find product by slug first, then by id
     const product = await prisma.product.findFirst({
       where: {
-        OR: [
-          { id: id },
-          { slug: id }
-        ]
+        OR: [{ id: id }, { slug: id }],
       },
       include: {
         category: {
@@ -189,6 +186,7 @@ export async function GET(
         },
         farmer: farmerInfo
           ? {
+              farmer_id: farmerInfo.id,
               name: farmerInfo.name,
               farm_name: farmerInfo.name,
               city: farmerInfo.city,

@@ -27,28 +27,39 @@ export async function GET(
     // Await params in Next.js 15+
     const { id } = await params;
 
-    const farmer = await prisma.farmer.findUnique({
-      where: { id: id },
-      include: {
-        specialties: {
-          select: {
-            specialty: true,
-          },
+    const includeOptions = {
+      specialties: {
+        select: {
+          specialty: true,
         },
-        user: {
-          select: {
-            id: true,
-            isOnline: true,
-            profile: {
-              select: {
-                responseRate: true,
-                responseTime: true,
-              },
+      },
+      user: {
+        select: {
+          id: true,
+          isOnline: true,
+          profile: {
+            select: {
+              responseRate: true,
+              responseTime: true,
             },
           },
         },
       },
+    };
+
+    // Try to find by farmer.id first, then by userId
+    let farmer = await prisma.farmer.findUnique({
+      where: { id: id },
+      include: includeOptions,
     });
+
+    // If not found by farmer.id, try finding by userId
+    if (!farmer) {
+      farmer = await prisma.farmer.findUnique({
+        where: { userId: id },
+        include: includeOptions,
+      });
+    }
 
     if (!farmer) {
       return NextResponse.json(

@@ -78,6 +78,7 @@ interface ProductDetail {
     joined_date: string;
   };
   farmer: {
+    farmer_id: string;
     name: string;
     farm_name: string | null;
     city: string | null;
@@ -128,8 +129,28 @@ export default function ProductDetailPage() {
     if (productId) {
       fetchProduct();
       fetchReviews();
+      checkFavoriteStatus();
     }
   }, [productId]);
+
+  const checkFavoriteStatus = async () => {
+    const token = localStorage.getItem("accessToken");
+    if (!token) return;
+
+    try {
+      const response = await fetch(`/api/v1/products/${productId}/favorite`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setIsFavorite(data.data?.is_favorited || false);
+      }
+    } catch (error) {
+      console.error("Check favorite status error:", error);
+    }
+  };
 
   const fetchProduct = async () => {
     try {
@@ -486,7 +507,7 @@ export default function ProductDetailPage() {
             {/* Seller info */}
             {product.farmer && (
               <Link
-                href={`/farmers/${product.seller.seller_id}`}
+                href={`/farmers/${product.farmer.farmer_id}`}
                 className="inline-flex items-center gap-2 mb-4 hover:underline"
               >
                 <span className="text-sm" style={{ color: colors.body }}>
@@ -741,7 +762,7 @@ export default function ProductDetailPage() {
             {/* Farmer card */}
             {product.farmer && (
               <Link
-                href={`/farmers/${product.seller.seller_id}`}
+                href={`/farmers/${product.farmer.farmer_id}`}
                 className="block p-4 border transition-colors hover:border-green-600"
                 style={{
                   backgroundColor: colors.white,

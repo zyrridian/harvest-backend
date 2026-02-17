@@ -8,6 +8,8 @@ import {
   Package,
   ShoppingCart,
   User,
+  Users,
+  Star,
   Settings,
   LogOut,
   Menu,
@@ -143,6 +145,8 @@ export default function FarmerDashboardLayout({
     { href: "/farmer/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/farmer/products", label: "Products", icon: Package },
     { href: "/farmer/orders", label: "Orders", icon: ShoppingCart },
+    { href: "/farmer/community", label: "Community", icon: Users },
+    { href: "/farmer/reviews", label: "Reviews", icon: Star },
     { href: "/farmer/profile", label: "Profile", icon: Store },
     { href: "/farmer/settings", label: "Settings", icon: Settings },
   ];
@@ -385,18 +389,9 @@ export default function FarmerDashboardLayout({
           className="absolute bottom-0 left-0 right-0 p-4 border-t"
           style={{ borderColor: colors.border }}
         >
-          <Link
-            href="/farmer/products/new"
-            className="flex items-center justify-center gap-2 w-full px-4 py-3 text-sm font-medium transition-colors lg:hidden"
-            style={{
-              backgroundColor: colors.accent,
-              color: colors.white,
-              borderRadius: "4px",
-            }}
-          >
-            <Plus size={16} />
-            Add New Product
-          </Link>
+          <p className="text-xs text-center" style={{ color: colors.body }}>
+            © 2026 Harvest
+          </p>
         </div>
       </aside>
 

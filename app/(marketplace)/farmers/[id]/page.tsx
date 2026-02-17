@@ -19,6 +19,8 @@ import {
   Calendar,
   Award,
   ShoppingCart,
+  Heart,
+  Users,
 } from "lucide-react";
 
 // Design System Colors
@@ -88,6 +90,29 @@ interface Review {
   created_at: string;
 }
 
+interface CommunityPost {
+  id: string;
+  title: string;
+  content: string;
+  likesCount: number;
+  commentsCount: number;
+  createdAt: string;
+  user: {
+    id: string;
+    name: string;
+    avatarUrl: string | null;
+    userType: string;
+  };
+  farmer: {
+    id: string;
+    name: string;
+    profileImage: string | null;
+    isVerified: boolean;
+  } | null;
+  images: { id: string; url: string }[];
+  tags: { tag: string }[];
+}
+
 export default function FarmerDetailPage() {
   const params = useParams();
   const farmerId = params.id as string;
@@ -95,11 +120,12 @@ export default function FarmerDetailPage() {
   const [farmer, setFarmer] = useState<FarmerDetail | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
+  const [communityPosts, setCommunityPosts] = useState<CommunityPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [activeTab, setActiveTab] = useState<"products" | "about" | "reviews">(
-    "products"
-  );
+  const [activeTab, setActiveTab] = useState<
+    "products" | "about" | "reviews" | "community"
+  >("products");
   const [addingToCart, setAddingToCart] = useState<string | null>(null);
 
   useEffect(() => {
@@ -107,6 +133,7 @@ export default function FarmerDetailPage() {
       fetchFarmer();
       fetchProducts();
       fetchReviews();
+      fetchCommunityPosts();
     }
   }, [farmerId]);
 
@@ -148,6 +175,20 @@ export default function FarmerDetailPage() {
       }
     } catch (error) {
       console.error("Failed to fetch reviews:", error);
+    }
+  };
+
+  const fetchCommunityPosts = async () => {
+    try {
+      const response = await fetch(
+        `/api/v1/community/posts?farmer_id=${farmerId}`,
+      );
+      const data = await response.json();
+      if (response.ok) {
+        setCommunityPosts(data.data.posts || []);
+      }
+    } catch (error) {
+      console.error("Failed to fetch community posts:", error);
     }
   };
 
@@ -238,14 +279,14 @@ export default function FarmerDetailPage() {
   }
 
   return (
-    <div style={{ backgroundColor: colors.background }} className="min-h-screen pb-24 md:pb-8">
+    <div
+      style={{ backgroundColor: colors.background }}
+      className="min-h-screen pb-24 md:pb-8"
+    >
       {/* Cover & Profile */}
       <div className="relative">
         {/* Cover image */}
-        <div
-          className="h-48 md:h-64"
-          style={{ backgroundColor: "#f4f4f5" }}
-        >
+        <div className="h-48 md:h-64" style={{ backgroundColor: "#f4f4f5" }}>
           {farmer.cover_image ? (
             <img
               src={farmer.cover_image}
@@ -454,23 +495,23 @@ export default function FarmerDetailPage() {
       {/* Tabs */}
       <div className="max-w-4xl mx-auto px-4 mt-6">
         <div
-          className="flex border-b"
+          className="flex border-b overflow-x-auto"
           style={{ borderColor: colors.border }}
         >
           {[
             { key: "products", label: `Products (${farmer.total_products})` },
+            { key: "community", label: `Posts (${communityPosts.length})` },
             { key: "about", label: "About" },
             { key: "reviews", label: `Reviews (${farmer.review_count})` },
           ].map((tab) => (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key as typeof activeTab)}
-              className="px-6 py-3 text-sm font-medium border-b-2 -mb-px transition-colors"
+              className="px-6 py-3 text-sm font-medium border-b-2 -mb-px transition-colors whitespace-nowrap"
               style={{
                 borderColor:
                   activeTab === tab.key ? colors.accent : "transparent",
-                color:
-                  activeTab === tab.key ? colors.accent : colors.body,
+                color: activeTab === tab.key ? colors.accent : colors.body,
               }}
             >
               {tab.label}
@@ -517,7 +558,10 @@ export default function FarmerDetailPage() {
                             />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center">
-                              <Leaf size={32} style={{ color: colors.border }} />
+                              <Leaf
+                                size={32}
+                                style={{ color: colors.border }}
+                              />
                             </div>
                           )}
                           {product.is_organic && (
@@ -601,6 +645,191 @@ export default function FarmerDetailPage() {
             </div>
           )}
 
+          {/* Community tab */}
+          {activeTab === "community" && (
+            <div>
+              {communityPosts.length === 0 ? (
+                <div className="text-center py-12">
+                  <Users
+                    size={48}
+                    className="mx-auto mb-4"
+                    style={{ color: colors.border }}
+                  />
+                  <p style={{ color: colors.body }}>
+                    No posts yet from this farm
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {communityPosts.map((post) => (
+                    <Link
+                      key={post.id}
+                      href={`/community/${post.id}`}
+                      className="block p-4 border transition-colors hover:border-green-200"
+                      style={{
+                        backgroundColor: colors.white,
+                        borderColor: colors.border,
+                        borderRadius: "4px",
+                      }}
+                    >
+                      {/* Post Header */}
+                      <div className="flex items-start gap-3 mb-3">
+                        <div
+                          className="w-10 h-10 shrink-0 flex items-center justify-center text-sm font-medium overflow-hidden"
+                          style={{
+                            backgroundColor: colors.successBg,
+                            color: colors.accent,
+                            borderRadius: "4px",
+                          }}
+                        >
+                          {post.farmer?.profileImage ? (
+                            <img
+                              src={post.farmer.profileImage}
+                              alt=""
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <Leaf size={20} />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p
+                              className="font-medium text-sm truncate"
+                              style={{ color: colors.heading }}
+                            >
+                              {post.farmer?.name || post.user.name}
+                            </p>
+                            {post.farmer?.isVerified && (
+                              <CheckCircle
+                                size={14}
+                                style={{ color: colors.success }}
+                              />
+                            )}
+                            {post.farmer && (
+                              <span
+                                className="text-xs px-2 py-0.5"
+                                style={{
+                                  backgroundColor: colors.successBg,
+                                  color: colors.accent,
+                                  borderRadius: "4px",
+                                }}
+                              >
+                                Farm
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs" style={{ color: colors.body }}>
+                            {new Date(post.createdAt).toLocaleDateString(
+                              "en-US",
+                              {
+                                month: "short",
+                                day: "numeric",
+                                year: "numeric",
+                              },
+                            )}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Post Content */}
+                      <h3
+                        className="font-bold text-lg mb-2"
+                        style={{ color: colors.heading }}
+                      >
+                        {post.title}
+                      </h3>
+                      <p
+                        className="text-sm line-clamp-3 mb-3"
+                        style={{ color: colors.body }}
+                      >
+                        {post.content}
+                      </p>
+
+                      {/* Images */}
+                      {post.images.length > 0 && (
+                        <div className="flex gap-2 mb-3 overflow-hidden">
+                          {post.images.slice(0, 3).map((img) => (
+                            <div
+                              key={img.id}
+                              className="w-20 h-20 shrink-0 overflow-hidden"
+                              style={{
+                                backgroundColor: colors.background,
+                                borderRadius: "4px",
+                              }}
+                            >
+                              <img
+                                src={img.url}
+                                alt=""
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                          ))}
+                          {post.images.length > 3 && (
+                            <div
+                              className="w-20 h-20 shrink-0 flex items-center justify-center"
+                              style={{
+                                backgroundColor: colors.background,
+                                borderRadius: "4px",
+                              }}
+                            >
+                              <span
+                                className="text-sm font-medium"
+                                style={{ color: colors.body }}
+                              >
+                                +{post.images.length - 3}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Tags */}
+                      {post.tags.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mb-3">
+                          {post.tags.slice(0, 4).map((tag) => (
+                            <span
+                              key={tag.tag}
+                              className="px-2 py-1 text-xs"
+                              style={{
+                                backgroundColor: colors.successBg,
+                                color: colors.accent,
+                                borderRadius: "4px",
+                              }}
+                            >
+                              #{tag.tag}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Stats */}
+                      <div
+                        className="flex items-center gap-4 pt-3 border-t"
+                        style={{ borderColor: colors.border }}
+                      >
+                        <div
+                          className="flex items-center gap-1 text-sm"
+                          style={{ color: colors.body }}
+                        >
+                          <Heart size={16} />
+                          {post.likesCount}
+                        </div>
+                        <div
+                          className="flex items-center gap-1 text-sm"
+                          style={{ color: colors.body }}
+                        >
+                          <MessageSquare size={16} />
+                          {post.commentsCount}
+                        </div>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* About tab */}
           {activeTab === "about" && (
             <div className="space-y-6">
@@ -669,7 +898,10 @@ export default function FarmerDetailPage() {
                   borderRadius: "4px",
                 }}
               >
-                <h3 className="font-bold mb-3" style={{ color: colors.heading }}>
+                <h3
+                  className="font-bold mb-3"
+                  style={{ color: colors.heading }}
+                >
                   Contact Information
                 </h3>
                 <div className="space-y-3">

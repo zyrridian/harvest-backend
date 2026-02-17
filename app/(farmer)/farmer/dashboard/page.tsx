@@ -8,8 +8,6 @@ import {
   TrendingUp,
   TrendingDown,
   Eye,
-  Users,
-  Plus,
   ArrowRight,
   AlertCircle,
   Clock,
@@ -183,29 +181,15 @@ export default function FarmerDashboardPage() {
   if (!stats) return null;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-6xl">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold" style={{ color: colors.heading }}>
-            Dashboard
-          </h1>
-          <p className="text-sm" style={{ color: colors.body }}>
-            Welcome back, {stats.profile.name}
-          </p>
-        </div>
-        <Link
-          href="/farmer/products/new"
-          className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium transition-colors"
-          style={{
-            backgroundColor: colors.accent,
-            color: colors.white,
-            borderRadius: "4px",
-          }}
-        >
-          <Plus size={16} />
-          Add Product
-        </Link>
+      <div>
+        <h1 className="text-2xl font-bold" style={{ color: colors.heading }}>
+          Dashboard
+        </h1>
+        <p className="text-sm" style={{ color: colors.body }}>
+          Welcome back, {stats.profile.name}
+        </p>
       </div>
 
       {/* Stats Grid */}
@@ -534,21 +518,9 @@ export default function FarmerDashboardPage() {
                 <p className="font-medium" style={{ color: colors.heading }}>
                   No products yet
                 </p>
-                <p className="text-sm mb-4" style={{ color: colors.body }}>
-                  Start adding products to your store
+                <p className="text-sm" style={{ color: colors.body }}>
+                  Add products using the button in the header
                 </p>
-                <Link
-                  href="/farmer/products/new"
-                  className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium"
-                  style={{
-                    backgroundColor: colors.accent,
-                    color: colors.white,
-                    borderRadius: "4px",
-                  }}
-                >
-                  <Plus size={16} />
-                  Add Product
-                </Link>
               </div>
             ) : (
               stats.top_products.map((product, index) => (

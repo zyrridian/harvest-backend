@@ -43,6 +43,15 @@ export async function GET(
             id: true,
             name: true,
             avatarUrl: true,
+            userType: true,
+          },
+        },
+        farmer: {
+          select: {
+            id: true,
+            name: true,
+            profileImage: true,
+            isVerified: true,
           },
         },
         images: {

@@ -349,8 +349,9 @@ model Farmer {
   followersCount     Int      @default(0) @map("followers_count")
 
   // Relations
-  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  specialties FarmerSpecialty[]
+  user           User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  specialties    FarmerSpecialty[]
+  communityPosts CommunityPost[]
 
   @@index([userId])
   @@index([latitude, longitude])
@@ -768,6 +769,7 @@ enum NotificationType {
 model CommunityPost {
   id           String      @id @default(uuid())
   userId       String      @map("user_id")
+  farmerId     String?     @map("farmer_id")
   title        String
   content      String      @db.Text
   likesCount   Int         @default(0) @map("likes_count")
@@ -777,12 +779,14 @@ model CommunityPost {
 
   // Relations
   user     User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  farmer   Farmer?       @relation(fields: [farmerId], references: [id], onDelete: SetNull)
   images   PostImage[]
   tags     PostTag[]
   likes    PostLike[]
   comments PostComment[]
 
   @@index([userId])
+  @@index([farmerId])
   @@index([createdAt])
   @@map("community_posts")
 }

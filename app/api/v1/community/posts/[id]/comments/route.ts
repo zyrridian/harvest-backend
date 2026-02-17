@@ -220,6 +220,11 @@ export async function POST(
               avatarUrl: true,
             },
           },
+          _count: {
+            select: {
+              likes: true,
+            },
+          },
         },
       }),
       prisma.communityPost.update({

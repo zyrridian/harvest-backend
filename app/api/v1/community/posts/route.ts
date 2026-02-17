@@ -38,6 +38,7 @@ export async function GET(request: NextRequest) {
 
     const filter = searchParams.get("filter") || "all";
     const tag = searchParams.get("tag");
+    const farmerId = searchParams.get("farmer_id");
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "20");
     const skip = (page - 1) * limit;
@@ -54,6 +55,11 @@ export async function GET(request: NextRequest) {
 
     if (filter === "my_posts" && userId) {
       where.userId = userId;
+    }
+
+    // Filter by farmer ID (for farmer profile pages)
+    if (farmerId) {
+      where.farmerId = farmerId;
     }
 
     if (tag) {
@@ -76,6 +82,15 @@ export async function GET(request: NextRequest) {
               id: true,
               name: true,
               avatarUrl: true,
+              userType: true,
+            },
+          },
+          farmer: {
+            select: {
+              id: true,
+              name: true,
+              profileImage: true,
+              isVerified: true,
             },
           },
           images: {
@@ -133,7 +148,7 @@ export async function GET(request: NextRequest) {
         status: "error",
         message: error.message || "Failed to get community posts",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -189,13 +204,24 @@ export async function POST(request: NextRequest) {
           status: "error",
           message: "Title and content are required",
         },
-        { status: 400 }
+        { status: 400 },
       );
+    }
+
+    // Check if user is a farmer and get their farmer profile
+    let farmerId: string | null = null;
+    const farmer = await prisma.farmer.findUnique({
+      where: { userId: user.userId },
+      select: { id: true },
+    });
+    if (farmer) {
+      farmerId = farmer.id;
     }
 
     const post = await prisma.communityPost.create({
       data: {
         userId: user.userId,
+        farmerId,
         title,
         content,
         images: images?.length
@@ -220,6 +246,15 @@ export async function POST(request: NextRequest) {
             id: true,
             name: true,
             avatarUrl: true,
+            userType: true,
+          },
+        },
+        farmer: {
+          select: {
+            id: true,
+            name: true,
+            profileImage: true,
+            isVerified: true,
           },
         },
         images: true,
@@ -233,7 +268,7 @@ export async function POST(request: NextRequest) {
         message: "Post created successfully",
         data: post,
       },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error: any) {
     console.error("Create community post error:", error);
@@ -242,7 +277,7 @@ export async function POST(request: NextRequest) {
         status: "error",
         message: error.message || "Failed to create post",
       },
-      { status: error.status || 500 }
+      { status: error.status || 500 },
     );
   }
 }

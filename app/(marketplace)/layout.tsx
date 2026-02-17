@@ -17,6 +17,7 @@ import {
   LogOut,
   ChevronDown,
   MapPin,
+  Users,
 } from "lucide-react";
 
 // Design System Colors
@@ -131,6 +132,7 @@ export default function MarketplaceLayout({
     { href: "/home", label: "Home", icon: Home },
     { href: "/products", label: "Products", icon: Package },
     { href: "/farmers", label: "Farmers", icon: MapPin },
+    { href: "/community", label: "Community", icon: Users },
   ];
 
   return (
@@ -397,13 +399,13 @@ export default function MarketplaceLayout({
             {[
               { href: "/home", icon: Home, label: "Home" },
               { href: "/products", icon: Search, label: "Browse" },
+              { href: "/community", icon: Users, label: "Community" },
               {
                 href: "/cart",
                 icon: ShoppingCart,
                 label: "Cart",
                 badge: cartCount,
               },
-              { href: "/orders", icon: Package, label: "Orders" },
               { href: "/profile", icon: User, label: "Profile" },
             ].map((item) => (
               <Link
