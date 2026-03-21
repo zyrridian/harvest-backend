@@ -1,0 +1,41 @@
+import { NextRequest } from "next/server";
+import { TokenPayload } from "@/types/auth";
+import { AppError } from "@/lib/errors";
+import { extractBearerToken, verifyToken } from "./tokens";
+
+/**
+ * Verify authentication from a NextRequest.
+ * Extracts the Bearer token, verifies it, and returns the payload.
+ * Throws AppError(401) if the token is missing or invalid.
+ */
+export async function verifyAuth(request: NextRequest): Promise<TokenPayload> {
+  const authHeader = request.headers.get("authorization");
+  const token = extractBearerToken(authHeader);
+
+  if (!token) {
+    throw AppError.unauthorized("No token provided");
+  }
+
+  const payload = await verifyToken(token);
+
+  if (!payload) {
+    throw AppError.unauthorized("Invalid token");
+  }
+
+  return payload;
+}
+
+/**
+ * Verify admin authentication from a NextRequest.
+ * Ensures the user is authenticated AND has ADMIN role.
+ * Throws AppError(401) if not authenticated, AppError(403) if not admin.
+ */
+export async function verifyAdmin(request: NextRequest): Promise<TokenPayload> {
+  const payload = await verifyAuth(request);
+
+  if (payload.user_type !== "ADMIN") {
+    throw AppError.forbidden("Admin access required");
+  }
+
+  return payload;
+}

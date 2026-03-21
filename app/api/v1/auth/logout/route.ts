@@ -1,6 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
-import { verifyToken, extractBearerToken } from '@/lib/auth';
+import { NextRequest } from "next/server";
+import prisma from "@/lib/prisma";
+import { verifyAuth } from "@/lib/auth";
+import { handleRouteError } from "@/lib/errors";
+import { successResponse } from "@/lib/helpers/response";
 
 /**
  * @swagger
@@ -35,26 +37,7 @@ import { verifyToken, extractBearerToken } from '@/lib/auth';
  */
 export async function POST(request: NextRequest) {
   try {
-    // Get token from Authorization header
-    const authHeader = request.headers.get('Authorization');
-    const token = extractBearerToken(authHeader);
-
-    if (!token) {
-      return NextResponse.json(
-        { status: 'error', message: 'No token provided' },
-        { status: 401 }
-      );
-    }
-
-    // Verify token
-    const payload = await verifyToken(token);
-
-    if (!payload || payload.type !== 'access') {
-      return NextResponse.json(
-        { status: 'error', message: 'Invalid token' },
-        { status: 401 }
-      );
-    }
+    const payload = await verifyAuth(request);
 
     // Delete all refresh tokens for this user
     await prisma.refreshToken.deleteMany({
@@ -67,26 +50,21 @@ export async function POST(request: NextRequest) {
       data: { isOnline: false, lastSeen: new Date() },
     });
 
-    const response = NextResponse.json({
-      status: 'success',
-      message: 'Logged out successfully',
+    const response = successResponse(undefined, {
+      message: "Logged out successfully",
     });
 
     // Clear the refresh token cookie
-    response.cookies.set('refresh_token', '', {
+    response.cookies.set("refresh_token", "", {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
       maxAge: 0,
-      path: '/',
+      path: "/",
     });
 
     return response;
   } catch (error) {
-    console.error('Logout error:', error);
-    return NextResponse.json(
-      { status: 'error', message: 'Internal server error' },
-      { status: 500 }
-    );
+    return handleRouteError(error, "Logout");
   }
 }

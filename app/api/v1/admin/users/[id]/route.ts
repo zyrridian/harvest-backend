@@ -1,6 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
 import { verifyAdmin } from "@/lib/auth";
+import { AppError, handleRouteError } from "@/lib/errors";
+import { successResponse } from "@/lib/helpers/response";
 
 /**
  * @swagger
@@ -36,7 +38,18 @@ export async function GET(
 
     const user = await prisma.user.findUnique({
       where: { id },
-      include: {
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        phoneNumber: true,
+        avatarUrl: true,
+        userType: true,
+        isVerified: true,
+        isOnline: true,
+        lastSeen: true,
+        createdAt: true,
+        updatedAt: true,
         profile: true,
         farmer: true,
         _count: {
@@ -53,31 +66,12 @@ export async function GET(
     });
 
     if (!user) {
-      return NextResponse.json(
-        {
-          status: "error",
-          message: "User not found",
-        },
-        { status: 404 },
-      );
+      throw AppError.notFound("User not found");
     }
 
-    // Remove password from response
-    const { password, ...userWithoutPassword } = user as any;
-
-    return NextResponse.json({
-      status: "success",
-      data: userWithoutPassword,
-    });
-  } catch (error: any) {
-    console.error("Get user error:", error);
-    return NextResponse.json(
-      {
-        status: "error",
-        message: error.message || "Failed to get user",
-      },
-      { status: error.status || 500 },
-    );
+    return successResponse(user);
+  } catch (error) {
+    return handleRouteError(error, "Admin get user");
   }
 }
 
@@ -130,22 +124,13 @@ export async function PUT(
     await verifyAdmin(request);
     const body = await request.json();
 
-    const user = await prisma.user.findUnique({
-      where: { id },
-    });
+    const user = await prisma.user.findUnique({ where: { id } });
 
     if (!user) {
-      return NextResponse.json(
-        {
-          status: "error",
-          message: "User not found",
-        },
-        { status: 404 },
-      );
+      throw AppError.notFound("User not found");
     }
 
-    const updateData: any = {};
-
+    const updateData: Record<string, unknown> = {};
     if (body.name) updateData.name = body.name;
     if (body.email) updateData.email = body.email;
     if (body.user_type) updateData.userType = body.user_type;
@@ -170,20 +155,9 @@ export async function PUT(
       },
     });
 
-    return NextResponse.json({
-      status: "success",
-      message: "User updated successfully",
-      data: updated,
-    });
-  } catch (error: any) {
-    console.error("Update user error:", error);
-    return NextResponse.json(
-      {
-        status: "error",
-        message: error.message || "Failed to update user",
-      },
-      { status: error.status || 500 },
-    );
+    return successResponse(updated, { message: "User updated successfully" });
+  } catch (error) {
+    return handleRouteError(error, "Admin update user");
   }
 }
 
@@ -219,36 +193,18 @@ export async function DELETE(
     const { id } = await params;
     await verifyAdmin(request);
 
-    const user = await prisma.user.findUnique({
-      where: { id },
-    });
+    const user = await prisma.user.findUnique({ where: { id } });
 
     if (!user) {
-      return NextResponse.json(
-        {
-          status: "error",
-          message: "User not found",
-        },
-        { status: 404 },
-      );
+      throw AppError.notFound("User not found");
     }
 
-    await prisma.user.delete({
-      where: { id },
-    });
+    await prisma.user.delete({ where: { id } });
 
-    return NextResponse.json({
-      status: "success",
+    return successResponse(undefined, {
       message: "User deleted successfully",
     });
-  } catch (error: any) {
-    console.error("Delete user error:", error);
-    return NextResponse.json(
-      {
-        status: "error",
-        message: error.message || "Failed to delete user",
-      },
-      { status: error.status || 500 },
-    );
+  } catch (error) {
+    return handleRouteError(error, "Admin delete user");
   }
 }

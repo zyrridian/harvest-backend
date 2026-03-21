@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
 import {
   comparePassword,
@@ -6,6 +6,11 @@ import {
   signRefreshToken,
   getRefreshTokenExpiry,
 } from "@/lib/auth";
+import { AppError, handleRouteError } from "@/lib/errors";
+import { successResponse } from "@/lib/helpers/response";
+import { parseBody } from "@/lib/helpers/parseBody";
+import { LoginSchema } from "@/lib/validation";
+import { AUTH } from "@/config/constants";
 
 /**
  * @swagger
@@ -40,50 +45,16 @@ import {
  */
 export async function POST(request: NextRequest) {
   try {
-    // Parse body - support both JSON and form-data
-    let body;
-    const contentType = request.headers.get("content-type") || "";
-
-    if (contentType.includes("multipart/form-data")) {
-      const formData = await request.formData();
-      body = {
-        email: formData.get("email"),
-        password: formData.get("password"),
-      };
-    } else {
-      body = await request.json();
-    }
-
-    const { email, password } = body;
-
-    // Validation
-    if (!email || !password) {
-      return NextResponse.json(
-        { status: "error", message: "Email and password are required" },
-        { status: 400 },
-      );
-    }
+    const body = await parseBody(request);
+    const { email, password } = LoginSchema.parse(body);
 
     // Find user by email
     const user = await prisma.user.findUnique({
       where: { email: email.toLowerCase() },
     });
 
-    if (!user) {
-      return NextResponse.json(
-        { status: "error", message: "Invalid credentials" },
-        { status: 401 },
-      );
-    }
-
-    // Verify password
-    const isValidPassword = await comparePassword(password, user.password);
-
-    if (!isValidPassword) {
-      return NextResponse.json(
-        { status: "error", message: "Invalid credentials" },
-        { status: 401 },
-      );
+    if (!user || !(await comparePassword(password, user.password))) {
+      throw AppError.unauthorized("Invalid credentials");
     }
 
     // Update user online status
@@ -92,15 +63,12 @@ export async function POST(request: NextRequest) {
       data: { isOnline: true, lastSeen: new Date() },
     });
 
-    // Generate tokens (userType is Prisma's camelCase property for user_type field)
+    // Generate tokens
     const accessToken = await signAccessToken(user.id, user.userType);
     const refreshToken = await signRefreshToken(user.id, user.userType);
 
-    // Store refresh token in database (delete old ones first)
-    await prisma.refreshToken.deleteMany({
-      where: { userId: user.id },
-    });
-
+    // Store refresh token (delete old ones first)
+    await prisma.refreshToken.deleteMany({ where: { userId: user.id } });
     await prisma.refreshToken.create({
       data: {
         userId: user.id,
@@ -109,28 +77,22 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Prepare response (exclude password)
-    const userResponse = {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      phone_number: user.phoneNumber,
-      avatar_url: user.avatarUrl,
-      user_type: user.userType,
-      is_verified: user.isVerified,
-      created_at: user.createdAt.toISOString(),
-      updated_at: user.updatedAt.toISOString(),
-    };
-
-    const response = NextResponse.json({
-      status: "success",
-      data: {
-        user: userResponse,
-        access_token: accessToken,
-        refresh_token: refreshToken,
-        token_type: "Bearer",
-        expires_in: 3600, // 1 hour in seconds
+    const response = successResponse({
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        phone_number: user.phoneNumber,
+        avatar_url: user.avatarUrl,
+        user_type: user.userType,
+        is_verified: user.isVerified,
+        created_at: user.createdAt.toISOString(),
+        updated_at: user.updatedAt.toISOString(),
       },
+      access_token: accessToken,
+      refresh_token: refreshToken,
+      token_type: "Bearer",
+      expires_in: AUTH.ACCESS_TOKEN_EXPIRES_IN,
     });
 
     // Set refresh token as HTTP-only cookie for web clients
@@ -138,16 +100,12 @@ export async function POST(request: NextRequest) {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
-      maxAge: 7 * 24 * 60 * 60, // 7 days
+      maxAge: AUTH.REFRESH_TOKEN_COOKIE_MAX_AGE,
       path: "/",
     });
 
     return response;
   } catch (error) {
-    console.error("Login error:", error);
-    return NextResponse.json(
-      { status: "error", message: "Internal server error" },
-      { status: 500 },
-    );
+    return handleRouteError(error, "Login");
   }
 }

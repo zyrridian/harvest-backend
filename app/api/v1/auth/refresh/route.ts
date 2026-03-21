@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
 import {
   verifyToken,
@@ -6,6 +6,9 @@ import {
   signRefreshToken,
   getRefreshTokenExpiry,
 } from "@/lib/auth";
+import { AppError, handleRouteError } from "@/lib/errors";
+import { successResponse } from "@/lib/helpers/response";
+import { AUTH } from "@/config/constants";
 
 /**
  * @swagger
@@ -69,20 +72,14 @@ export async function POST(request: NextRequest) {
     }
 
     if (!refreshTokenValue) {
-      return NextResponse.json(
-        { status: "error", message: "Refresh token is required" },
-        { status: 400 }
-      );
+      throw AppError.badRequest("Refresh token is required");
     }
 
     // Verify the refresh token
     const payload = await verifyToken(refreshTokenValue);
 
     if (!payload || payload.type !== "refresh") {
-      return NextResponse.json(
-        { status: "error", message: "Invalid refresh token" },
-        { status: 401 }
-      );
+      throw AppError.unauthorized("Invalid refresh token");
     }
 
     // Check if refresh token exists in database and is not expired
@@ -92,31 +89,22 @@ export async function POST(request: NextRequest) {
     });
 
     if (!storedToken) {
-      return NextResponse.json(
-        { status: "error", message: "Refresh token not found" },
-        { status: 401 }
-      );
+      throw AppError.unauthorized("Refresh token not found");
     }
 
     if (storedToken.expiresAt < new Date()) {
-      // Delete expired token
-      await prisma.refreshToken.delete({
-        where: { id: storedToken.id },
-      });
-      return NextResponse.json(
-        { status: "error", message: "Refresh token expired" },
-        { status: 401 }
-      );
+      await prisma.refreshToken.delete({ where: { id: storedToken.id } });
+      throw AppError.unauthorized("Refresh token expired");
     }
 
     // Generate new tokens
     const newAccessToken = await signAccessToken(
       storedToken.user.id,
-      storedToken.user.userType
+      storedToken.user.userType,
     );
     const newRefreshToken = await signRefreshToken(
       storedToken.user.id,
-      storedToken.user.userType
+      storedToken.user.userType,
     );
 
     // Update refresh token in database (rotate token)
@@ -128,14 +116,11 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    const response = NextResponse.json({
-      status: "success",
-      data: {
-        access_token: newAccessToken,
-        refresh_token: newRefreshToken,
-        token_type: "Bearer",
-        expires_in: 3600, // 1 hour in seconds
-      },
+    const response = successResponse({
+      access_token: newAccessToken,
+      refresh_token: newRefreshToken,
+      token_type: "Bearer",
+      expires_in: AUTH.ACCESS_TOKEN_EXPIRES_IN,
     });
 
     // Update the refresh token cookie
@@ -143,16 +128,12 @@ export async function POST(request: NextRequest) {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
-      maxAge: 7 * 24 * 60 * 60, // 7 days
+      maxAge: AUTH.REFRESH_TOKEN_COOKIE_MAX_AGE,
       path: "/",
     });
 
     return response;
   } catch (error) {
-    console.error("Token refresh error:", error);
-    return NextResponse.json(
-      { status: "error", message: "Internal server error" },
-      { status: 500 }
-    );
+    return handleRouteError(error, "Token refresh");
   }
 }

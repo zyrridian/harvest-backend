@@ -1,6 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
-import { verifyToken, extractBearerToken } from "@/lib/auth";
+import { verifyAuth } from "@/lib/auth";
+import { handleRouteError } from "@/lib/errors";
+import { successResponse } from "@/lib/helpers/response";
+import { BUSINESS } from "@/config/constants";
 
 /**
  * @swagger
@@ -18,93 +21,47 @@ import { verifyToken, extractBearerToken } from "@/lib/auth";
  */
 export async function GET(request: NextRequest) {
   try {
-    // Verify authentication
-    const authHeader = request.headers.get("authorization");
-    const token = extractBearerToken(authHeader);
-    if (!token) {
-      return NextResponse.json(
-        { status: "error", message: "Unauthorized" },
-        { status: 401 },
-      );
-    }
+    const payload = await verifyAuth(request);
+    const userId = payload.userId;
 
-    const payload = await verifyToken(token);
-    if (!payload) {
-      return NextResponse.json(
-        { status: "error", message: "Invalid token" },
-        { status: 401 },
-      );
-    }
-    const userId = payload.userId as string;
-
-    // Get or create cart
-    let cart = await prisma.cart.findUnique({
-      where: { userId },
-      include: {
-        items: {
-          include: {
-            product: {
-              include: {
-                seller: {
-                  select: {
-                    id: true,
-                    name: true,
-                    avatarUrl: true,
-                  },
+    // Cart include config (reused for find and create)
+    const cartInclude = {
+      items: {
+        include: {
+          product: {
+            include: {
+              seller: {
+                select: { id: true, name: true, avatarUrl: true },
+              },
+              images: {
+                where: { isPrimary: true },
+                take: 1,
+              },
+              discounts: {
+                where: {
+                  isActive: true,
+                  validFrom: { lte: new Date() },
+                  validUntil: { gte: new Date() },
                 },
-                images: {
-                  where: { isPrimary: true },
-                  take: 1,
-                },
-                discounts: {
-                  where: {
-                    isActive: true,
-                    validFrom: { lte: new Date() },
-                    validUntil: { gte: new Date() },
-                  },
-                  take: 1,
-                  orderBy: { value: "desc" },
-                },
+                take: 1,
+                orderBy: { value: "desc" as const },
               },
             },
           },
         },
       },
+    };
+
+    // Get or create cart
+    let cart = await prisma.cart.findUnique({
+      where: { userId },
+      include: cartInclude,
     });
 
     if (!cart) {
       cart = await prisma.cart.create({
         data: { userId },
-        include: {
-          items: {
-            include: {
-              product: {
-                include: {
-                  seller: {
-                    select: {
-                      id: true,
-                      name: true,
-                      avatarUrl: true,
-                    },
-                  },
-                  images: {
-                    where: { isPrimary: true },
-                    take: 1,
-                  },
-                  discounts: {
-                    where: {
-                      isActive: true,
-                      validFrom: { lte: new Date() },
-                      validUntil: { gte: new Date() },
-                    },
-                    take: 1,
-                    orderBy: { value: "desc" },
-                  },
-                },
-              },
-            },
-          },
-        },
+        include: cartInclude,
       });
     }
 
@@ -139,7 +96,7 @@ export async function GET(request: NextRequest) {
           seller: {
             user_id: item.product.seller.id,
             name: item.product.seller.name,
-            location: { city: null }, // TODO: Get from farmer profile
+            location: { city: null },
           },
           availability: {
             status:
@@ -161,7 +118,17 @@ export async function GET(request: NextRequest) {
     });
 
     // Group items by seller
-    const groupedBySeller: any = {};
+    const groupedBySeller: Record<
+      string,
+      {
+        seller: { user_id: string; name: string };
+        items: typeof formattedItems;
+        subtotal: number;
+        delivery_fee: number;
+        free_delivery_threshold: number;
+      }
+    > = {};
+
     formattedItems.forEach((item) => {
       const sellerId = item.product.seller.user_id;
       if (!groupedBySeller[sellerId]) {
@@ -169,8 +136,8 @@ export async function GET(request: NextRequest) {
           seller: item.product.seller,
           items: [],
           subtotal: 0,
-          delivery_fee: 15000, // Fixed for now, TODO: calculate based on location
-          free_delivery_threshold: 100000,
+          delivery_fee: BUSINESS.DELIVERY_FEE,
+          free_delivery_threshold: BUSINESS.FREE_DELIVERY_THRESHOLD,
         };
       }
       groupedBySeller[sellerId].items.push(item);
@@ -179,7 +146,7 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    const groupedArray = Object.values(groupedBySeller).map((group: any) => ({
+    const groupedArray = Object.values(groupedBySeller).map((group) => ({
       ...group,
       is_eligible_free_delivery:
         group.subtotal >= group.free_delivery_threshold,
@@ -212,49 +179,37 @@ export async function GET(request: NextRequest) {
         sum + (group.is_eligible_free_delivery ? 0 : group.delivery_fee),
       0,
     );
-    const serviceFee = 2000; // Fixed service fee
+    const serviceFee = BUSINESS.SERVICE_FEE;
     const grandTotal = subtotal + totalDeliveryFee + serviceFee;
 
-    return NextResponse.json({
-      status: "success",
-      data: {
-        cart_id: cart.id,
-        items: formattedItems,
-        // Flat fields for UI compatibility
-        item_count: formattedItems.length,
-        selected_count: selectedItems.length,
+    return successResponse({
+      cart_id: cart.id,
+      items: formattedItems,
+      item_count: formattedItems.length,
+      selected_count: selectedItems.length,
+      subtotal,
+      discount_total: totalDiscount,
+      total: grandTotal,
+      currency: BUSINESS.CURRENCY,
+      grouped_by_seller: groupedArray,
+      summary: {
+        total_items: formattedItems.length,
+        total_quantity: formattedItems.reduce(
+          (sum, item) => sum + item.quantity,
+          0,
+        ),
         subtotal,
-        discount_total: totalDiscount,
-        total: grandTotal,
-        currency: "IDR",
-        grouped_by_seller: groupedArray,
-        summary: {
-          total_items: formattedItems.length,
-          total_quantity: formattedItems.reduce(
-            (sum, item) => sum + item.quantity,
-            0,
-          ),
-          subtotal,
-          total_discount: totalDiscount,
-          total_delivery_fee: totalDeliveryFee,
-          service_fee: serviceFee,
-          grand_total: grandTotal,
-        },
-        unavailable_items: formattedItems.filter((item) => !item.is_available),
-        recommendations: [], // TODO: Add product recommendations
-        updated_at: cart.updatedAt,
+        total_discount: totalDiscount,
+        total_delivery_fee: totalDeliveryFee,
+        service_fee: serviceFee,
+        grand_total: grandTotal,
       },
+      unavailable_items: formattedItems.filter((item) => !item.is_available),
+      recommendations: [],
+      updated_at: cart.updatedAt,
     });
-  } catch (error: any) {
-    console.error("Error fetching cart:", error);
-    return NextResponse.json(
-      {
-        status: "error",
-        message: "Failed to fetch cart",
-        error: error.message,
-      },
-      { status: 500 },
-    );
+  } catch (error) {
+    return handleRouteError(error, "Fetch cart");
   }
 }
 
@@ -274,47 +229,16 @@ export async function GET(request: NextRequest) {
  */
 export async function DELETE(request: NextRequest) {
   try {
-    // Verify authentication
-    const authHeader = request.headers.get("authorization");
-    const token = extractBearerToken(authHeader);
-    if (!token) {
-      return NextResponse.json(
-        { status: "error", message: "Unauthorized" },
-        { status: 401 },
-      );
-    }
+    const payload = await verifyAuth(request);
 
-    const payload = await verifyToken(token);
-    if (!payload) {
-      return NextResponse.json(
-        { status: "error", message: "Invalid token" },
-        { status: 401 },
-      );
-    }
-    const userId = payload.userId as string;
-
-    // Delete all cart items (cart will remain)
     await prisma.cartItem.deleteMany({
-      where: {
-        cart: {
-          userId,
-        },
-      },
+      where: { cart: { userId: payload.userId } },
     });
 
-    return NextResponse.json({
-      status: "success",
+    return successResponse(undefined, {
       message: "Cart cleared successfully",
     });
-  } catch (error: any) {
-    console.error("Error clearing cart:", error);
-    return NextResponse.json(
-      {
-        status: "error",
-        message: "Failed to clear cart",
-        error: error.message,
-      },
-      { status: 500 },
-    );
+  } catch (error) {
+    return handleRouteError(error, "Clear cart");
   }
 }

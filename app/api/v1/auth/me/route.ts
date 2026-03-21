@@ -1,6 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
-import { verifyToken, extractBearerToken } from '@/lib/auth';
+import { NextRequest } from "next/server";
+import prisma from "@/lib/prisma";
+import { verifyAuth } from "@/lib/auth";
+import { AppError, handleRouteError } from "@/lib/errors";
+import { successResponse } from "@/lib/helpers/response";
 
 /**
  * @swagger
@@ -34,41 +36,17 @@ import { verifyToken, extractBearerToken } from '@/lib/auth';
  */
 export async function GET(request: NextRequest) {
   try {
-    // Get token from Authorization header
-    const authHeader = request.headers.get('Authorization');
-    const token = extractBearerToken(authHeader);
+    const payload = await verifyAuth(request);
 
-    if (!token) {
-      return NextResponse.json(
-        { status: 'error', message: 'No token provided' },
-        { status: 401 }
-      );
-    }
-
-    // Verify token
-    const payload = await verifyToken(token);
-
-    if (!payload || payload.type !== 'access') {
-      return NextResponse.json(
-        { status: 'error', message: 'Invalid token' },
-        { status: 401 }
-      );
-    }
-
-    // Get user from database
     const user = await prisma.user.findUnique({
       where: { id: payload.userId },
     });
 
     if (!user) {
-      return NextResponse.json(
-        { status: 'error', message: 'User not found' },
-        { status: 404 }
-      );
+      throw AppError.notFound("User not found");
     }
 
-    // Prepare response (exclude password)
-    const userResponse = {
+    return successResponse({
       id: user.id,
       email: user.email,
       name: user.name,
@@ -80,17 +58,8 @@ export async function GET(request: NextRequest) {
       last_seen: user.lastSeen?.toISOString() || null,
       created_at: user.createdAt.toISOString(),
       updated_at: user.updatedAt.toISOString(),
-    };
-
-    return NextResponse.json({
-      status: 'success',
-      data: userResponse,
     });
   } catch (error) {
-    console.error('Get me error:', error);
-    return NextResponse.json(
-      { status: 'error', message: 'Internal server error' },
-      { status: 500 }
-    );
+    return handleRouteError(error, "Get me");
   }
 }

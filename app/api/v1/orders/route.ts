@@ -1,6 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
-import { verifyToken, extractBearerToken } from "@/lib/auth";
+import { verifyAuth } from "@/lib/auth";
+import { AppError, handleRouteError } from "@/lib/errors";
+import { successResponse } from "@/lib/helpers/response";
+import { parsePagination, buildPaginationMeta } from "@/lib/helpers/pagination";
+import { CreateOrderSchema } from "@/lib/validation";
+import { BUSINESS } from "@/config/constants";
 
 // Helper function to generate order number
 function generateOrderNumber(): string {
@@ -8,9 +13,7 @@ function generateOrderNumber(): string {
   const year = now.getFullYear();
   const month = String(now.getMonth() + 1).padStart(2, "0");
   const day = String(now.getDate()).padStart(2, "0");
-  const random = Math.floor(Math.random() * 1000)
-    .toString()
-    .padStart(3, "0");
+  const random = crypto.randomUUID().slice(0, 8).toUpperCase();
   return `FM${year}${month}${day}${random}`;
 }
 
@@ -50,34 +53,16 @@ function generateOrderNumber(): string {
  */
 export async function GET(request: NextRequest) {
   try {
-    // Verify authentication
-    const authHeader = request.headers.get("authorization");
-    const token = extractBearerToken(authHeader);
-    if (!token) {
-      return NextResponse.json(
-        { status: "error", message: "Unauthorized" },
-        { status: 401 },
-      );
-    }
-
-    const payload = await verifyToken(token);
-    if (!payload) {
-      return NextResponse.json(
-        { status: "error", message: "Invalid token" },
-        { status: 401 },
-      );
-    }
-    const userId = payload.userId as string;
+    const payload = await verifyAuth(request);
+    const userId = payload.userId;
 
     const { searchParams } = new URL(request.url);
     const role = searchParams.get("role") || "buyer";
     const status = searchParams.get("status");
-    const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(searchParams.get("limit") || "20");
-    const skip = (page - 1) * limit;
+    const { page, limit, skip } = parsePagination(searchParams);
 
     // Build where clause
-    const where: any =
+    const where: Record<string, unknown> =
       role === "seller" ? { sellerId: userId } : { buyerId: userId };
     if (status) {
       where.status = status;
@@ -92,20 +77,13 @@ export async function GET(request: NextRequest) {
         orderBy: { createdAt: "desc" },
         include: {
           seller: {
-            select: {
-              id: true,
-              name: true,
-              avatarUrl: true,
-            },
+            select: { id: true, name: true, avatarUrl: true },
           },
           items: {
             take: 3,
             include: {
               product: {
-                select: {
-                  name: true,
-                  unit: true,
-                },
+                select: { name: true, unit: true },
               },
             },
           },
@@ -133,7 +111,7 @@ export async function GET(request: NextRequest) {
       item_count: order.items.length,
       total_quantity: order.items.reduce((sum, item) => sum + item.quantity, 0),
       total_amount: order.totalAmount,
-      currency: "IDR",
+      currency: BUSINESS.CURRENCY,
       delivery: {
         method: order.deliveryMethod,
         date: order.deliveryDate,
@@ -142,29 +120,12 @@ export async function GET(request: NextRequest) {
       created_at: order.createdAt,
     }));
 
-    const totalPages = Math.ceil(totalItems / limit);
-
-    return NextResponse.json({
-      status: "success",
-      data: {
-        orders: formattedOrders,
-        pagination: {
-          current_page: page,
-          total_pages: totalPages,
-          total_items: totalItems,
-        },
-      },
+    return successResponse({
+      orders: formattedOrders,
+      pagination: buildPaginationMeta(page, limit, totalItems),
     });
-  } catch (error: any) {
-    console.error("Error fetching orders:", error);
-    return NextResponse.json(
-      {
-        status: "error",
-        message: "Failed to fetch orders",
-        error: error.message,
-      },
-      { status: 500 },
-    );
+  } catch (error) {
+    return handleRouteError(error, "Fetch orders");
   }
 }
 
@@ -207,42 +168,19 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    // Verify authentication
-    const authHeader = request.headers.get("authorization");
-    const token = extractBearerToken(authHeader);
-    if (!token) {
-      return NextResponse.json(
-        { status: "error", message: "Unauthorized" },
-        { status: 401 },
-      );
-    }
-
-    const payload = await verifyToken(token);
-    if (!payload) {
-      return NextResponse.json(
-        { status: "error", message: "Invalid token" },
-        { status: 401 },
-      );
-    }
-    const userId = payload.userId as string;
+    const payload = await verifyAuth(request);
+    const userId = payload.userId;
 
     const body = await request.json();
     const {
       cart_item_ids,
       delivery_address_id,
-      delivery_method = "home_delivery",
+      delivery_method,
       delivery_date,
-      delivery_time_slot = "morning",
-      payment_method = "bank_transfer",
+      delivery_time_slot,
+      payment_method,
       notes,
-    } = body;
-
-    if (!cart_item_ids || cart_item_ids.length === 0) {
-      return NextResponse.json(
-        { status: "error", message: "No cart items selected" },
-        { status: 400 },
-      );
-    }
+    } = CreateOrderSchema.parse(body);
 
     // Get cart items
     const cartItems = await prisma.cartItem.findMany({
@@ -254,24 +192,18 @@ export async function POST(request: NextRequest) {
         product: {
           include: {
             seller: true,
-            images: {
-              where: { isPrimary: true },
-              take: 1,
-            },
+            images: { where: { isPrimary: true }, take: 1 },
           },
         },
       },
     });
 
     if (cartItems.length === 0) {
-      return NextResponse.json(
-        { status: "error", message: "No valid cart items found" },
-        { status: 404 },
-      );
+      throw AppError.notFound("No valid cart items found");
     }
 
     // Group items by seller
-    const itemsBySeller: { [key: string]: typeof cartItems } = {};
+    const itemsBySeller: Record<string, typeof cartItems> = {};
     cartItems.forEach((item) => {
       const sellerId = item.product.sellerId;
       if (!itemsBySeller[sellerId]) {
@@ -280,110 +212,99 @@ export async function POST(request: NextRequest) {
       itemsBySeller[sellerId].push(item);
     });
 
-    // Create orders for each seller
-    const createdOrders = [];
-    for (const [sellerId, items] of Object.entries(itemsBySeller)) {
-      const subtotal = items.reduce((sum, item) => sum + item.subtotal, 0);
-      const deliveryFee = 15000; // Fixed for now
-      const serviceFee = 2000;
-      const totalDiscount = items.reduce(
-        (sum, item) =>
-          sum +
-          (item.unitPrice - (item.discountPrice || item.unitPrice)) *
-            item.quantity,
-        0,
-      );
-      const totalAmount = subtotal + deliveryFee + serviceFee;
+    // Create orders for each seller (wrapped in transaction)
+    const createdOrders = await prisma.$transaction(async (tx) => {
+      const orders = [];
 
-      const order = await prisma.order.create({
-        data: {
-          orderNumber: generateOrderNumber(),
-          buyerId: userId,
-          sellerId,
-          status: "pending_payment",
-          subtotal,
-          deliveryFee,
-          serviceFee,
-          totalDiscount,
-          totalAmount,
-          paymentMethod: payment_method,
-          paymentStatus: "pending",
-          deliveryMethod: delivery_method,
-          deliveryAddressId: delivery_address_id,
-          deliveryDate: delivery_date ? new Date(delivery_date) : null,
-          deliveryTimeSlot: delivery_time_slot,
-          notes,
-          items: {
-            create: items.map((item) => ({
-              productId: item.productId,
-              productName: item.product.name,
-              productImage: item.product.images?.[0]?.url || null,
-              quantity: item.quantity,
-              unitPrice: item.unitPrice,
-              discount:
-                (item.unitPrice - (item.discountPrice || item.unitPrice)) *
-                item.quantity,
-              subtotal: item.subtotal,
-            })),
+      for (const [sellerId, items] of Object.entries(itemsBySeller)) {
+        const subtotal = items.reduce((sum, item) => sum + item.subtotal, 0);
+        const deliveryFee = BUSINESS.DELIVERY_FEE;
+        const serviceFee = BUSINESS.SERVICE_FEE;
+        const totalDiscount = items.reduce(
+          (sum, item) =>
+            sum +
+            (item.unitPrice - (item.discountPrice || item.unitPrice)) *
+              item.quantity,
+          0,
+        );
+        const totalAmount = subtotal + deliveryFee + serviceFee;
+
+        const order = await tx.order.create({
+          data: {
+            orderNumber: generateOrderNumber(),
+            buyerId: userId,
+            sellerId,
+            status: "pending_payment",
+            subtotal,
+            deliveryFee,
+            serviceFee,
+            totalDiscount,
+            totalAmount,
+            paymentMethod: payment_method,
+            paymentStatus: "pending",
+            deliveryMethod: delivery_method,
+            deliveryAddressId: delivery_address_id,
+            deliveryDate: delivery_date ? new Date(delivery_date) : null,
+            deliveryTimeSlot: delivery_time_slot,
+            notes,
+            items: {
+              create: items.map((item) => ({
+                productId: item.productId,
+                productName: item.product.name,
+                productImage: item.product.images?.[0]?.url || null,
+                quantity: item.quantity,
+                unitPrice: item.unitPrice,
+                discount:
+                  (item.unitPrice - (item.discountPrice || item.unitPrice)) *
+                  item.quantity,
+                subtotal: item.subtotal,
+              })),
+            },
           },
-        },
-        include: {
-          items: true,
-        },
-      });
+          include: { items: true },
+        });
 
-      createdOrders.push({
-        order_id: order.id,
-        order_number: order.orderNumber,
-        status: order.status,
-        total_amount: order.totalAmount,
-      });
+        orders.push({
+          order_id: order.id,
+          order_number: order.orderNumber,
+          status: order.status,
+          total_amount: order.totalAmount,
+        });
 
-      // Remove items from cart
-      await prisma.cartItem.deleteMany({
-        where: {
-          id: { in: items.map((item) => item.id) },
-        },
-      });
-    }
+        // Remove items from cart
+        await tx.cartItem.deleteMany({
+          where: { id: { in: items.map((item) => item.id) } },
+        });
+      }
 
-    return NextResponse.json(
+      return orders;
+    });
+
+    return successResponse(
       {
-        status: "success",
-        message: "Order created successfully",
-        data: {
-          orders: createdOrders,
-          payment_summary: {
-            total_orders: createdOrders.length,
-            grand_total: createdOrders.reduce(
+        orders: createdOrders,
+        payment_summary: {
+          total_orders: createdOrders.length,
+          grand_total: createdOrders.reduce(
+            (sum, order) => sum + order.total_amount,
+            0,
+          ),
+          payment_method,
+          payment_instructions: {
+            bank_name: "Bank Mandiri",
+            account_number: "1234567890",
+            account_name: "Farm Market",
+            amount: createdOrders.reduce(
               (sum, order) => sum + order.total_amount,
               0,
             ),
-            payment_method,
-            payment_instructions: {
-              bank_name: "Bank Mandiri",
-              account_number: "1234567890",
-              account_name: "Farm Market",
-              amount: createdOrders.reduce(
-                (sum, order) => sum + order.total_amount,
-                0,
-              ),
-              valid_until: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
-            },
+            valid_until: new Date(Date.now() + 24 * 60 * 60 * 1000),
           },
         },
       },
-      { status: 201 },
+      { message: "Order created successfully", status: 201 },
     );
-  } catch (error: any) {
-    console.error("Error creating order:", error);
-    return NextResponse.json(
-      {
-        status: "error",
-        message: "Failed to create order",
-        error: error.message,
-      },
-      { status: 500 },
-    );
+  } catch (error) {
+    return handleRouteError(error, "Create order");
   }
 }

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
 import {
   hashPassword,
@@ -6,6 +6,11 @@ import {
   signRefreshToken,
   getRefreshTokenExpiry,
 } from "@/lib/auth";
+import { AppError, handleRouteError } from "@/lib/errors";
+import { successResponse } from "@/lib/helpers/response";
+import { parseBody } from "@/lib/helpers/parseBody";
+import { RegisterSchema } from "@/lib/validation";
+import { AUTH } from "@/config/constants";
 
 /**
  * @swagger
@@ -40,56 +45,9 @@ import {
  */
 export async function POST(request: NextRequest) {
   try {
-    // Parse body - support both JSON and form-data
-    let body;
-    const contentType = request.headers.get("content-type") || "";
-
-    if (contentType.includes("multipart/form-data")) {
-      const formData = await request.formData();
-      body = {
-        email: formData.get("email"),
-        password: formData.get("password"),
-        name: formData.get("name"),
-        phone_number: formData.get("phone_number"),
-        user_type: formData.get("user_type"),
-      };
-    } else {
-      body = await request.json();
-    }
-
-    const { email, password, name, phone_number, user_type } = body;
-
-    console.log("Registration request:", { email, name, user_type }); // Debug log
-
-    // Validation
-    if (!email || !password || !name) {
-      return NextResponse.json(
-        { status: "error", message: "Email, password, and name are required" },
-        { status: 400 },
-      );
-    }
-
-    if (password.length < 8) {
-      return NextResponse.json(
-        {
-          status: "error",
-          message: "Password must be at least 8 characters long",
-        },
-        { status: 400 },
-      );
-    }
-
-    // Validate user_type if provided
-    const validUserTypes = ["CONSUMER", "PRODUCER", "ADMIN"];
-    const userType =
-      user_type && validUserTypes.includes(user_type.toString().toUpperCase())
-        ? user_type.toString().toUpperCase()
-        : "CONSUMER";
-
-    console.log("User type validation:", {
-      received: user_type,
-      normalized: userType,
-    }); // Debug log
+    const body = await parseBody(request);
+    const { email, password, name, phone_number, user_type } =
+      RegisterSchema.parse(body);
 
     // Check if email already exists
     const existingUser = await prisma.user.findUnique({
@@ -97,23 +55,19 @@ export async function POST(request: NextRequest) {
     });
 
     if (existingUser) {
-      return NextResponse.json(
-        { status: "error", message: "Email already registered" },
-        { status: 400 },
-      );
+      throw AppError.badRequest("Email already registered");
     }
 
-    // Hash password
+    // Hash password and create user
     const hashedPassword = await hashPassword(password);
 
-    // Create user
     const user = await prisma.user.create({
       data: {
         email: email.toLowerCase(),
         password: hashedPassword,
         name,
         phoneNumber: phone_number || null,
-        userType: userType,
+        userType: user_type,
       },
     });
 
@@ -121,7 +75,7 @@ export async function POST(request: NextRequest) {
     const accessToken = await signAccessToken(user.id, user.userType);
     const refreshToken = await signRefreshToken(user.id, user.userType);
 
-    // Store refresh token in database
+    // Store refresh token
     await prisma.refreshToken.create({
       data: {
         userId: user.id,
@@ -130,32 +84,25 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Prepare response (exclude password)
-    const userResponse = {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      phone_number: user.phoneNumber,
-      avatar_url: user.avatarUrl,
-      user_type: user.userType,
-      is_verified: user.isVerified,
-      created_at: user.createdAt.toISOString(),
-      updated_at: user.updatedAt.toISOString(),
-    };
-
-    const response = NextResponse.json(
+    const response = successResponse(
       {
-        status: "success",
-        message: "Registration successful",
-        data: {
-          user: userResponse,
-          access_token: accessToken,
-          refresh_token: refreshToken,
-          token_type: "Bearer",
-          expires_in: 3600, // 1 hour in seconds
+        user: {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          phone_number: user.phoneNumber,
+          avatar_url: user.avatarUrl,
+          user_type: user.userType,
+          is_verified: user.isVerified,
+          created_at: user.createdAt.toISOString(),
+          updated_at: user.updatedAt.toISOString(),
         },
+        access_token: accessToken,
+        refresh_token: refreshToken,
+        token_type: "Bearer",
+        expires_in: AUTH.ACCESS_TOKEN_EXPIRES_IN,
       },
-      { status: 201 },
+      { message: "Registration successful", status: 201 },
     );
 
     // Set refresh token as HTTP-only cookie for web clients
@@ -163,16 +110,12 @@ export async function POST(request: NextRequest) {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
-      maxAge: 7 * 24 * 60 * 60, // 7 days
+      maxAge: AUTH.REFRESH_TOKEN_COOKIE_MAX_AGE,
       path: "/",
     });
 
     return response;
   } catch (error) {
-    console.error("Registration error:", error);
-    return NextResponse.json(
-      { status: "error", message: "Internal server error" },
-      { status: 500 },
-    );
+    return handleRouteError(error, "Registration");
   }
 }
