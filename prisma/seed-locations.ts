@@ -11,6 +11,14 @@ const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
 async function main() {
+  console.log("🧹 Cleaning up old locations data...");
+  // Use transaction to ensure deletions happen in order (child first)
+  await prisma.$transaction([
+    prisma.district.deleteMany(),
+    prisma.city.deleteMany(),
+    prisma.province.deleteMany(),
+  ]);
+
   console.log("🌱 Starting locations seed from idn-area-data...");
 
   // ======================
@@ -39,9 +47,9 @@ async function main() {
         (c as any).province_code || (c as any).provinceCode;
 
       return {
-        id: parseInt(c.code, 10),
+        id: parseInt(c.code.replace(/\./g, ""), 10),
         name: c.name,
-        provinceId: parseInt(provinceCode, 10),
+        provinceId: parseInt(provinceCode.replace(/\./g, ""), 10),
       };
     }),
     skipDuplicates: true,
@@ -64,9 +72,9 @@ async function main() {
           (d as any).regency_code || (d as any).regencyCode;
 
         return {
-          id: parseInt(d.code, 10),
+          id: parseInt(d.code.replace(/\./g, ""), 10),
           name: d.name,
-          cityId: parseInt(regencyCode, 10),
+          cityId: parseInt(regencyCode.replace(/\./g, ""), 10),
         };
       }),
       skipDuplicates: true,

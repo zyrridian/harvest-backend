@@ -139,6 +139,16 @@ export async function POST(request: NextRequest) {
       throw AppError.badRequest("Missing required fields");
     }
 
+    const [provinceData, cityData, districtData] = await Promise.all([
+      prisma.province.findUnique({ where: { id: province_id } }),
+      prisma.city.findUnique({ where: { id: city_id } }),
+      prisma.district.findUnique({ where: { id: district_id } }),
+    ]);
+
+    if (!provinceData || !cityData || !districtData) {
+      throw AppError.badRequest("Invalid location IDs provided");
+    }
+
     if (is_primary) {
       await prisma.address.updateMany({
         where: { userId, isPrimary: true },
@@ -153,11 +163,11 @@ export async function POST(request: NextRequest) {
         recipientName: recipient_name,
         phone,
         fullAddress: full_address,
-        province: "Province",
+        province: provinceData.name,
         provinceId: province_id,
-        city: "City",
+        city: cityData.name,
         cityId: city_id,
-        district: "District",
+        district: districtData.name,
         districtId: district_id,
         subdistrict: null,
         postalCode: postal_code,
