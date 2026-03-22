@@ -12,7 +12,13 @@ import {
   Loader2,
   CheckCircle,
   Star,
+  Save,
+  X,
+  Crosshair,
+  MapPin as MapPinIcon
 } from "lucide-react";
+import { GoogleMap, useJsApiLoader, Marker } from "@react-google-maps/api";
+
 
 const colors = {
   background: "#FAFAF9",
@@ -32,21 +38,59 @@ interface Address {
   recipient_name: string;
   phone: string;
   full_address: string;
+  province_id: number;
+  city_id: number;
+  district_id: number;
+  province: string;
   city: string;
+  district: string;
   postal_code: string;
+  latitude: number;
+  longitude: number;
+  notes: string;
   is_primary: boolean;
+}
+
+interface LocationData {
+  id: number;
+  name: string;
 }
 
 export default function AddressesPage() {
   const router = useRouter();
+  
+  // Views: list | form
+  const [view, setView] = useState<"list" | "form">("list");
+  
+  // List State
   const [addresses, setAddresses] = useState<Address[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loadingList, setLoadingList] = useState(true);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [settingPrimary, setSettingPrimary] = useState<string | null>(null);
+
+  // Form State
+  const [formData, setFormData] = useState<Partial<Address>>({});
+  const [loadingForm, setLoadingForm] = useState(false);
+  const [formError, setFormError] = useState("");
+
+  // Master Data State
+  const [provinces, setProvinces] = useState<LocationData[]>([]);
+  const [cities, setCities] = useState<LocationData[]>([]);
+  const [districts, setDistricts] = useState<LocationData[]>([]);
+  const [loadingLocations, setLoadingLocations] = useState(false);
+  const [loadingGps, setLoadingGps] = useState(false);
+
+  const { isLoaded: isMapLoaded } = useJsApiLoader({
+    id: 'google-map-script',
+    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "",
+  });
+  const [mapCenter, setMapCenter] = useState({ lat: -6.200000, lng: 106.816666 }); // Default Jakarta
 
   useEffect(() => {
     fetchAddresses();
   }, []);
 
+  // --- API HELPERS ---
   const getAuthHeaders = () => {
     const token = localStorage.getItem("accessToken");
     if (!token) {
@@ -59,11 +103,13 @@ export default function AddressesPage() {
     };
   };
 
+  // --- LIST ACTIONS ---
   const fetchAddresses = async () => {
     const headers = getAuthHeaders();
     if (!headers) return;
 
     try {
+      setLoadingList(true);
       const response = await fetch("/api/v1/addresses", { headers });
       const data = await response.json();
       if (response.ok) {
@@ -72,7 +118,7 @@ export default function AddressesPage() {
     } catch (error) {
       console.error("Failed to fetch addresses:", error);
     } finally {
-      setLoading(false);
+      setLoadingList(false);
     }
   };
 
@@ -100,179 +146,530 @@ export default function AddressesPage() {
     const headers = getAuthHeaders();
     if (!headers) return;
 
+    setSettingPrimary(addressId);
     try {
-      const response = await fetch(`/api/v1/addresses/${addressId}`, {
+      const response = await fetch(`/api/v1/addresses/${addressId}/primary`, {
         method: "PATCH",
         headers,
-        body: JSON.stringify({ is_primary: true }),
       });
       if (response.ok) {
-        fetchAddresses();
+        await fetchAddresses();
       }
     } catch (error) {
       console.error("Failed to set primary:", error);
+    } finally {
+      setSettingPrimary(null);
     }
   };
 
-  if (loading) {
+  // --- FORM VIEW INTERACTIONS ---
+
+  const handleOpenForm = (address?: Address) => {
+    setFormError("");
+    if (address) {
+      // Edit mode
+      setFormData(address);
+      if (address.latitude && address.longitude) {
+        setMapCenter({ lat: address.latitude, lng: address.longitude });
+      }
+      loadProvinces();
+      if (address.province_id) loadCities(address.province_id);
+      if (address.city_id) loadDistricts(address.city_id);
+    } else {
+      // Add mode
+      setFormData({ is_primary: addresses.length === 0 }); // Auto primary if first
+      setCities([]);
+      setDistricts([]);
+      loadProvinces();
+    }
+    setView("form");
+  };
+
+  const handleCloseForm = () => {
+    setView("list");
+    setFormData({});
+  };
+
+  // --- MASTER DATA LOADING ---
+  const loadProvinces = async () => {
+    try {
+      const res = await fetch("/api/v1/master/provinces");
+      const data = await res.json();
+      if (data.status === "success") setProvinces(data.data || []);
+    } catch (err) {
+      console.error("Failed to load provinces", err);
+    }
+  };
+
+  const loadCities = async (provinceId: number) => {
+    try {
+      setLoadingLocations(true);
+      const res = await fetch(`/api/v1/master/cities?province_id=${provinceId}`);
+      const data = await res.json();
+      if (data.status === "success") setCities(data.data || []);
+    } catch (err) {
+      console.error("Failed to load cities", err);
+    } finally {
+      setLoadingLocations(false);
+    }
+  };
+
+  const loadDistricts = async (cityId: number) => {
+    try {
+      setLoadingLocations(true);
+      const res = await fetch(`/api/v1/master/districts?city_id=${cityId}`);
+      const data = await res.json();
+      if (data.status === "success") setDistricts(data.data || []);
+    } catch (err) {
+      console.error("Failed to load districts", err);
+    } finally {
+      setLoadingLocations(false);
+    }
+  };
+
+  // Select Handlers
+  const onProvinceChange = (provinceId: number) => {
+    setFormData((prev) => ({ ...prev, province_id: provinceId, city_id: undefined, district_id: undefined }));
+    setCities([]);
+    setDistricts([]);
+    if (provinceId) loadCities(provinceId);
+  };
+
+  const onCityChange = (cityId: number) => {
+    setFormData((prev) => ({ ...prev, city_id: cityId, district_id: undefined }));
+    setDistricts([]);
+    if (cityId) loadDistricts(cityId);
+  };
+
+  const onDistrictChange = (districtId: number) => {
+    setFormData((prev) => ({ ...prev, district_id: districtId }));
+  };
+
+  const captureCoordinates = () => {
+    if (!navigator.geolocation) {
+      setFormError("Geolocation is not supported by your browser");
+      return;
+    }
+    setLoadingGps(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+        setFormData((prev) => ({
+          ...prev,
+          latitude: lat,
+          longitude: lng,
+        }));
+        setMapCenter({ lat, lng });
+        setLoadingGps(false);
+      },
+      (error) => {
+        console.error(error);
+        setFormError("Unable to retrieve your location. Please check your browser permissions.");
+        setLoadingGps(false);
+      }
+    );
+  };
+
+  // --- SAVE FORM ---
+  const saveAddress = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormError("");
+
+    const headers = getAuthHeaders();
+    if (!headers) return;
+
+    // Basic Validation
+    if (!formData.label || !formData.recipient_name || !formData.phone || !formData.full_address || !formData.province_id || !formData.city_id || !formData.district_id || !formData.postal_code) {
+      setFormError("Please fill out all required fields.");
+      return;
+    }
+
+    setLoadingForm(true);
+    try {
+      const isEdit = !!formData.address_id;
+      const url = isEdit ? `/api/v1/addresses/${formData.address_id}` : "/api/v1/addresses";
+      const method = isEdit ? "PUT" : "POST";
+
+      const res = await fetch(url, {
+        method,
+        headers,
+        body: JSON.stringify({
+          label: formData.label,
+          recipient_name: formData.recipient_name,
+          phone: formData.phone,
+          full_address: formData.full_address,
+          province_id: formData.province_id,
+          city_id: formData.city_id,
+          district_id: formData.district_id,
+          postal_code: formData.postal_code,
+          latitude: formData.latitude,
+          longitude: formData.longitude,
+          notes: formData.notes || "",
+          is_primary: formData.is_primary || false,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        await fetchAddresses();
+        handleCloseForm();
+      } else {
+        setFormError(data.message || "Something went wrong saving the address");
+      }
+    } catch (err) {
+      setFormError("Network error. Please try again.");
+    } finally {
+      setLoadingForm(false);
+    }
+  };
+
+  if (loadingList && view === "list") {
     return (
-      <div
-        className="min-h-screen flex items-center justify-center"
-        style={{ backgroundColor: colors.background }}
-      >
-        <Loader2
-          size={32}
-          className="animate-spin"
-          style={{ color: colors.accent }}
-        />
+      <div className="min-h-screen flex items-center justify-center p-8" style={{ backgroundColor: colors.background }}>
+        <Loader2 size={32} className="animate-spin" style={{ color: colors.accent }} />
       </div>
     );
   }
 
+  // --- RENDER FORM VIEW ---
+  if (view === "form") {
+    return (
+      <div style={{ backgroundColor: colors.background }} className="min-h-screen pb-16">
+        <div className="border-b sticky top-0 z-10" style={{ backgroundColor: colors.white, borderColor: colors.border }}>
+          <div className="max-w-2xl mx-auto px-4 py-4 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <button type="button" onClick={handleCloseForm} className="p-1" style={{ color: colors.body }}>
+                <ChevronLeft size={24} />
+              </button>
+              <h1 className="text-lg font-bold" style={{ color: colors.heading }}>
+                {formData.address_id ? "Edit Address" : "Add New Address"}
+              </h1>
+            </div>
+          </div>
+        </div>
+
+        <div className="max-w-2xl mx-auto px-4 py-6">
+          {formError && (
+            <div className="p-3 mb-6 font-medium text-sm rounded-md" style={{ backgroundColor: "#fef2f2", color: colors.error, border: `1px solid #fecaca` }}>
+              {formError}
+            </div>
+          )}
+
+          <form onSubmit={saveAddress} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Contact Info */}
+              <div className="space-y-4">
+                <h3 className="font-semibold" style={{ color: colors.heading }}>Contact Info</h3>
+                
+                <div>
+                  <label className="block text-sm font-medium mb-1" style={{ color: colors.body }}>Label (e.g., Home, Office)*</label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.label || ""}
+                    onChange={(e) => setFormData({ ...formData, label: e.target.value })}
+                    className="w-full p-3 border rounded-md"
+                    placeholder="Home"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1" style={{ color: colors.body }}>Recipient Name*</label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.recipient_name || ""}
+                    onChange={(e) => setFormData({ ...formData, recipient_name: e.target.value })}
+                    className="w-full p-3 border rounded-md"
+                    placeholder="John Doe"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1" style={{ color: colors.body }}>Phone Number*</label>
+                  <input
+                    type="tel"
+                    required
+                    value={formData.phone || ""}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    className="w-full p-3 border rounded-md"
+                    placeholder="08123456789"
+                  />
+                </div>
+              </div>
+
+              {/* Geographic Info */}
+              <div className="space-y-4">
+                <h3 className="font-semibold" style={{ color: colors.heading }}>Location</h3>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1" style={{ color: colors.body }}>Province*</label>
+                  <select
+                    required
+                    value={formData.province_id || ""}
+                    onChange={(e) => onProvinceChange(Number(e.target.value))}
+                    className="w-full p-3 border rounded-md bg-white"
+                  >
+                    <option value="" disabled>Select Province</option>
+                    {provinces.map((p) => (
+                      <option key={p.id} value={p.id}>{p.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1" style={{ color: colors.body }}>
+                    City / Regency* {loadingLocations && <Loader2 size={12} className="inline animate-spin text-gray-400" />}
+                  </label>
+                  <select
+                    required
+                    disabled={!formData.province_id || cities.length === 0}
+                    value={formData.city_id || ""}
+                    onChange={(e) => onCityChange(Number(e.target.value))}
+                    className="w-full p-3 border rounded-md bg-white disabled:bg-gray-50 disabled:text-gray-400"
+                  >
+                    <option value="" disabled>Select City</option>
+                    {cities.map((c) => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1" style={{ color: colors.body }}>
+                    District* {loadingLocations && <Loader2 size={12} className="inline animate-spin text-gray-400" />}
+                  </label>
+                  <select
+                    required
+                    disabled={!formData.city_id || districts.length === 0}
+                    value={formData.district_id || ""}
+                    onChange={(e) => onDistrictChange(Number(e.target.value))}
+                    className="w-full p-3 border rounded-md bg-white disabled:bg-gray-50 disabled:text-gray-400"
+                  >
+                    <option value="" disabled>Select District</option>
+                    {districts.map((d) => (
+                      <option key={d.id} value={d.id}>{d.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-1 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1" style={{ color: colors.body }}>Postal Code*</label>
+                    <input
+                      type="text"
+                      required
+                      value={formData.postal_code || ""}
+                      onChange={(e) => setFormData({ ...formData, postal_code: e.target.value })}
+                      className="w-full p-3 border rounded-md"
+                      placeholder="12345"
+                    />
+                  </div>
+                  
+                  <div className="min-h-[350px]">
+                    <div className="flex items-center justify-between mb-2">
+                       <label className="block text-sm font-medium" style={{ color: colors.body }}>Map Location (Pinpoint precise location)*</label>
+                       <button
+                          type="button"
+                          onClick={captureCoordinates}
+                          disabled={loadingGps}
+                          className="text-sm font-bold flex items-center gap-1 hover:opacity-80 transition-opacity"
+                          style={{ color: colors.accent }}
+                        >
+                          {loadingGps ? <Loader2 size={16} className="animate-spin" /> : <Crosshair size={16} />}
+                          Auto Detect
+                        </button>
+                    </div>
+                    
+                    <div className="w-full h-[300px] border rounded-md overflow-hidden bg-gray-100 relative">
+                       {!isMapLoaded ? (
+                          <div className="flex items-center justify-center w-full h-full text-gray-500 text-sm gap-2">
+                             <Loader2 className="animate-spin" size={20} /> Loading Google Maps...
+                          </div>
+                       ) : (
+                          <GoogleMap
+                            mapContainerStyle={{ width: '100%', height: '100%' }}
+                            center={mapCenter}
+                            zoom={16}
+                            onClick={(e) => {
+                              if (e.latLng) {
+                                setFormData((prev) => ({ ...prev, latitude: e.latLng!.lat(), longitude: e.latLng!.lng() }));
+                              }
+                            }}
+                            options={{ disableDefaultUI: true, zoomControl: true }}
+                          >
+                            {formData.latitude && formData.longitude && (
+                               <Marker position={{ lat: formData.latitude, lng: formData.longitude }} />
+                            )}
+                          </GoogleMap>
+                       )}
+                    </div>
+                    {!formData.latitude && (
+                        <p className="text-xs font-semibold mt-1" style={{ color: colors.error }}>
+                          Please tap on the map to place a pin for your exact house location.
+                        </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-2">
+              <label className="block text-sm font-medium mb-1" style={{ color: colors.body }}>Full Address*</label>
+              <textarea
+                required
+                rows={3}
+                value={formData.full_address || ""}
+                onChange={(e) => setFormData({ ...formData, full_address: e.target.value })}
+                className="w-full p-3 border rounded-md resize-none"
+                placeholder="Jl. Merdeka No. 1, Block A..."
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1" style={{ color: colors.body }}>Notes / Instructions (Optional)</label>
+              <input
+                type="text"
+                value={formData.notes || ""}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                className="w-full p-3 border rounded-md"
+                placeholder="Near the post office, green gate..."
+              />
+            </div>
+
+            <label className="flex items-center gap-2 pt-2 cursor-pointer w-fit">
+              <input
+                type="checkbox"
+                checked={formData.is_primary || false}
+                onChange={(e) => setFormData({ ...formData, is_primary: e.target.checked })}
+                className="w-5 h-5 accent-green-700"
+              />
+              <span className="font-medium" style={{ color: colors.heading }}>Set as primary address</span>
+            </label>
+
+            <div className="pt-6">
+              <button
+                type="submit"
+                disabled={loadingForm}
+                className="w-full flex items-center justify-center gap-2 py-4 rounded-md font-bold text-white transition-opacity disabled:opacity-70"
+                style={{ backgroundColor: colors.accent }}
+              >
+                {loadingForm ? <Loader2 className="animate-spin" /> : <Save size={20} />}
+                {formData.address_id ? "Save Changes" : "Save New Address"}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
+  // --- RENDER LIST VIEW ---
   return (
-    <div
-      style={{ backgroundColor: colors.background }}
-      className="min-h-screen pb-8"
-    >
+    <div style={{ backgroundColor: colors.background }} className="min-h-screen pb-8">
       {/* Header */}
-      <div
-        className="border-b sticky top-0 z-10"
-        style={{ backgroundColor: colors.white, borderColor: colors.border }}
-      >
+      <div className="border-b sticky top-0 z-10" style={{ backgroundColor: colors.white, borderColor: colors.border }}>
         <div className="max-w-2xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <button
-              onClick={() => router.back()}
-              className="p-1"
-              style={{ color: colors.body }}
-            >
+            <button onClick={() => router.back()} className="p-1" style={{ color: colors.body }}>
               <ChevronLeft size={24} />
             </button>
             <h1 className="text-lg font-bold" style={{ color: colors.heading }}>
               My Addresses
             </h1>
           </div>
-          <Link
-            href="/profile/addresses/new"
-            className="p-2 flex items-center gap-2 text-sm font-medium"
+          <button
+            onClick={() => handleOpenForm()}
+            className="p-2 flex items-center gap-2 text-sm font-medium hover:bg-green-50 rounded-md transition-colors"
             style={{ color: colors.accent }}
           >
             <Plus size={20} />
             Add
-          </Link>
+          </button>
         </div>
       </div>
 
       <div className="max-w-2xl mx-auto px-4 py-6">
         {addresses.length === 0 ? (
-          <div className="text-center py-12">
-            <MapPin
-              size={48}
-              className="mx-auto mb-4"
-              style={{ color: colors.border }}
-            />
-            <h2
-              className="text-lg font-bold mb-2"
-              style={{ color: colors.heading }}
-            >
-              No addresses yet
-            </h2>
-            <p className="mb-6" style={{ color: colors.body }}>
-              Add your delivery addresses to make checkout faster
-            </p>
-            <Link
-              href="/profile/addresses/new"
-              className="inline-flex items-center gap-2 px-6 py-3 text-sm font-medium"
-              style={{
-                backgroundColor: colors.accent,
-                color: colors.white,
-                borderRadius: "4px",
-              }}
+          <div className="text-center py-16 bg-white rounded-xl border border-gray-100 shadow-sm mt-4">
+            <MapPin size={48} className="mx-auto mb-4" style={{ color: colors.border }} />
+            <h2 className="text-xl font-bold mb-2" style={{ color: colors.heading }}>No addresses yet</h2>
+            <p className="mb-8" style={{ color: colors.body }}>Add your delivery addresses to make checkout faster</p>
+            <button
+              onClick={() => handleOpenForm()}
+              className="inline-flex items-center gap-2 px-6 py-3 font-medium shadow hover:opacity-90 transition-opacity"
+              style={{ backgroundColor: colors.accent, color: colors.white, borderRadius: "6px" }}
             >
               <Plus size={18} />
               Add New Address
-            </Link>
+            </button>
           </div>
         ) : (
           <div className="space-y-4">
             {addresses.map((addr) => (
               <div
                 key={addr.address_id}
-                className="p-4 border"
+                className="p-5 border transition-all"
                 style={{
                   backgroundColor: colors.white,
                   borderColor: addr.is_primary ? colors.accent : colors.border,
-                  borderRadius: "4px",
+                  borderRadius: "8px",
+                  boxShadow: addr.is_primary ? "0 4px 6px -1px rgba(22, 101, 52, 0.1)" : "none",
                 }}
               >
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <span
-                      className="font-medium"
-                      style={{ color: colors.heading }}
-                    >
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <span className="font-bold text-lg" style={{ color: colors.heading }}>
                       {addr.label}
                     </span>
                     {addr.is_primary && (
-                      <span
-                        className="text-xs px-2 py-0.5"
-                        style={{
-                          backgroundColor: colors.successBg,
-                          color: colors.success,
-                          borderRadius: "4px",
-                        }}
+                      <span className="text-xs px-2.5 py-1 font-semibold flex items-center gap-1"
+                        style={{ backgroundColor: colors.successBg, color: colors.success, borderRadius: "6px" }}
                       >
-                        Primary
+                       <CheckCircle size={14} /> Primary
                       </span>
                     )}
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Link
-                      href={`/profile/addresses/${addr.address_id}/edit`}
-                      className="p-2"
-                      style={{ color: colors.body }}
-                    >
-                      <Edit2 size={16} />
-                    </Link>
-                    <button
-                      onClick={() => deleteAddress(addr.address_id)}
-                      disabled={deleting === addr.address_id}
-                      className="p-2"
-                      style={{ color: colors.error }}
-                    >
-                      {deleting === addr.address_id ? (
-                        <Loader2 size={16} className="animate-spin" />
-                      ) : (
-                        <Trash2 size={16} />
-                      )}
+                  <div className="flex items-center gap-1">
+                    <button onClick={() => handleOpenForm(addr)} className="p-2.5 hover:bg-gray-100 rounded-full transition-colors" style={{ color: colors.body }}>
+                      <Edit2 size={18} />
+                    </button>
+                    <button onClick={() => deleteAddress(addr.address_id)} disabled={deleting === addr.address_id} className="p-2.5 hover:bg-red-50 rounded-full transition-colors" style={{ color: colors.error }}>
+                      {deleting === addr.address_id ? <Loader2 size={18} className="animate-spin" /> : <Trash2 size={18} />}
                     </button>
                   </div>
                 </div>
-                <p
-                  className="text-sm font-medium"
-                  style={{ color: colors.heading }}
-                >
-                  {addr.recipient_name}
-                </p>
-                <p className="text-sm" style={{ color: colors.body }}>
-                  {addr.phone}
-                </p>
-                <p className="text-sm mt-2" style={{ color: colors.body }}>
-                  {addr.full_address}
-                </p>
-                <p className="text-sm" style={{ color: colors.body }}>
-                  {addr.city} {addr.postal_code}
-                </p>
+                
+                <div className="space-y-1">
+                  <p className="font-semibold" style={{ color: colors.heading }}>
+                    {addr.recipient_name} <span className="text-gray-400 font-normal">| {addr.phone}</span>
+                  </p>
+                  <p className="text-sm mt-3 leading-relaxed" style={{ color: colors.body }}>
+                    {addr.full_address}
+                  </p>
+                  <p className="text-sm text-gray-500 font-medium">
+                    {addr.district}, {addr.city}, {addr.province} {addr.postal_code}
+                  </p>
+                  {addr.notes && (
+                    <p className="text-sm italic mt-2 text-gray-400">
+                      Note: {addr.notes}
+                    </p>
+                  )}
+                </div>
 
                 {!addr.is_primary && (
-                  <button
-                    onClick={() => setPrimary(addr.address_id)}
-                    className="mt-3 text-sm flex items-center gap-1"
-                    style={{ color: colors.accent }}
-                  >
-                    <Star size={14} />
-                    Set as primary
-                  </button>
+                  <div className="mt-5 pt-4 border-t border-gray-100">
+                    <button
+                      onClick={() => setPrimary(addr.address_id)}
+                      disabled={settingPrimary === addr.address_id}
+                      className="text-sm font-semibold flex items-center gap-1.5 hover:opacity-80 transition-opacity"
+                      style={{ color: colors.accent }}
+                    >
+                      {settingPrimary === addr.address_id ? <Loader2 size={16} className="animate-spin" /> : <Star size={16} />}
+                      Set as primary
+                    </button>
+                  </div>
                 )}
               </div>
             ))}
