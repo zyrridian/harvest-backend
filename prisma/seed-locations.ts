@@ -13,65 +13,68 @@ const prisma = new PrismaClient({ adapter });
 async function main() {
   console.log("🌱 Starting locations seed from idn-area-data...");
 
+  // ======================
+  // PROVINCES
+  // ======================
   const provinces = await getProvinces();
   console.log(`🌍 Seeding ${provinces.length} Provinces...`);
-  
-  // Batch insert/upsert for better performance
-  const provincePromises = provinces.map((p) => {
-    return prisma.province.upsert({
-      where: { id: parseInt(p.code, 10) },
-      update: { name: p.name },
-      create: { id: parseInt(p.code, 10), name: p.name },
-    });
-  });
-  await Promise.all(provincePromises);
 
+  await prisma.province.createMany({
+    data: provinces.map((p) => ({
+      id: parseInt(p.code, 10),
+      name: p.name,
+    })),
+    skipDuplicates: true,
+  });
+
+  // ======================
+  // CITIES / REGENCIES
+  // ======================
   const regencies = await getRegencies();
-  console.log(`🏙️  Seeding ${regencies.length} Cities/Regencies...`);
-  
-  const cityPromises = regencies.map((c) => {
-    return prisma.city.upsert({
-      where: { id: parseInt(c.code, 10) },
-      update: { 
-        name: c.name, 
-        provinceId: parseInt(c.province_code, 10) 
-      },
-      create: { 
-        id: parseInt(c.code, 10), 
-        name: c.name, 
-        provinceId: parseInt(c.province_code, 10) 
-      },
-    });
-  });
-  // Batch in chunks if too large, but 500 cities should be fine for Promise.all
-  await Promise.all(cityPromises);
+  console.log(`🏙️ Seeding ${regencies.length} Cities/Regencies...`);
 
+  await prisma.city.createMany({
+    data: regencies.map((c) => {
+      const provinceCode =
+        (c as any).province_code || (c as any).provinceCode;
+
+      return {
+        id: parseInt(c.code, 10),
+        name: c.name,
+        provinceId: parseInt(provinceCode, 10),
+      };
+    }),
+    skipDuplicates: true,
+  });
+
+  // ======================
+  // DISTRICTS (CHUNKED)
+  // ======================
   const districts = await getDistricts();
-  console.log(`🏘️  Seeding ${districts.length} Districts...`);
-  
-  // 7000+ districts might overwhelm the connection pool if done all at once.
-  // We'll insert them in chunks.
-  const chunkSize = 500;
+  console.log(`🏘️ Seeding ${districts.length} Districts...`);
+
+  const chunkSize = 1000;
+
   for (let i = 0; i < districts.length; i += chunkSize) {
     const chunk = districts.slice(i, i + chunkSize);
-    const chunkPromises = chunk.map((d) => {
-      // idn-area-data exports `regency_code` for districts by default based on its types and csv mapping
-      const regencyCode = (d as any).regency_code || (d as any).regencyCode;
-      return prisma.district.upsert({
-        where: { id: parseInt(d.code, 10) },
-        update: { 
-          name: d.name, 
-          cityId: parseInt(regencyCode, 10) 
-        },
-        create: { 
-          id: parseInt(d.code, 10), 
-          name: d.name, 
-          cityId: parseInt(regencyCode, 10) 
-        },
-      });
+
+    await prisma.district.createMany({
+      data: chunk.map((d) => {
+        const regencyCode =
+          (d as any).regency_code || (d as any).regencyCode;
+
+        return {
+          id: parseInt(d.code, 10),
+          name: d.name,
+          cityId: parseInt(regencyCode, 10),
+        };
+      }),
+      skipDuplicates: true,
     });
-    await Promise.all(chunkPromises);
-    console.log(`   - Seeded ${Math.min(i + chunkSize, districts.length)} / ${districts.length} districts`);
+
+    console.log(
+      `   - Seeded ${Math.min(i + chunkSize, districts.length)} / ${districts.length} districts`
+    );
   }
 
   console.log("✅ All master geographical locations seeded successfully.");
