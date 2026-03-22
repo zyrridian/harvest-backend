@@ -902,48 +902,10 @@ model CommentLike {
   @@map("comment_likes")
 }
 
+
 // ============================================
-// UTILITY & MEDIA
+// UPLOADED MEDIA & OTHERS
 // ============================================
-
-model Province {
-  id     Int     @id
-  name   String
-  code   String?
-  cities City[]
-
-  @@index([name])
-  @@map("provinces")
-}
-
-model City {
-  id         Int        @id
-  provinceId Int        @map("province_id")
-  name       String
-  type       String?
-  postalCode String?    @map("postal_code")
-  districts  District[]
-
-  // Relations
-  province Province @relation(fields: [provinceId], references: [id], onDelete: Cascade)
-
-  @@index([provinceId])
-  @@index([name])
-  @@map("cities")
-}
-
-model District {
-  id     Int    @id
-  cityId Int    @map("city_id")
-  name   String
-
-  // Relations
-  city City @relation(fields: [cityId], references: [id], onDelete: Cascade)
-
-  @@index([cityId])
-  @@index([name])
-  @@map("districts")
-}
 
 model UploadedImage {
   id          String   @id @default(uuid())
