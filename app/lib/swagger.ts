@@ -19,7 +19,7 @@ export const getApiDocs = async () => {
       },
       servers: [
         {
-          url: "https://harvest-backend-ugjh.vercel.app",
+          url: "https://harvest-backend-amber.vercel.app",
           description: "Production server",
         },
         {
@@ -124,6 +124,29 @@ export const getApiDocs = async () => {
                   expires_in: { type: "integer", example: 3600 },
                 },
               },
+            },
+          },
+          Province: {
+            type: "object",
+            properties: {
+              id: { type: "integer" },
+              name: { type: "string" },
+            },
+          },
+          City: {
+            type: "object",
+            properties: {
+              id: { type: "integer" },
+              provinceId: { type: "integer" },
+              name: { type: "string" },
+            },
+          },
+          District: {
+            type: "object",
+            properties: {
+              id: { type: "integer" },
+              cityId: { type: "integer" },
+              name: { type: "string" },
             },
           },
           Error: {
