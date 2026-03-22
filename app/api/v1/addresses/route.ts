@@ -1,6 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
-import { verifyToken, extractBearerToken } from "@/lib/auth";
+import { verifyAuth } from "@/lib/auth";
+import { AppError, handleRouteError } from "@/lib/errors";
+import { successResponse } from "@/lib/helpers/response";
 
 /**
  * @swagger
@@ -18,26 +20,9 @@ import { verifyToken, extractBearerToken } from "@/lib/auth";
  */
 export async function GET(request: NextRequest) {
   try {
-    // Verify authentication
-    const authHeader = request.headers.get("authorization");
-    const token = extractBearerToken(authHeader);
-    if (!token) {
-      return NextResponse.json(
-        { status: "error", message: "Unauthorized" },
-        { status: 401 }
-      );
-    }
+    const payload = await verifyAuth(request);
+    const userId = payload.userId;
 
-    const payload = await verifyToken(token);
-    if (!payload) {
-      return NextResponse.json(
-        { status: "error", message: "Invalid token" },
-        { status: 401 }
-      );
-    }
-    const userId = payload.userId as string;
-
-    // Get addresses
     const addresses = await prisma.address.findMany({
       where: { userId },
       orderBy: [{ isPrimary: "desc" }, { createdAt: "desc" }],
@@ -66,23 +51,12 @@ export async function GET(request: NextRequest) {
       updated_at: addr.updatedAt,
     }));
 
-    return NextResponse.json({
-      status: "success",
-      data: {
-        addresses: formattedAddresses,
-        total_count: addresses.length,
-      },
+    return successResponse({
+      addresses: formattedAddresses,
+      total_count: addresses.length,
     });
-  } catch (error: any) {
-    console.error("Error fetching addresses:", error);
-    return NextResponse.json(
-      {
-        status: "error",
-        message: "Failed to fetch addresses",
-        error: error.message,
-      },
-      { status: 500 }
-    );
+  } catch (error) {
+    return handleRouteError(error, "Fetch addresses");
   }
 }
 
@@ -133,24 +107,8 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    // Verify authentication
-    const authHeader = request.headers.get("authorization");
-    const token = extractBearerToken(authHeader);
-    if (!token) {
-      return NextResponse.json(
-        { status: "error", message: "Unauthorized" },
-        { status: 401 }
-      );
-    }
-
-    const payload = await verifyToken(token);
-    if (!payload) {
-      return NextResponse.json(
-        { status: "error", message: "Invalid token" },
-        { status: 401 }
-      );
-    }
-    const userId = payload.userId as string;
+    const payload = await verifyAuth(request);
+    const userId = payload.userId;
 
     const body = await request.json();
     const {
@@ -168,7 +126,6 @@ export async function POST(request: NextRequest) {
       is_primary = false,
     } = body;
 
-    // Validate required fields
     if (
       !label ||
       !recipient_name ||
@@ -179,13 +136,9 @@ export async function POST(request: NextRequest) {
       !district_id ||
       !postal_code
     ) {
-      return NextResponse.json(
-        { status: "error", message: "Missing required fields" },
-        { status: 400 }
-      );
+      throw AppError.badRequest("Missing required fields");
     }
 
-    // If setting as primary, unset other primary addresses
     if (is_primary) {
       await prisma.address.updateMany({
         where: { userId, isPrimary: true },
@@ -193,7 +146,6 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Create address
     const address = await prisma.address.create({
       data: {
         userId,
@@ -201,11 +153,11 @@ export async function POST(request: NextRequest) {
         recipientName: recipient_name,
         phone,
         fullAddress: full_address,
-        province: "Province", // TODO: Look up from database
+        province: "Province",
         provinceId: province_id,
-        city: "City", // TODO: Look up from database
+        city: "City",
         cityId: city_id,
-        district: "District", // TODO: Look up from database
+        district: "District",
         districtId: district_id,
         subdistrict: null,
         postalCode: postal_code,
@@ -216,43 +168,31 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    return NextResponse.json(
+    return successResponse(
       {
-        status: "success",
-        message: "Address added successfully",
-        data: {
-          address_id: address.id,
-          label: address.label,
-          recipient_name: address.recipientName,
-          phone: address.phone,
-          full_address: address.fullAddress,
-          province: address.province,
-          province_id: address.provinceId,
-          city: address.city,
-          city_id: address.cityId,
-          district: address.district,
-          district_id: address.districtId,
-          postal_code: address.postalCode,
-          latitude: address.latitude,
-          longitude: address.longitude,
-          notes: address.notes,
-          is_primary: address.isPrimary,
-          is_verified: address.isVerified,
-          created_at: address.createdAt,
-          updated_at: address.updatedAt,
-        },
+        address_id: address.id,
+        label: address.label,
+        recipient_name: address.recipientName,
+        phone: address.phone,
+        full_address: address.fullAddress,
+        province: address.province,
+        province_id: address.provinceId,
+        city: address.city,
+        city_id: address.cityId,
+        district: address.district,
+        district_id: address.districtId,
+        postal_code: address.postalCode,
+        latitude: address.latitude,
+        longitude: address.longitude,
+        notes: address.notes,
+        is_primary: address.isPrimary,
+        is_verified: address.isVerified,
+        created_at: address.createdAt,
+        updated_at: address.updatedAt,
       },
-      { status: 201 }
+      { message: "Address added successfully", status: 201 },
     );
-  } catch (error: any) {
-    console.error("Error adding address:", error);
-    return NextResponse.json(
-      {
-        status: "error",
-        message: "Failed to add address",
-        error: error.message,
-      },
-      { status: 500 }
-    );
+  } catch (error) {
+    return handleRouteError(error, "Add address");
   }
 }

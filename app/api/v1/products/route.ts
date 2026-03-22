@@ -1,5 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
+import { handleRouteError } from "@/lib/errors";
+import { successResponse } from "@/lib/helpers/response";
+import { parsePagination, buildPaginationMeta } from "@/lib/helpers/pagination";
 
 /**
  * @swagger
@@ -55,13 +58,8 @@ import prisma from "@/lib/prisma";
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
+    const { page, limit, skip } = parsePagination(searchParams);
 
-    // Pagination
-    const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(searchParams.get("limit") || "20");
-    const skip = (page - 1) * limit;
-
-    // Filters
     const category = searchParams.get("category");
     const sellerId = searchParams.get("seller_id");
     const isOrganic = searchParams.get("is_organic");
@@ -70,48 +68,28 @@ export async function GET(request: NextRequest) {
     const sortBy = searchParams.get("sort_by") || "newest";
     const order = searchParams.get("order") || "desc";
 
-    // Build where clause
-    const where: any = {
-      isAvailable: true,
-    };
+    const where: Record<string, unknown> = { isAvailable: true };
 
     if (category) {
       where.OR = [{ categoryId: category }, { category: { slug: category } }];
     }
-
-    if (sellerId) {
-      where.sellerId = sellerId;
-    }
-
+    if (sellerId) where.sellerId = sellerId;
     if (isOrganic !== null && isOrganic !== undefined) {
       where.isOrganic = isOrganic === "true";
     }
-
     if (minPrice || maxPrice) {
-      where.price = {};
-      if (minPrice) where.price.gte = parseFloat(minPrice);
-      if (maxPrice) where.price.lte = parseFloat(maxPrice);
+      const priceFilter: Record<string, number> = {};
+      if (minPrice) priceFilter.gte = parseFloat(minPrice);
+      if (maxPrice) priceFilter.lte = parseFloat(maxPrice);
+      where.price = priceFilter;
     }
 
-    // Build orderBy clause
-    let orderBy: any = {};
-    switch (sortBy) {
-      case "price":
-        orderBy = { price: order };
-        break;
-      case "rating":
-        orderBy = { rating: order };
-        break;
-      case "popular":
-        orderBy = { viewCount: order };
-        break;
-      case "newest":
-      default:
-        orderBy = { createdAt: order };
-        break;
-    }
+    const orderBy: Record<string, string> =
+      sortBy === "price" ? { price: order } :
+      sortBy === "rating" ? { rating: order } :
+      sortBy === "popular" ? { viewCount: order } :
+      { createdAt: order };
 
-    // Get products with relations
     const [products, totalItems] = await Promise.all([
       prisma.product.findMany({
         where,
@@ -119,39 +97,12 @@ export async function GET(request: NextRequest) {
         take: limit,
         orderBy,
         include: {
-          category: {
-            select: {
-              id: true,
-              name: true,
-              slug: true,
-            },
-          },
-          seller: {
-            select: {
-              id: true,
-              name: true,
-              avatarUrl: true,
-            },
-          },
-          images: {
-            where: { isPrimary: true },
-            take: 1,
-            select: {
-              url: true,
-              thumbnailUrl: true,
-            },
-          },
-          tags: {
-            select: {
-              tag: true,
-            },
-          },
+          category: { select: { id: true, name: true, slug: true } },
+          seller: { select: { id: true, name: true, avatarUrl: true } },
+          images: { where: { isPrimary: true }, take: 1, select: { url: true, thumbnailUrl: true } },
+          tags: { select: { tag: true } },
           discounts: {
-            where: {
-              isActive: true,
-              validFrom: { lte: new Date() },
-              validUntil: { gte: new Date() },
-            },
+            where: { isActive: true, validFrom: { lte: new Date() }, validUntil: { gte: new Date() } },
             take: 1,
             orderBy: { value: "desc" },
           },
@@ -160,20 +111,13 @@ export async function GET(request: NextRequest) {
       prisma.product.count({ where }),
     ]);
 
-    // Get farmer data for products
     const sellerIds = [...new Set(products.map((p) => p.sellerId))];
     const farmers = await prisma.farmer.findMany({
       where: { userId: { in: sellerIds } },
-      select: {
-        userId: true,
-        name: true,
-        profileImage: true,
-        isVerified: true,
-      },
+      select: { userId: true, name: true, profileImage: true, isVerified: true },
     });
     const farmerMap = new Map(farmers.map((f) => [f.userId, f]));
 
-    // Format response
     const formattedProducts = products.map((product) => {
       const primaryImage = product.images[0];
       const activeDiscount = product.discounts[0];
@@ -194,23 +138,13 @@ export async function GET(request: NextRequest) {
         is_available: product.isAvailable,
         stock_quantity: product.stockQuantity,
         discount: activeDiscount
-          ? activeDiscount.type === "percentage"
-            ? activeDiscount.value
-            : null
+          ? activeDiscount.type === "percentage" ? activeDiscount.value : null
           : null,
         rating: product.rating,
         review_count: product.reviewCount,
         farmer: farmer
-          ? {
-              name: farmer.name,
-              profile_image: farmer.profileImage,
-              is_verified: farmer.isVerified,
-            }
-          : {
-              name: product.seller.name,
-              profile_image: product.seller.avatarUrl,
-              is_verified: false,
-            },
+          ? { name: farmer.name, profile_image: farmer.profileImage, is_verified: farmer.isVerified }
+          : { name: product.seller.name, profile_image: product.seller.avatarUrl, is_verified: false },
         harvest_date: product.harvestDate,
         tags: product.tags.map((t) => t.tag),
         created_at: product.createdAt,
@@ -219,29 +153,18 @@ export async function GET(request: NextRequest) {
 
     const totalPages = Math.ceil(totalItems / limit);
 
-    return NextResponse.json({
-      status: "success",
-      data: {
-        products: formattedProducts,
-        pagination: {
-          current_page: page,
-          total_pages: totalPages,
-          total_items: totalItems,
-          items_per_page: limit,
-          has_next: page < totalPages,
-          has_previous: page > 1,
-        },
+    return successResponse({
+      products: formattedProducts,
+      pagination: {
+        current_page: page,
+        total_pages: totalPages,
+        total_items: totalItems,
+        items_per_page: limit,
+        has_next: page < totalPages,
+        has_previous: page > 1,
       },
     });
-  } catch (error: any) {
-    console.error("Error fetching products:", error);
-    return NextResponse.json(
-      {
-        status: "error",
-        message: "Failed to fetch products",
-        error: error.message,
-      },
-      { status: 500 },
-    );
+  } catch (error) {
+    return handleRouteError(error, "Fetch products");
   }
 }

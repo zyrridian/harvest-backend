@@ -1,5 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
+import { AppError, handleRouteError } from "@/lib/errors";
+import { successResponse } from "@/lib/helpers/response";
 
 /**
  * @swagger
@@ -21,56 +23,32 @@ import prisma from "@/lib/prisma";
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-        // Await params in Next.js 15+
     const { id } = await params;
 
-const category = await prisma.category.findFirst({
-      where: {
-        OR: [{ id: id }, { slug: id }],
-      },
-      include: {
-        _count: {
-          select: { products: true },
-        },
-      },
+    const category = await prisma.category.findFirst({
+      where: { OR: [{ id }, { slug: id }] },
+      include: { _count: { select: { products: true } } },
     });
 
     if (!category) {
-      return NextResponse.json(
-        {
-          status: "error",
-          message: "Category not found",
-        },
-        { status: 404 }
-      );
+      throw AppError.notFound("Category not found");
     }
 
-    return NextResponse.json({
-      status: "success",
-      data: {
-        id: category.id,
-        name: category.name,
-        slug: category.slug,
-        description: category.description,
-        emoji: category.emoji,
-        gradient_colors: category.gradientColors,
-        product_count: category._count.products,
-        display_order: category.displayOrder,
-        is_active: category.isActive,
-      },
+    return successResponse({
+      id: category.id,
+      name: category.name,
+      slug: category.slug,
+      description: category.description,
+      emoji: category.emoji,
+      gradient_colors: category.gradientColors,
+      product_count: category._count.products,
+      display_order: category.displayOrder,
+      is_active: category.isActive,
     });
-  } catch (error: any) {
-    console.error("Error fetching category:", error);
-    return NextResponse.json(
-      {
-        status: "error",
-        message: "Failed to fetch category",
-        error: error.message,
-      },
-      { status: 500 }
-    );
+  } catch (error) {
+    return handleRouteError(error, "Fetch category");
   }
 }

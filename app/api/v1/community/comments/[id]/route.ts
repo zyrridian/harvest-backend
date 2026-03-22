@@ -1,6 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
 import { verifyAuth } from "@/lib/auth";
+import { AppError, handleRouteError } from "@/lib/errors";
+import { successResponse } from "@/lib/helpers/response";
 
 /**
  * @swagger
@@ -10,21 +12,6 @@ import { verifyAuth } from "@/lib/auth";
  *     tags: [Community]
  *     security:
  *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Comment deleted successfully
- *       401:
- *         description: Unauthorized
- *       403:
- *         description: Forbidden
- *       404:
- *         description: Comment not found
  */
 export async function DELETE(
   request: NextRequest,
@@ -34,56 +21,20 @@ export async function DELETE(
     const { id } = await params;
     const user = await verifyAuth(request);
 
-    const comment = await prisma.postComment.findUnique({
-      where: { id },
-    });
-
-    if (!comment) {
-      return NextResponse.json(
-        {
-          status: "error",
-          message: "Comment not found",
-        },
-        { status: 404 },
-      );
-    }
-
-    if (comment.userId !== user.userId) {
-      return NextResponse.json(
-        {
-          status: "error",
-          message: "You do not have permission to delete this comment",
-        },
-        { status: 403 },
-      );
-    }
+    const comment = await prisma.postComment.findUnique({ where: { id } });
+    if (!comment) throw AppError.notFound("Comment not found");
+    if (comment.userId !== user.userId) throw AppError.forbidden("Not authorized to delete this comment");
 
     await prisma.$transaction([
-      prisma.postComment.delete({
-        where: { id },
-      }),
+      prisma.postComment.delete({ where: { id } }),
       prisma.communityPost.update({
         where: { id: comment.postId },
-        data: {
-          commentsCount: {
-            decrement: 1,
-          },
-        },
+        data: { commentsCount: { decrement: 1 } },
       }),
     ]);
 
-    return NextResponse.json({
-      status: "success",
-      message: "Comment deleted successfully",
-    });
-  } catch (error: any) {
-    console.error("Delete comment error:", error);
-    return NextResponse.json(
-      {
-        status: "error",
-        message: error.message || "Failed to delete comment",
-      },
-      { status: error.status || 500 },
-    );
+    return successResponse(undefined, { message: "Comment deleted successfully" });
+  } catch (error) {
+    return handleRouteError(error, "Delete comment");
   }
 }

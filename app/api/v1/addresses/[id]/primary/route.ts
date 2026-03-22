@@ -1,6 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
-import { verifyToken, extractBearerToken } from "@/lib/auth";
+import { verifyAuth } from "@/lib/auth";
+import { AppError, handleRouteError } from "@/lib/errors";
+import { successResponse } from "@/lib/helpers/response";
 
 /**
  * @swagger
@@ -24,80 +26,38 @@ import { verifyToken, extractBearerToken } from "@/lib/auth";
  */
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    // Await params in Next.js 15+
     const { id } = await params;
+    const payload = await verifyAuth(request);
+    const userId = payload.userId;
 
-    // Verify authentication
-    const authHeader = request.headers.get("authorization");
-    const token = extractBearerToken(authHeader);
-    if (!token) {
-      return NextResponse.json(
-        { status: "error", message: "Unauthorized" },
-        { status: 401 }
-      );
-    }
-
-    const payload = await verifyToken(token);
-    if (!payload) {
-      return NextResponse.json(
-        { status: "error", message: "Invalid token" },
-        { status: 401 }
-      );
-    }
-    const userId = payload.userId as string;
-
-    // Get address
-    const address = await prisma.address.findUnique({
-      where: { id },
-    });
+    const address = await prisma.address.findUnique({ where: { id } });
 
     if (!address) {
-      return NextResponse.json(
-        { status: "error", message: "Address not found" },
-        { status: 404 }
-      );
+      throw AppError.notFound("Address not found");
     }
 
-    // Verify ownership
     if (address.userId !== userId) {
-      return NextResponse.json(
-        { status: "error", message: "Unauthorized" },
-        { status: 403 }
-      );
+      throw AppError.forbidden("Not authorized to update this address");
     }
 
-    // Unset all primary addresses for this user
     await prisma.address.updateMany({
       where: { userId, isPrimary: true },
       data: { isPrimary: false },
     });
 
-    // Set this address as primary
     const updated = await prisma.address.update({
       where: { id },
       data: { isPrimary: true },
     });
 
-    return NextResponse.json({
-      status: "success",
-      message: "Primary address updated",
-      data: {
-        address_id: updated.id,
-        is_primary: updated.isPrimary,
-      },
-    });
-  } catch (error: any) {
-    console.error("Error setting primary address:", error);
-    return NextResponse.json(
-      {
-        status: "error",
-        message: "Failed to set primary address",
-        error: error.message,
-      },
-      { status: 500 }
+    return successResponse(
+      { address_id: updated.id, is_primary: updated.isPrimary },
+      { message: "Primary address updated" },
     );
+  } catch (error) {
+    return handleRouteError(error, "Set primary address");
   }
 }

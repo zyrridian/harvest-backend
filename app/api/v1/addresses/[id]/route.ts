@@ -1,6 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
-import { verifyToken, extractBearerToken } from "@/lib/auth";
+import { verifyAuth } from "@/lib/auth";
+import { AppError, handleRouteError } from "@/lib/errors";
+import { successResponse } from "@/lib/helpers/response";
 
 /**
  * @swagger
@@ -45,51 +47,24 @@ export async function PUT(
 ) {
   try {
     const { id } = await params;
-    // Verify authentication
-    const authHeader = request.headers.get("authorization");
-    const token = extractBearerToken(authHeader);
-    if (!token) {
-      return NextResponse.json(
-        { status: "error", message: "Unauthorized" },
-        { status: 401 },
-      );
-    }
-
-    const payload = await verifyToken(token);
-    if (!payload) {
-      return NextResponse.json(
-        { status: "error", message: "Invalid token" },
-        { status: 401 },
-      );
-    }
-    const userId = payload.userId as string;
+    const payload = await verifyAuth(request);
+    const userId = payload.userId;
 
     const body = await request.json();
     const { label, recipient_name, phone, full_address, notes } = body;
 
-    // Get address
-    const address = await prisma.address.findUnique({
-      where: { id: id },
-    });
+    const address = await prisma.address.findUnique({ where: { id } });
 
     if (!address) {
-      return NextResponse.json(
-        { status: "error", message: "Address not found" },
-        { status: 404 },
-      );
+      throw AppError.notFound("Address not found");
     }
 
-    // Verify ownership
     if (address.userId !== userId) {
-      return NextResponse.json(
-        { status: "error", message: "Unauthorized" },
-        { status: 403 },
-      );
+      throw AppError.forbidden("Not authorized to update this address");
     }
 
-    // Update address
     const updated = await prisma.address.update({
-      where: { id: id },
+      where: { id },
       data: {
         ...(label && { label }),
         ...(recipient_name && { recipientName: recipient_name }),
@@ -99,25 +74,12 @@ export async function PUT(
       },
     });
 
-    return NextResponse.json({
-      status: "success",
-      message: "Address updated successfully",
-      data: {
-        address_id: updated.id,
-        label: updated.label,
-        updated_at: updated.updatedAt,
-      },
-    });
-  } catch (error: any) {
-    console.error("Error updating address:", error);
-    return NextResponse.json(
-      {
-        status: "error",
-        message: "Failed to update address",
-        error: error.message,
-      },
-      { status: 500 },
+    return successResponse(
+      { address_id: updated.id, label: updated.label, updated_at: updated.updatedAt },
+      { message: "Address updated successfully" },
     );
+  } catch (error) {
+    return handleRouteError(error, "Update address");
   }
 }
 
@@ -147,64 +109,24 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    // Verify authentication
-    const authHeader = request.headers.get("authorization");
-    const token = extractBearerToken(authHeader);
-    if (!token) {
-      return NextResponse.json(
-        { status: "error", message: "Unauthorized" },
-        { status: 401 },
-      );
-    }
+    const payload = await verifyAuth(request);
+    const userId = payload.userId;
 
-    const payload = await verifyToken(token);
-    if (!payload) {
-      return NextResponse.json(
-        { status: "error", message: "Invalid token" },
-        { status: 401 },
-      );
-    }
-    const userId = payload.userId as string;
-
-    // Get address
-    const address = await prisma.address.findUnique({
-      where: { id: id },
-    });
+    const address = await prisma.address.findUnique({ where: { id } });
 
     if (!address) {
-      return NextResponse.json(
-        { status: "error", message: "Address not found" },
-        { status: 404 },
-      );
+      throw AppError.notFound("Address not found");
     }
 
-    // Verify ownership
     if (address.userId !== userId) {
-      return NextResponse.json(
-        { status: "error", message: "Unauthorized" },
-        { status: 403 },
-      );
+      throw AppError.forbidden("Not authorized to delete this address");
     }
 
-    // Delete address
-    await prisma.address.delete({
-      where: { id: id },
-    });
+    await prisma.address.delete({ where: { id } });
 
-    return NextResponse.json({
-      status: "success",
-      message: "Address deleted successfully",
-    });
-  } catch (error: any) {
-    console.error("Error deleting address:", error);
-    return NextResponse.json(
-      {
-        status: "error",
-        message: "Failed to delete address",
-        error: error.message,
-      },
-      { status: 500 },
-    );
+    return successResponse(undefined, { message: "Address deleted successfully" });
+  } catch (error) {
+    return handleRouteError(error, "Delete address");
   }
 }
 
@@ -242,48 +164,22 @@ export async function PATCH(
 ) {
   try {
     const { id } = await params;
-    const authHeader = request.headers.get("authorization");
-    const token = extractBearerToken(authHeader);
-    if (!token) {
-      return NextResponse.json(
-        { status: "error", message: "Unauthorized" },
-        { status: 401 },
-      );
-    }
-
-    const payload = await verifyToken(token);
-    if (!payload) {
-      return NextResponse.json(
-        { status: "error", message: "Invalid token" },
-        { status: 401 },
-      );
-    }
-    const userId = payload.userId as string;
+    const payload = await verifyAuth(request);
+    const userId = payload.userId;
 
     const body = await request.json();
     const { is_primary } = body;
 
-    // Get address
-    const address = await prisma.address.findUnique({
-      where: { id: id },
-    });
+    const address = await prisma.address.findUnique({ where: { id } });
 
     if (!address) {
-      return NextResponse.json(
-        { status: "error", message: "Address not found" },
-        { status: 404 },
-      );
+      throw AppError.notFound("Address not found");
     }
 
-    // Verify ownership
     if (address.userId !== userId) {
-      return NextResponse.json(
-        { status: "error", message: "Unauthorized" },
-        { status: 403 },
-      );
+      throw AppError.forbidden("Not authorized to update this address");
     }
 
-    // If setting as primary, unset other primary addresses
     if (is_primary === true) {
       await prisma.address.updateMany({
         where: { userId, isPrimary: true },
@@ -291,31 +187,18 @@ export async function PATCH(
       });
     }
 
-    // Update address
     const updated = await prisma.address.update({
-      where: { id: id },
+      where: { id },
       data: {
         ...(is_primary !== undefined && { isPrimary: is_primary }),
       },
     });
 
-    return NextResponse.json({
-      status: "success",
-      message: "Address updated successfully",
-      data: {
-        address_id: updated.id,
-        is_primary: updated.isPrimary,
-      },
-    });
-  } catch (error: any) {
-    console.error("Error updating address:", error);
-    return NextResponse.json(
-      {
-        status: "error",
-        message: "Failed to update address",
-        error: error.message,
-      },
-      { status: 500 },
+    return successResponse(
+      { address_id: updated.id, is_primary: updated.isPrimary },
+      { message: "Address updated successfully" },
     );
+  } catch (error) {
+    return handleRouteError(error, "Patch address");
   }
 }

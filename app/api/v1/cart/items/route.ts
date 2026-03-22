@@ -1,6 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
-import { verifyToken, extractBearerToken } from "@/lib/auth";
+import { verifyAuth } from "@/lib/auth";
+import { AppError, handleRouteError } from "@/lib/errors";
+import { successResponse } from "@/lib/helpers/response";
 
 /**
  * @swagger
@@ -31,36 +33,16 @@ import { verifyToken, extractBearerToken } from "@/lib/auth";
  */
 export async function POST(request: NextRequest) {
   try {
-    // Verify authentication
-    const authHeader = request.headers.get("authorization");
-    const token = extractBearerToken(authHeader);
-    if (!token) {
-      return NextResponse.json(
-        { status: "error", message: "Unauthorized" },
-        { status: 401 }
-      );
-    }
-
-    const payload = await verifyToken(token);
-    if (!payload) {
-      return NextResponse.json(
-        { status: "error", message: "Invalid token" },
-        { status: 401 }
-      );
-    }
-    const userId = payload.userId as string;
+    const payload = await verifyAuth(request);
+    const userId = payload.userId;
 
     const body = await request.json();
     const { product_id, quantity = 1, notes } = body;
 
     if (!product_id) {
-      return NextResponse.json(
-        { status: "error", message: "Product ID is required" },
-        { status: 400 }
-      );
+      throw AppError.badRequest("Product ID is required");
     }
 
-    // Get product
     const product = await prisma.product.findUnique({
       where: { id: product_id },
       include: {
@@ -77,13 +59,9 @@ export async function POST(request: NextRequest) {
     });
 
     if (!product) {
-      return NextResponse.json(
-        { status: "error", message: "Product not found" },
-        { status: 404 }
-      );
+      throw AppError.notFound("Product not found");
     }
 
-    // Calculate prices
     const activeDiscount = product.discounts[0];
     const discountPrice = activeDiscount
       ? activeDiscount.type === "percentage"
@@ -92,91 +70,45 @@ export async function POST(request: NextRequest) {
       : null;
     const subtotal = (discountPrice || product.price) * quantity;
 
-    // Get or create cart
-    let cart = await prisma.cart.findUnique({
-      where: { userId },
-    });
-
+    let cart = await prisma.cart.findUnique({ where: { userId } });
     if (!cart) {
-      cart = await prisma.cart.create({
-        data: { userId },
-      });
+      cart = await prisma.cart.create({ data: { userId } });
     }
 
-    // Check if item already exists in cart
     const existingItem = await prisma.cartItem.findUnique({
-      where: {
-        cartId_productId: {
-          cartId: cart.id,
-          productId: product_id,
-        },
-      },
+      where: { cartId_productId: { cartId: cart.id, productId: product_id } },
     });
 
     let cartItem;
     if (existingItem) {
-      // Update existing item
       const newQuantity = existingItem.quantity + quantity;
       const newSubtotal = (discountPrice || product.price) * newQuantity;
-
       cartItem = await prisma.cartItem.update({
         where: { id: existingItem.id },
-        data: {
-          quantity: newQuantity,
-          subtotal: newSubtotal,
-          notes: notes || existingItem.notes,
-        },
+        data: { quantity: newQuantity, subtotal: newSubtotal, notes: notes || existingItem.notes },
       });
     } else {
-      // Create new cart item
       cartItem = await prisma.cartItem.create({
-        data: {
-          cartId: cart.id,
-          productId: product_id,
-          quantity,
-          unitPrice: product.price,
-          discountPrice,
-          subtotal,
-          notes,
-        },
+        data: { cartId: cart.id, productId: product_id, quantity, unitPrice: product.price, discountPrice, subtotal, notes },
       });
     }
 
-    // Get cart summary
-    const allItems = await prisma.cartItem.findMany({
-      where: { cartId: cart.id },
-    });
-
+    const allItems = await prisma.cartItem.findMany({ where: { cartId: cart.id } });
     const cartTotalItems = allItems.length;
-    const cartGrandTotal = allItems.reduce(
-      (sum, item) => sum + item.subtotal,
-      0
-    );
+    const cartGrandTotal = allItems.reduce((sum, item) => sum + item.subtotal, 0);
 
-    return NextResponse.json(
+    return successResponse(
       {
-        status: "success",
-        message: "Product added to cart",
-        data: {
-          cart_item_id: cartItem.id,
-          product_id: cartItem.productId,
-          quantity: cartItem.quantity,
-          subtotal: cartItem.subtotal,
-          cart_total_items: cartTotalItems,
-          cart_grand_total: cartGrandTotal,
-        },
+        cart_item_id: cartItem.id,
+        product_id: cartItem.productId,
+        quantity: cartItem.quantity,
+        subtotal: cartItem.subtotal,
+        cart_total_items: cartTotalItems,
+        cart_grand_total: cartGrandTotal,
       },
-      { status: 201 }
+      { message: "Product added to cart", status: 201 },
     );
-  } catch (error: any) {
-    console.error("Error adding to cart:", error);
-    return NextResponse.json(
-      {
-        status: "error",
-        message: "Failed to add to cart",
-        error: error.message,
-      },
-      { status: 500 }
-    );
+  } catch (error) {
+    return handleRouteError(error, "Add to cart");
   }
 }

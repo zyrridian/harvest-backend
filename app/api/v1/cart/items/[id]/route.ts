@@ -1,6 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
-import { verifyToken, extractBearerToken } from "@/lib/auth";
+import { verifyAuth } from "@/lib/auth";
+import { AppError, handleRouteError } from "@/lib/errors";
+import { successResponse } from "@/lib/helpers/response";
 
 /**
  * @swagger
@@ -33,38 +35,20 @@ import { verifyToken, extractBearerToken } from "@/lib/auth";
  *       401:
  *         description: Unauthorized
  */
-// Shared handler for PUT and PATCH
 async function handleUpdate(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id } = await params;
-    // Verify authentication
-    const authHeader = request.headers.get("authorization");
-    const token = extractBearerToken(authHeader);
-    if (!token) {
-      return NextResponse.json(
-        { status: "error", message: "Unauthorized" },
-        { status: 401 },
-      );
-    }
-
-    const payload = await verifyToken(token);
-    if (!payload) {
-      return NextResponse.json(
-        { status: "error", message: "Invalid token" },
-        { status: 401 },
-      );
-    }
-    const userId = payload.userId as string;
+    const payload = await verifyAuth(request);
+    const userId = payload.userId;
 
     const body = await request.json();
     const { quantity, notes } = body;
 
-    // Get cart item
     const cartItem = await prisma.cartItem.findUnique({
-      where: { id: id },
+      where: { id },
       include: {
         cart: true,
         product: {
@@ -84,21 +68,13 @@ async function handleUpdate(
     });
 
     if (!cartItem) {
-      return NextResponse.json(
-        { status: "error", message: "Cart item not found" },
-        { status: 404 },
-      );
+      throw AppError.notFound("Cart item not found");
     }
 
-    // Verify ownership
     if (cartItem.cart.userId !== userId) {
-      return NextResponse.json(
-        { status: "error", message: "Unauthorized" },
-        { status: 403 },
-      );
+      throw AppError.forbidden("Not authorized");
     }
 
-    // Calculate new subtotal if quantity changed
     let newSubtotal = cartItem.subtotal;
     if (quantity !== undefined) {
       const activeDiscount = cartItem.product.discounts[0];
@@ -110,59 +86,31 @@ async function handleUpdate(
       newSubtotal = price * quantity;
     }
 
-    // Update cart item
     const updated = await prisma.cartItem.update({
-      where: { id: id },
+      where: { id },
       data: {
         ...(quantity !== undefined && { quantity, subtotal: newSubtotal }),
         ...(notes !== undefined && { notes }),
       },
     });
 
-    // Get cart totals
-    const allItems = await prisma.cartItem.findMany({
-      where: { cartId: cartItem.cartId },
-    });
-    const cartGrandTotal = allItems.reduce(
-      (sum, item) => sum + item.subtotal,
-      0,
-    );
+    const allItems = await prisma.cartItem.findMany({ where: { cartId: cartItem.cartId } });
+    const cartGrandTotal = allItems.reduce((sum, item) => sum + item.subtotal, 0);
 
-    return NextResponse.json({
-      status: "success",
-      message: "Cart item updated",
-      data: {
-        cart_item_id: updated.id,
-        quantity: updated.quantity,
-        subtotal: updated.subtotal,
-        cart_grand_total: cartGrandTotal,
-      },
-    });
-  } catch (error: any) {
-    console.error("Error updating cart item:", error);
-    return NextResponse.json(
-      {
-        status: "error",
-        message: "Failed to update cart item",
-        error: error.message,
-      },
-      { status: 500 },
+    return successResponse(
+      { cart_item_id: updated.id, quantity: updated.quantity, subtotal: updated.subtotal, cart_grand_total: cartGrandTotal },
+      { message: "Cart item updated" },
     );
+  } catch (error) {
+    return handleRouteError(error, "Update cart item");
   }
 }
 
-// Export PUT and PATCH using the same handler
-export async function PUT(
-  request: NextRequest,
-  context: { params: Promise<{ id: string }> },
-) {
+export async function PUT(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   return handleUpdate(request, context);
 }
 
-export async function PATCH(
-  request: NextRequest,
-  context: { params: Promise<{ id: string }> },
-) {
+export async function PATCH(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   return handleUpdate(request, context);
 }
 
@@ -192,81 +140,33 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    // Verify authentication
-    const authHeader = request.headers.get("authorization");
-    const token = extractBearerToken(authHeader);
-    if (!token) {
-      return NextResponse.json(
-        { status: "error", message: "Unauthorized" },
-        { status: 401 },
-      );
-    }
+    const payload = await verifyAuth(request);
+    const userId = payload.userId;
 
-    const payload = await verifyToken(token);
-    if (!payload) {
-      return NextResponse.json(
-        { status: "error", message: "Invalid token" },
-        { status: 401 },
-      );
-    }
-    const userId = payload.userId as string;
-
-    // Get cart item
     const cartItem = await prisma.cartItem.findUnique({
-      where: { id: id },
-      include: {
-        cart: true,
-      },
+      where: { id },
+      include: { cart: true },
     });
 
     if (!cartItem) {
-      return NextResponse.json(
-        { status: "error", message: "Cart item not found" },
-        { status: 404 },
-      );
+      throw AppError.notFound("Cart item not found");
     }
 
-    // Verify ownership
     if (cartItem.cart.userId !== userId) {
-      return NextResponse.json(
-        { status: "error", message: "Unauthorized" },
-        { status: 403 },
-      );
+      throw AppError.forbidden("Not authorized");
     }
 
-    // Delete cart item
-    await prisma.cartItem.delete({
-      where: { id: id },
-    });
+    await prisma.cartItem.delete({ where: { id } });
 
-    // Get remaining cart items
-    const remainingItems = await prisma.cartItem.findMany({
-      where: { cartId: cartItem.cartId },
-    });
-
+    const remainingItems = await prisma.cartItem.findMany({ where: { cartId: cartItem.cartId } });
     const cartTotalItems = remainingItems.length;
-    const cartGrandTotal = remainingItems.reduce(
-      (sum, item) => sum + item.subtotal,
-      0,
-    );
+    const cartGrandTotal = remainingItems.reduce((sum, item) => sum + item.subtotal, 0);
 
-    return NextResponse.json({
-      status: "success",
-      message: "Item removed from cart",
-      data: {
-        cart_total_items: cartTotalItems,
-        cart_grand_total: cartGrandTotal,
-      },
-    });
-  } catch (error: any) {
-    console.error("Error removing cart item:", error);
-    return NextResponse.json(
-      {
-        status: "error",
-        message: "Failed to remove cart item",
-        error: error.message,
-      },
-      { status: 500 },
+    return successResponse(
+      { cart_total_items: cartTotalItems, cart_grand_total: cartGrandTotal },
+      { message: "Item removed from cart" },
     );
+  } catch (error) {
+    return handleRouteError(error, "Remove cart item");
   }
 }

@@ -1,5 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
+import { AppError, handleRouteError } from "@/lib/errors";
+import { successResponse } from "@/lib/helpers/response";
+import { parsePagination, buildPaginationMeta } from "@/lib/helpers/pagination";
 
 /**
  * @swagger
@@ -36,99 +39,49 @@ import prisma from "@/lib/prisma";
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-        // Await params in Next.js 15+
     const { id } = await params;
-
-const { searchParams } = new URL(request.url);
-
-    // Pagination
-    const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(searchParams.get("limit") || "20");
-    const skip = (page - 1) * limit;
+    const { searchParams } = new URL(request.url);
+    const { page, limit, skip } = parsePagination(searchParams);
     const sortBy = searchParams.get("sort_by") || "newest";
 
-    // Find category by ID or slug
     const category = await prisma.category.findFirst({
-      where: {
-        OR: [{ id: id }, { slug: id }],
-      },
+      where: { OR: [{ id }, { slug: id }] },
     });
 
     if (!category) {
-      return NextResponse.json(
-        {
-          status: "error",
-          message: "Category not found",
-        },
-        { status: 404 }
-      );
+      throw AppError.notFound("Category not found");
     }
 
-    // Build orderBy clause
-    let orderBy: any = {};
-    switch (sortBy) {
-      case "price":
-        orderBy = { price: "asc" };
-        break;
-      case "rating":
-        orderBy = { rating: "desc" };
-        break;
-      case "newest":
-      default:
-        orderBy = { createdAt: "desc" };
-        break;
-    }
+    const orderBy: Record<string, string> =
+      sortBy === "price" ? { price: "asc" } :
+      sortBy === "rating" ? { rating: "desc" } :
+      { createdAt: "desc" };
 
-    // Get products
     const [products, totalItems] = await Promise.all([
       prisma.product.findMany({
-        where: {
-          categoryId: category.id,
-          isAvailable: true,
-        },
+        where: { categoryId: category.id, isAvailable: true },
         skip,
         take: limit,
         orderBy,
         include: {
-          seller: {
-            select: {
-              id: true,
-              name: true,
-            },
-          },
-          images: {
-            where: { isPrimary: true },
-            take: 1,
-            select: {
-              url: true,
-            },
-          },
+          seller: { select: { id: true, name: true } },
+          images: { where: { isPrimary: true }, take: 1, select: { url: true } },
           discounts: {
-            where: {
-              isActive: true,
-              validFrom: { lte: new Date() },
-              validUntil: { gte: new Date() },
-            },
+            where: { isActive: true, validFrom: { lte: new Date() }, validUntil: { gte: new Date() } },
             take: 1,
             orderBy: { value: "desc" },
           },
         },
       }),
-      prisma.product.count({
-        where: {
-          categoryId: category.id,
-          isAvailable: true,
-        },
-      }),
+      prisma.product.count({ where: { categoryId: category.id, isAvailable: true } }),
     ]);
 
     const formattedProducts = products.map((product) => {
       const primaryImage = product.images[0];
       const activeDiscount = product.discounts[0];
-
       return {
         id: product.id,
         name: product.name,
@@ -144,33 +97,16 @@ const { searchParams } = new URL(request.url);
         is_organic: product.isOrganic,
         stock_quantity: product.stockQuantity,
         discount: activeDiscount
-          ? `${activeDiscount.value}${
-              activeDiscount.type === "percentage" ? "%" : ""
-            } OFF`
+          ? `${activeDiscount.value}${activeDiscount.type === "percentage" ? "%" : ""} OFF`
           : null,
       };
     });
 
-    const totalPages = Math.ceil(totalItems / limit);
-
-    return NextResponse.json({
-      status: "success",
-      data: formattedProducts,
-      pagination: {
-        current_page: page,
-        total_pages: totalPages,
-        total_items: totalItems,
-      },
+    return successResponse({
+      products: formattedProducts,
+      pagination: buildPaginationMeta(page, limit, totalItems),
     });
-  } catch (error: any) {
-    console.error("Error fetching category products:", error);
-    return NextResponse.json(
-      {
-        status: "error",
-        message: "Failed to fetch category products",
-        error: error.message,
-      },
-      { status: 500 }
-    );
+  } catch (error) {
+    return handleRouteError(error, "Fetch category products");
   }
 }

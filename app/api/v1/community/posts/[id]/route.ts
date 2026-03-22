@@ -1,6 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
 import { verifyAuth } from "@/lib/auth";
+import { AppError, handleRouteError } from "@/lib/errors";
+import { successResponse } from "@/lib/helpers/response";
 
 /**
  * @swagger
@@ -31,81 +33,36 @@ export async function GET(
     try {
       const user = await verifyAuth(request);
       userId = user.userId;
-    } catch (error) {
+    } catch {
       // Allow unauthenticated access
     }
 
     const post = await prisma.communityPost.findUnique({
       where: { id },
       include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            avatarUrl: true,
-            userType: true,
-          },
-        },
-        farmer: {
-          select: {
-            id: true,
-            name: true,
-            profileImage: true,
-            isVerified: true,
-          },
-        },
-        images: {
-          orderBy: { displayOrder: "asc" },
-        },
+        user: { select: { id: true, name: true, avatarUrl: true, userType: true } },
+        farmer: { select: { id: true, name: true, profileImage: true, isVerified: true } },
+        images: { orderBy: { displayOrder: "asc" } },
         tags: true,
-        _count: {
-          select: {
-            likes: true,
-            comments: true,
-          },
-        },
+        _count: { select: { likes: true, comments: true } },
       },
     });
 
     if (!post) {
-      return NextResponse.json(
-        {
-          status: "error",
-          message: "Post not found",
-        },
-        { status: 404 },
-      );
+      throw AppError.notFound("Post not found");
     }
 
     let isLikedByUser = false;
     if (userId) {
       const like = await prisma.postLike.findUnique({
-        where: {
-          postId_userId: {
-            postId: id,
-            userId,
-          },
-        },
+        where: { postId_userId: { postId: id, userId } },
       });
       isLikedByUser = !!like;
     }
 
-    return NextResponse.json({
-      status: "success",
-      data: {
-        ...post,
-        is_liked_by_user: isLikedByUser,
-      },
-    });
-  } catch (error: any) {
-    console.error("Get community post error:", error);
-    return NextResponse.json(
-      {
-        status: "error",
-        message: error.message || "Failed to get post",
-      },
-      { status: 500 },
-    );
+    return successResponse({ ...post, is_liked_by_user: isLikedByUser });
+  } catch (error) {
+    return handleRouteError(error, "Get community post");
   }
 }
 
@@ -117,32 +74,6 @@ export async function GET(
  *     tags: [Community]
  *     security:
  *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               title:
- *                 type: string
- *               content:
- *                 type: string
- *     responses:
- *       200:
- *         description: Post updated successfully
- *       401:
- *         description: Unauthorized
- *       403:
- *         description: Forbidden
- *       404:
- *         description: Post not found
  */
 export async function PUT(
   request: NextRequest,
@@ -153,31 +84,11 @@ export async function PUT(
     const user = await verifyAuth(request);
     const body = await request.json();
 
-    const post = await prisma.communityPost.findUnique({
-      where: { id },
-    });
+    const post = await prisma.communityPost.findUnique({ where: { id } });
+    if (!post) throw AppError.notFound("Post not found");
+    if (post.userId !== user.userId) throw AppError.forbidden("Not authorized to update this post");
 
-    if (!post) {
-      return NextResponse.json(
-        {
-          status: "error",
-          message: "Post not found",
-        },
-        { status: 404 },
-      );
-    }
-
-    if (post.userId !== user.userId) {
-      return NextResponse.json(
-        {
-          status: "error",
-          message: "You do not have permission to update this post",
-        },
-        { status: 403 },
-      );
-    }
-
-    const updateData: any = {};
+    const updateData: Record<string, unknown> = {};
     if (body.title) updateData.title = body.title;
     if (body.content) updateData.content = body.content;
 
@@ -185,32 +96,15 @@ export async function PUT(
       where: { id },
       data: updateData,
       include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            avatarUrl: true,
-          },
-        },
+        user: { select: { id: true, name: true, avatarUrl: true } },
         images: true,
         tags: true,
       },
     });
 
-    return NextResponse.json({
-      status: "success",
-      message: "Post updated successfully",
-      data: updated,
-    });
-  } catch (error: any) {
-    console.error("Update community post error:", error);
-    return NextResponse.json(
-      {
-        status: "error",
-        message: error.message || "Failed to update post",
-      },
-      { status: error.status || 500 },
-    );
+    return successResponse(updated, { message: "Post updated successfully" });
+  } catch (error) {
+    return handleRouteError(error, "Update community post");
   }
 }
 
@@ -222,21 +116,6 @@ export async function PUT(
  *     tags: [Community]
  *     security:
  *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Post deleted successfully
- *       401:
- *         description: Unauthorized
- *       403:
- *         description: Forbidden
- *       404:
- *         description: Post not found
  */
 export async function DELETE(
   request: NextRequest,
@@ -246,46 +125,14 @@ export async function DELETE(
     const { id } = await params;
     const user = await verifyAuth(request);
 
-    const post = await prisma.communityPost.findUnique({
-      where: { id },
-    });
+    const post = await prisma.communityPost.findUnique({ where: { id } });
+    if (!post) throw AppError.notFound("Post not found");
+    if (post.userId !== user.userId) throw AppError.forbidden("Not authorized to delete this post");
 
-    if (!post) {
-      return NextResponse.json(
-        {
-          status: "error",
-          message: "Post not found",
-        },
-        { status: 404 },
-      );
-    }
+    await prisma.communityPost.delete({ where: { id } });
 
-    if (post.userId !== user.userId) {
-      return NextResponse.json(
-        {
-          status: "error",
-          message: "You do not have permission to delete this post",
-        },
-        { status: 403 },
-      );
-    }
-
-    await prisma.communityPost.delete({
-      where: { id },
-    });
-
-    return NextResponse.json({
-      status: "success",
-      message: "Post deleted successfully",
-    });
-  } catch (error: any) {
-    console.error("Delete community post error:", error);
-    return NextResponse.json(
-      {
-        status: "error",
-        message: error.message || "Failed to delete post",
-      },
-      { status: error.status || 500 },
-    );
+    return successResponse(undefined, { message: "Post deleted successfully" });
+  } catch (error) {
+    return handleRouteError(error, "Delete community post");
   }
 }

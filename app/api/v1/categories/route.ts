@@ -1,5 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
+import { handleRouteError } from "@/lib/errors";
+import { successResponse } from "@/lib/helpers/response";
 
 /**
  * @swagger
@@ -16,11 +18,7 @@ export async function GET(request: NextRequest) {
     const categories = await prisma.category.findMany({
       where: { isActive: true },
       orderBy: { displayOrder: "asc" },
-      include: {
-        _count: {
-          select: { products: true },
-        },
-      },
+      include: { _count: { select: { products: true } } },
     });
 
     const formattedCategories = categories.map((category) => ({
@@ -35,19 +33,8 @@ export async function GET(request: NextRequest) {
       is_active: category.isActive,
     }));
 
-    return NextResponse.json({
-      status: "success",
-      data: formattedCategories,
-    });
-  } catch (error: any) {
-    console.error("Error fetching categories:", error);
-    return NextResponse.json(
-      {
-        status: "error",
-        message: "Failed to fetch categories",
-        error: error.message,
-      },
-      { status: 500 }
-    );
+    return successResponse(formattedCategories);
+  } catch (error) {
+    return handleRouteError(error, "Fetch categories");
   }
 }

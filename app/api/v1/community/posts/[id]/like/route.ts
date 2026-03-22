@@ -1,6 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
 import { verifyAuth } from "@/lib/auth";
+import { AppError, handleRouteError } from "@/lib/errors";
+import { successResponse } from "@/lib/helpers/response";
 
 /**
  * @swagger
@@ -10,21 +12,6 @@ import { verifyAuth } from "@/lib/auth";
  *     tags: [Community]
  *     security:
  *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Post liked successfully
- *       400:
- *         description: Already liked
- *       401:
- *         description: Unauthorized
- *       404:
- *         description: Post not found
  */
 export async function POST(
   request: NextRequest,
@@ -34,71 +21,22 @@ export async function POST(
     const { id } = await params;
     const user = await verifyAuth(request);
 
-    const post = await prisma.communityPost.findUnique({
-      where: { id },
-    });
+    const post = await prisma.communityPost.findUnique({ where: { id } });
+    if (!post) throw AppError.notFound("Post not found");
 
-    if (!post) {
-      return NextResponse.json(
-        {
-          status: "error",
-          message: "Post not found",
-        },
-        { status: 404 },
-      );
-    }
-
-    // Check if already liked
     const existingLike = await prisma.postLike.findUnique({
-      where: {
-        postId_userId: {
-          postId: id,
-          userId: user.userId,
-        },
-      },
+      where: { postId_userId: { postId: id, userId: user.userId } },
     });
+    if (existingLike) throw AppError.badRequest("You have already liked this post");
 
-    if (existingLike) {
-      return NextResponse.json(
-        {
-          status: "error",
-          message: "You have already liked this post",
-        },
-        { status: 400 },
-      );
-    }
-
-    // Create like and update count
     await prisma.$transaction([
-      prisma.postLike.create({
-        data: {
-          postId: id,
-          userId: user.userId,
-        },
-      }),
-      prisma.communityPost.update({
-        where: { id },
-        data: {
-          likesCount: {
-            increment: 1,
-          },
-        },
-      }),
+      prisma.postLike.create({ data: { postId: id, userId: user.userId } }),
+      prisma.communityPost.update({ where: { id }, data: { likesCount: { increment: 1 } } }),
     ]);
 
-    return NextResponse.json({
-      status: "success",
-      message: "Post liked successfully",
-    });
-  } catch (error: any) {
-    console.error("Like post error:", error);
-    return NextResponse.json(
-      {
-        status: "error",
-        message: error.message || "Failed to like post",
-      },
-      { status: error.status || 500 },
-    );
+    return successResponse(undefined, { message: "Post liked successfully" });
+  } catch (error) {
+    return handleRouteError(error, "Like post");
   }
 }
 
@@ -110,21 +48,6 @@ export async function POST(
  *     tags: [Community]
  *     security:
  *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Post unliked successfully
- *       400:
- *         description: Not liked yet
- *       401:
- *         description: Unauthorized
- *       404:
- *         description: Post not found
  */
 export async function DELETE(
   request: NextRequest,
@@ -134,72 +57,21 @@ export async function DELETE(
     const { id } = await params;
     const user = await verifyAuth(request);
 
-    const post = await prisma.communityPost.findUnique({
-      where: { id },
-    });
+    const post = await prisma.communityPost.findUnique({ where: { id } });
+    if (!post) throw AppError.notFound("Post not found");
 
-    if (!post) {
-      return NextResponse.json(
-        {
-          status: "error",
-          message: "Post not found",
-        },
-        { status: 404 },
-      );
-    }
-
-    // Check if liked
     const existingLike = await prisma.postLike.findUnique({
-      where: {
-        postId_userId: {
-          postId: id,
-          userId: user.userId,
-        },
-      },
+      where: { postId_userId: { postId: id, userId: user.userId } },
     });
+    if (!existingLike) throw AppError.badRequest("You have not liked this post");
 
-    if (!existingLike) {
-      return NextResponse.json(
-        {
-          status: "error",
-          message: "You have not liked this post",
-        },
-        { status: 400 },
-      );
-    }
-
-    // Delete like and update count
     await prisma.$transaction([
-      prisma.postLike.delete({
-        where: {
-          postId_userId: {
-            postId: id,
-            userId: user.userId,
-          },
-        },
-      }),
-      prisma.communityPost.update({
-        where: { id },
-        data: {
-          likesCount: {
-            decrement: 1,
-          },
-        },
-      }),
+      prisma.postLike.delete({ where: { postId_userId: { postId: id, userId: user.userId } } }),
+      prisma.communityPost.update({ where: { id }, data: { likesCount: { decrement: 1 } } }),
     ]);
 
-    return NextResponse.json({
-      status: "success",
-      message: "Post unliked successfully",
-    });
-  } catch (error: any) {
-    console.error("Unlike post error:", error);
-    return NextResponse.json(
-      {
-        status: "error",
-        message: error.message || "Failed to unlike post",
-      },
-      { status: error.status || 500 },
-    );
+    return successResponse(undefined, { message: "Post unliked successfully" });
+  } catch (error) {
+    return handleRouteError(error, "Unlike post");
   }
 }

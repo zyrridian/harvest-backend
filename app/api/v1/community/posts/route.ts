@@ -1,6 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
 import { verifyAuth } from "@/lib/auth";
+import { AppError, handleRouteError } from "@/lib/errors";
+import { successResponse } from "@/lib/helpers/response";
+import { parsePagination, buildPaginationMeta } from "@/lib/helpers/pagination";
 
 /**
  * @swagger
@@ -35,40 +38,23 @@ import { verifyAuth } from "@/lib/auth";
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-
     const filter = searchParams.get("filter") || "all";
     const tag = searchParams.get("tag");
     const farmerId = searchParams.get("farmer_id");
-    const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(searchParams.get("limit") || "20");
-    const skip = (page - 1) * limit;
+    const { page, limit, skip } = parsePagination(searchParams);
 
     let userId: string | undefined;
     try {
       const user = await verifyAuth(request);
       userId = user.userId;
-    } catch (error) {
+    } catch {
       // Allow unauthenticated access for browsing posts
     }
 
-    const where: any = {};
-
-    if (filter === "my_posts" && userId) {
-      where.userId = userId;
-    }
-
-    // Filter by farmer ID (for farmer profile pages)
-    if (farmerId) {
-      where.farmerId = farmerId;
-    }
-
-    if (tag) {
-      where.tags = {
-        some: {
-          tag,
-        },
-      };
-    }
+    const where: Record<string, unknown> = {};
+    if (filter === "my_posts" && userId) where.userId = userId;
+    if (farmerId) where.farmerId = farmerId;
+    if (tag) where.tags = { some: { tag } };
 
     const [posts, total] = await Promise.all([
       prisma.communityPost.findMany({
@@ -77,79 +63,35 @@ export async function GET(request: NextRequest) {
         skip,
         take: limit,
         include: {
-          user: {
-            select: {
-              id: true,
-              name: true,
-              avatarUrl: true,
-              userType: true,
-            },
-          },
-          farmer: {
-            select: {
-              id: true,
-              name: true,
-              profileImage: true,
-              isVerified: true,
-            },
-          },
-          images: {
-            orderBy: { displayOrder: "asc" },
-          },
+          user: { select: { id: true, name: true, avatarUrl: true, userType: true } },
+          farmer: { select: { id: true, name: true, profileImage: true, isVerified: true } },
+          images: { orderBy: { displayOrder: "asc" } },
           tags: true,
-          _count: {
-            select: {
-              likes: true,
-              comments: true,
-            },
-          },
+          _count: { select: { likes: true, comments: true } },
         },
       }),
       prisma.communityPost.count({ where }),
     ]);
 
-    // If user is authenticated, check which posts they've liked
-    let postsWithLikeStatus = posts;
+    let postsWithLikeStatus = posts.map((p) => ({ ...p, is_liked_by_user: false }));
     if (userId) {
       const userLikes = await prisma.postLike.findMany({
-        where: {
-          userId,
-          postId: {
-            in: posts.map((p) => p.id),
-          },
-        },
+        where: { userId, postId: { in: posts.map((p) => p.id) } },
         select: { postId: true },
       });
-
       const likedPostIds = new Set(userLikes.map((l) => l.postId));
-
       postsWithLikeStatus = posts.map((post) => ({
         ...post,
         is_liked_by_user: likedPostIds.has(post.id),
       }));
     }
 
-    return NextResponse.json({
-      status: "success",
-      data: {
-        posts: postsWithLikeStatus,
-        pagination: {
-          page,
-          limit,
-          total,
-          total_pages: Math.ceil(total / limit),
-        },
-      },
+    return successResponse({
+      posts: postsWithLikeStatus,
+      pagination: buildPaginationMeta(page, limit, total),
     });
-  } catch (error: any) {
-    console.error("Get community posts error:", error);
-    return NextResponse.json(
-      {
-        status: "error",
-        message: error.message || "Failed to get community posts",
-      },
-      { status: 500 },
-    );
+  } catch (error) {
+    return handleRouteError(error, "Get community posts");
   }
 }
 
@@ -195,28 +137,18 @@ export async function POST(request: NextRequest) {
   try {
     const user = await verifyAuth(request);
     const body = await request.json();
-
     const { title, content, images, tags } = body;
 
     if (!title || !content) {
-      return NextResponse.json(
-        {
-          status: "error",
-          message: "Title and content are required",
-        },
-        { status: 400 },
-      );
+      throw AppError.badRequest("Title and content are required");
     }
 
-    // Check if user is a farmer and get their farmer profile
     let farmerId: string | null = null;
     const farmer = await prisma.farmer.findUnique({
       where: { userId: user.userId },
       select: { id: true },
     });
-    if (farmer) {
-      farmerId = farmer.id;
-    }
+    if (farmer) farmerId = farmer.id;
 
     const post = await prisma.communityPost.create({
       data: {
@@ -225,59 +157,22 @@ export async function POST(request: NextRequest) {
         title,
         content,
         images: images?.length
-          ? {
-              create: images.map((url: string, index: number) => ({
-                url,
-                displayOrder: index,
-              })),
-            }
+          ? { create: images.map((url: string, index: number) => ({ url, displayOrder: index })) }
           : undefined,
         tags: tags?.length
-          ? {
-              create: tags.map((tag: string) => ({
-                tag: tag.toLowerCase(),
-              })),
-            }
+          ? { create: tags.map((tag: string) => ({ tag: tag.toLowerCase() })) }
           : undefined,
       },
       include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            avatarUrl: true,
-            userType: true,
-          },
-        },
-        farmer: {
-          select: {
-            id: true,
-            name: true,
-            profileImage: true,
-            isVerified: true,
-          },
-        },
+        user: { select: { id: true, name: true, avatarUrl: true, userType: true } },
+        farmer: { select: { id: true, name: true, profileImage: true, isVerified: true } },
         images: true,
         tags: true,
       },
     });
 
-    return NextResponse.json(
-      {
-        status: "success",
-        message: "Post created successfully",
-        data: post,
-      },
-      { status: 201 },
-    );
-  } catch (error: any) {
-    console.error("Create community post error:", error);
-    return NextResponse.json(
-      {
-        status: "error",
-        message: error.message || "Failed to create post",
-      },
-      { status: error.status || 500 },
-    );
+    return successResponse(post, { message: "Post created successfully", status: 201 });
+  } catch (error) {
+    return handleRouteError(error, "Create community post");
   }
 }
