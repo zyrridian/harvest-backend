@@ -124,12 +124,15 @@ export default function ProductDetailPage() {
   const [selectedImage, setSelectedImage] = useState(0);
   const [addingToCart, setAddingToCart] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
+  const [cartQty, setCartQty] = useState(0); // qty of this product already in cart
+  const [addedToast, setAddedToast] = useState(false);
 
   useEffect(() => {
     if (productId) {
       fetchProduct();
       fetchReviews();
       checkFavoriteStatus();
+      fetchCartQty();
     }
   }, [productId]);
 
@@ -149,6 +152,25 @@ export default function ProductDetailPage() {
       }
     } catch (error) {
       console.error("Check favorite status error:", error);
+    }
+  };
+
+  const fetchCartQty = async () => {
+    const token = localStorage.getItem("accessToken");
+    if (!token) return;
+    try {
+      const res = await fetch("/api/v1/cart", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (res.ok && data.data?.items && product) {
+        const match = (data.data.items as Array<{ product: { product_id: string }; quantity: number }>).find(
+          (item) => item.product.product_id === product.product_id,
+        );
+        setCartQty(match?.quantity || 0);
+      }
+    } catch {
+      // silent
     }
   };
 
@@ -197,7 +219,7 @@ export default function ProductDetailPage() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ product_id: productId, quantity }),
+        body: JSON.stringify({ product_id: product?.product_id, quantity }),
       });
 
       if (!response.ok) {
@@ -206,7 +228,10 @@ export default function ProductDetailPage() {
       }
 
       window.dispatchEvent(new Event("cartUpdated"));
-      // Optionally show success feedback
+      // Update local cart qty and show brief toast
+      setCartQty((prev) => prev + quantity);
+      setAddedToast(true);
+      setTimeout(() => setAddedToast(false), 2000);
     } catch (err: any) {
       console.error("Add to cart error:", err.message);
     } finally {
@@ -671,12 +696,27 @@ export default function ProductDetailPage() {
               </div>
             )}
 
+            {/* Added-to-cart toast */}
+            {addedToast && (
+              <div
+                className="mb-4 p-3 flex items-center gap-2 text-sm font-medium"
+                style={{
+                  backgroundColor: colors.successBg,
+                  color: colors.success,
+                  borderRadius: "4px",
+                }}
+              >
+                <CheckCircle size={16} />
+                Added to cart! ({cartQty} in cart)
+              </div>
+            )}
+
             {/* Action buttons */}
             <div className="flex gap-3 mb-6">
               <button
                 onClick={addToCart}
                 disabled={addingToCart || product.stock_quantity === 0}
-                className="flex-1 py-3 px-6 flex items-center justify-center gap-2 text-sm font-medium transition-colors disabled:opacity-50"
+                className="flex-1 py-3 px-6 flex items-center justify-center gap-2 text-sm font-medium transition-colors disabled:opacity-50 relative"
                 style={{
                   backgroundColor: colors.accent,
                   color: colors.white,
@@ -688,7 +728,7 @@ export default function ProductDetailPage() {
                 ) : (
                   <>
                     <ShoppingCart size={18} />
-                    Add to Cart
+                    {cartQty > 0 ? `Add More (${cartQty} in cart)` : "Add to Cart"}
                   </>
                 )}
               </button>
@@ -717,6 +757,7 @@ export default function ProductDetailPage() {
                 <Share2 size={20} style={{ color: colors.body }} />
               </button>
             </div>
+
 
             {/* Trust badges */}
             <div

@@ -63,6 +63,13 @@ export default function MarketplaceLayout({
     }
   }, [pathname]);
 
+  // Re-fetch cart count whenever a product is added anywhere in the app
+  useEffect(() => {
+    const handleCartUpdate = () => fetchCartCount();
+    window.addEventListener("cartUpdated", handleCartUpdate);
+    return () => window.removeEventListener("cartUpdated", handleCartUpdate);
+  }, []);
+
   const checkAuth = async () => {
     const token = localStorage.getItem("accessToken");
     if (!token) {
@@ -96,10 +103,17 @@ export default function MarketplaceLayout({
     try {
       const response = await fetch("/api/v1/cart", {
         headers: { Authorization: `Bearer ${token}` },
+        cache: "no-store",
       });
       const data = await response.json();
-      if (response.ok && data.data?.items) {
-        setCartCount(data.data.items.length);
+
+      if (response.ok && data.data) {
+        const items = (data.data.items || []) as Array<any>;
+        // Use a Set to ensure we count unique products even if there are redundant records
+        const uniqueProducts = new Set(
+          items.map((item) => item.product?.product_id || item.productId),
+        );
+        setCartCount(uniqueProducts.size);
       }
     } catch (error) {
       console.error("Failed to fetch cart:", error);

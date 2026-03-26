@@ -75,6 +75,8 @@ function ProductsContent() {
   const [loading, setLoading] = useState(true);
   const [addingToCart, setAddingToCart] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
+  // Map of productId -> quantity already in cart
+  const [cartQuantities, setCartQuantities] = useState<Record<string, number>>({});
 
   // Filter states
   const [searchQuery, setSearchQuery] = useState(searchParams.get("q") || "");
@@ -93,6 +95,10 @@ function ProductsContent() {
 
   useEffect(() => {
     fetchCategories();
+    fetchCartQuantities();
+    const handleCartUpdate = () => fetchCartQuantities();
+    window.addEventListener("cartUpdated", handleCartUpdate);
+    return () => window.removeEventListener("cartUpdated", handleCartUpdate);
   }, []);
 
   useEffect(() => {
@@ -110,6 +116,26 @@ function ProductsContent() {
       }
     } catch (error) {
       console.error("Failed to fetch categories:", error);
+    }
+  };
+
+  const fetchCartQuantities = async () => {
+    const token = localStorage.getItem("accessToken");
+    if (!token) return;
+    try {
+      const res = await fetch("/api/v1/cart", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (res.ok && data.data?.items) {
+        const map: Record<string, number> = {};
+        for (const item of data.data.items as Array<{ product: { product_id: string }; quantity: number }>) {
+          map[item.product.product_id] = item.quantity;
+        }
+        setCartQuantities(map);
+      }
+    } catch {
+      // silent
     }
   };
 
@@ -607,12 +633,13 @@ function ProductsContent() {
                     <button
                       onClick={() => addToCart(product.id)}
                       disabled={addingToCart === product.id}
-                      className="p-2 border transition-colors hover:bg-green-50 hover:border-green-600 disabled:opacity-50"
+                      className="relative p-2 border transition-colors hover:bg-green-50 hover:border-green-600 disabled:opacity-50"
                       style={{
-                        borderColor: colors.border,
+                        borderColor: cartQuantities[product.id] ? colors.accent : colors.border,
+                        backgroundColor: cartQuantities[product.id] ? colors.successBg : "transparent",
                         borderRadius: "4px",
                       }}
-                      title="Add to cart"
+                      title={cartQuantities[product.id] ? `${cartQuantities[product.id]} in cart` : "Add to cart"}
                     >
                       {addingToCart === product.id ? (
                         <Loader2
@@ -625,6 +652,14 @@ function ProductsContent() {
                           size={16}
                           style={{ color: colors.accent }}
                         />
+                      )}
+                      {cartQuantities[product.id] > 0 && (
+                        <span
+                          className="absolute -top-1.5 -right-1.5 w-4 h-4 flex items-center justify-center text-[9px] font-bold text-white"
+                          style={{ backgroundColor: colors.accent, borderRadius: "50%" }}
+                        >
+                          {cartQuantities[product.id] > 9 ? "9+" : cartQuantities[product.id]}
+                        </span>
                       )}
                     </button>
                   </div>
