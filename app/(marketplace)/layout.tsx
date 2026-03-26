@@ -427,7 +427,7 @@ export default function MarketplaceLayout({
                 >
                   {item.label}
                 </span>
-                {item.badge && item.badge > 0 && (
+                {item.badge !== undefined && item.badge > 0 && (
                   <span
                     className="absolute top-1 right-1 w-4 h-4 flex items-center justify-center text-[10px] font-medium text-white"
                     style={{

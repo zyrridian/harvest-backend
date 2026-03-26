@@ -47,12 +47,21 @@ async function handleUpdate(
     const body = await request.json();
     const { quantity, notes } = body;
 
+    if (quantity !== undefined && (typeof quantity !== "number" || !Number.isInteger(quantity) || quantity < 1)) {
+      throw AppError.badRequest("Quantity must be a positive integer");
+    }
+
     const cartItem = await prisma.cartItem.findUnique({
       where: { id },
       include: {
         cart: true,
         product: {
-          include: {
+          select: {
+            id: true,
+            price: true,
+            stockQuantity: true,
+            minimumOrder: true,
+            maximumOrder: true,
             discounts: {
               where: {
                 isActive: true,
@@ -75,6 +84,19 @@ async function handleUpdate(
       throw AppError.forbidden("Not authorized");
     }
 
+    if (quantity !== undefined) {
+      // Validate against product constraints
+      if (quantity < cartItem.product.minimumOrder) {
+        throw AppError.badRequest(`Minimum order for this product is ${cartItem.product.minimumOrder}`);
+      }
+      if (quantity > cartItem.product.maximumOrder) {
+        throw AppError.badRequest(`Maximum order for this product is ${cartItem.product.maximumOrder}`);
+      }
+      if (quantity > cartItem.product.stockQuantity) {
+        throw AppError.badRequest(`Only ${cartItem.product.stockQuantity} items left in stock`);
+      }
+    }
+
     let newSubtotal = cartItem.subtotal;
     if (quantity !== undefined) {
       const activeDiscount = cartItem.product.discounts[0];
@@ -94,11 +116,24 @@ async function handleUpdate(
       },
     });
 
+    // Update Cart updatedAt
+    await prisma.cart.update({
+      where: { id: cartItem.cartId },
+      data: { updatedAt: new Date() },
+    });
+
     const allItems = await prisma.cartItem.findMany({ where: { cartId: cartItem.cartId } });
+    const cartTotalItems = allItems.length;
     const cartGrandTotal = allItems.reduce((sum, item) => sum + item.subtotal, 0);
 
     return successResponse(
-      { cart_item_id: updated.id, quantity: updated.quantity, subtotal: updated.subtotal, cart_grand_total: cartGrandTotal },
+      { 
+        cart_item_id: updated.id, 
+        quantity: updated.quantity, 
+        subtotal: updated.subtotal, 
+        cart_total_items: cartTotalItems,
+        cart_grand_total: cartGrandTotal 
+      },
       { message: "Cart item updated" },
     );
   } catch (error) {

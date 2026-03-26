@@ -43,6 +43,10 @@ export async function POST(request: NextRequest) {
       throw AppError.badRequest("Product ID is required");
     }
 
+    if (quantity !== undefined && (typeof quantity !== "number" || !Number.isInteger(quantity) || quantity < 1)) {
+      throw AppError.badRequest("Quantity must be a positive integer");
+    }
+
     const product = await prisma.product.findUnique({
       where: { id: product_id },
       include: {
