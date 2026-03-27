@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import {
   MapPin,
   Star,
@@ -115,6 +115,7 @@ interface CommunityPost {
 
 export default function FarmerDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const farmerId = params.id as string;
 
   const [farmer, setFarmer] = useState<FarmerDetail | null>(null);
@@ -127,6 +128,7 @@ export default function FarmerDetailPage() {
     "products" | "about" | "reviews" | "community"
   >("products");
   const [addingToCart, setAddingToCart] = useState<string | null>(null);
+  const [startingChat, setStartingChat] = useState(false);
 
   useEffect(() => {
     if (farmerId) {
@@ -227,6 +229,41 @@ export default function FarmerDetailPage() {
       }
     } else {
       navigator.clipboard.writeText(url);
+    }
+  };
+
+  const handleContactFarmer = async () => {
+    const token = localStorage.getItem("accessToken");
+    if (!token) {
+      router.push(`/login?redirect=/farmers/${farmerId}`);
+      return;
+    }
+    if (!farmer) return;
+
+    setStartingChat(true);
+    try {
+      const response = await fetch("/api/v1/conversations", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          recipient_id: farmer.user_id,
+          type: "general",
+        }),
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        router.push(`/messages/${data.data.conversation_id}`);
+      } else {
+        console.error("Failed to start conversation:", data.message);
+      }
+    } catch (error) {
+      console.error("Contact farmer error:", error);
+    } finally {
+      setStartingChat(false);
     }
   };
 
@@ -460,18 +497,25 @@ export default function FarmerDetailPage() {
 
               {/* Contact button */}
               <div className="flex flex-col gap-2 md:flex-shrink-0">
-                <Link
-                  href={`/messages?farmer=${farmer.user_id}`}
-                  className="px-6 py-2.5 text-sm font-medium flex items-center justify-center gap-2"
+                <button
+                  onClick={handleContactFarmer}
+                  disabled={startingChat}
+                  className="px-6 py-2.5 text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-50"
                   style={{
                     backgroundColor: colors.accent,
                     color: colors.white,
                     borderRadius: "4px",
                   }}
                 >
-                  <MessageSquare size={16} />
-                  Contact
-                </Link>
+                  {startingChat ? (
+                    <Loader2 size={16} className="animate-spin" />
+                  ) : (
+                    <>
+                      <MessageSquare size={16} />
+                      Contact
+                    </>
+                  )}
+                </button>
                 {farmer.phone && (
                   <a
                     href={`tel:${farmer.phone}`}

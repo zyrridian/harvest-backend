@@ -1,16 +1,14 @@
-version: "3.8"
-services:
-  postgres:
-    image: postgres:16-alpine
-    container_name: farm_db
-    environment:
-      - POSTGRES_USER=admin
-      - POSTGRES_PASSWORD=password123
-      - POSTGRES_DB=farm_market
-    ports:
-      - "5433:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
+version: '3.8'
 
-volumes:
-  postgres_data:
+services:
+  farm-marketplace:
+    build: .
+    container_name: farm-marketplace
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    restart: always
+
+# Note: Database remains in Supabase, so no Postgres service here.
+# Just pass your Supabase DATABASE_URL in the .env file.
