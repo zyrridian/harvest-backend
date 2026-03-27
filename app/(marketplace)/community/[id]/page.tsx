@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { useRouter, useParams } from "next/navigation";
 import {
@@ -15,6 +15,10 @@ import {
   Trash2,
   CheckCircle,
   Leaf,
+  Pencil,
+  Reply,
+  X,
+  AlertTriangle,
 } from "lucide-react";
 
 // Design System Colors
@@ -26,6 +30,7 @@ const colors = {
   accent: "#166534",
   border: "#E4E4E7",
   success: "#16a34a",
+  successBg: "#dcfce7",
   error: "#dc2626",
 };
 
@@ -57,26 +62,32 @@ interface Post {
   };
 }
 
+interface CommentUser {
+  id: string;
+  name: string;
+  avatarUrl?: string | null;
+}
+
 interface Comment {
   id: string;
   content: string;
+  parentId?: string | null;
   likesCount: number;
   createdAt: string;
-  user: {
-    id: string;
-    name: string;
-    avatarUrl: string | null;
-  };
+  user: CommentUser;
+  replyToUser?: { id: string; name: string } | null;
   is_liked_by_user?: boolean;
   _count?: {
     likes: number;
   };
+  replies?: Comment[];
 }
 
 export default function PostDetailPage() {
   const router = useRouter();
   const params = useParams();
   const postId = params.id as string;
+  const commentInputRef = useRef<HTMLInputElement>(null);
 
   const [post, setPost] = useState<Post | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
@@ -87,6 +98,16 @@ export default function PostDetailPage() {
   const [likingComment, setLikingComment] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState<number | null>(null);
+  const [showPostMenu, setShowPostMenu] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  // Reply state
+  const [replyTo, setReplyTo] = useState<{
+    commentId: string;
+    userName: string;
+    userId: string;
+  } | null>(null);
 
   useEffect(() => {
     if (postId) {
@@ -106,7 +127,7 @@ export default function PostDetailPage() {
       });
       if (response.ok) {
         const data = await response.json();
-        setCurrentUserId(data.data.user_id);
+        setCurrentUserId(data.data.id);
       }
     } catch (error) {
       console.error("Get user error:", error);
@@ -138,7 +159,7 @@ export default function PostDetailPage() {
     try {
       const token = localStorage.getItem("accessToken");
       const response = await fetch(
-        `/api/v1/community/posts/${postId}/comments`,
+        `/api/v1/community/posts/${postId}/comments?limit=50`,
         {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         },
@@ -206,6 +227,7 @@ export default function PostDetailPage() {
       );
 
       if (response.ok) {
+        // Update like status in both top-level and replies
         setComments((prev) =>
           prev.map((c) => {
             if (c.id === commentId) {
@@ -216,6 +238,25 @@ export default function PostDetailPage() {
                 _count: {
                   likes: isLiked ? currentLikes - 1 : currentLikes + 1,
                 },
+              };
+            }
+            // Check replies
+            if (c.replies) {
+              return {
+                ...c,
+                replies: c.replies.map((r) => {
+                  if (r.id === commentId) {
+                    const currentLikes = r._count?.likes ?? 0;
+                    return {
+                      ...r,
+                      is_liked_by_user: !isLiked,
+                      _count: {
+                        likes: isLiked ? currentLikes - 1 : currentLikes + 1,
+                      },
+                    };
+                  }
+                  return r;
+                }),
               };
             }
             return c;
@@ -241,6 +282,12 @@ export default function PostDetailPage() {
 
     setSubmitting(true);
     try {
+      const payload: Record<string, string> = { content: commentText };
+      if (replyTo) {
+        payload.parent_id = replyTo.commentId;
+        payload.reply_to_user_id = replyTo.userId;
+      }
+
       const response = await fetch(
         `/api/v1/community/posts/${postId}/comments`,
         {
@@ -249,14 +296,31 @@ export default function PostDetailPage() {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({ content: commentText }),
+          body: JSON.stringify(payload),
         },
       );
 
       const data = await response.json();
       if (response.ok) {
-        setComments((prev) => [data.data, ...prev]);
+        if (replyTo) {
+          // Add reply under its parent comment
+          setComments((prev) =>
+            prev.map((c) => {
+              if (c.id === replyTo.commentId || c.id === data.data.parentId) {
+                return {
+                  ...c,
+                  replies: [...(c.replies || []), data.data],
+                };
+              }
+              return c;
+            }),
+          );
+        } else {
+          // New top-level comment
+          setComments((prev) => [{ ...data.data, replies: [] }, ...prev]);
+        }
         setCommentText("");
+        setReplyTo(null);
         if (post) {
           setPost({
             ...post,
@@ -271,7 +335,7 @@ export default function PostDetailPage() {
     }
   };
 
-  const handleDeleteComment = async (commentId: string) => {
+  const handleDeleteComment = async (commentId: string, isReply = false, parentId?: string) => {
     const token = localStorage.getItem("accessToken");
     if (!token) return;
 
@@ -284,7 +348,21 @@ export default function PostDetailPage() {
       });
 
       if (response.ok) {
-        setComments((prev) => prev.filter((c) => c.id !== commentId));
+        if (isReply && parentId) {
+          setComments((prev) =>
+            prev.map((c) => {
+              if (c.id === parentId) {
+                return {
+                  ...c,
+                  replies: (c.replies || []).filter((r) => r.id !== commentId),
+                };
+              }
+              return c;
+            }),
+          );
+        } else {
+          setComments((prev) => prev.filter((c) => c.id !== commentId));
+        }
         if (post) {
           setPost({
             ...post,
@@ -295,6 +373,38 @@ export default function PostDetailPage() {
     } catch (error) {
       console.error("Delete comment error:", error);
     }
+  };
+
+  const handleDeletePost = async () => {
+    const token = localStorage.getItem("accessToken");
+    if (!token) return;
+
+    setDeleting(true);
+    try {
+      const response = await fetch(`/api/v1/community/posts/${postId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (response.ok) {
+        router.push("/community");
+      }
+    } catch (error) {
+      console.error("Delete post error:", error);
+    } finally {
+      setDeleting(false);
+      setShowDeleteConfirm(false);
+    }
+  };
+
+  const handleReply = (comment: Comment) => {
+    setReplyTo({
+      commentId: comment.parentId || comment.id, // Always reply to top-level
+      userName: comment.user.name,
+      userId: comment.user.id,
+    });
+    setCommentText(`@${comment.user.name} `);
+    commentInputRef.current?.focus();
   };
 
   const handleShare = async () => {
@@ -324,6 +434,119 @@ export default function PostDetailPage() {
     if (diffDays < 7) return `${diffDays}d ago`;
     return date.toLocaleDateString();
   };
+
+  // Render @mention in comment content
+  const renderContent = (text: string) => {
+    const parts = text.split(/(@\w[\w\s]*?)(?=\s|$)/);
+    return parts.map((part, i) => {
+      if (part.startsWith("@")) {
+        return (
+          <span key={i} className="font-semibold" style={{ color: colors.accent }}>
+            {part}
+          </span>
+        );
+      }
+      return part;
+    });
+  };
+
+  const renderComment = (comment: Comment, isReply = false, parentId?: string) => (
+    <div
+      key={comment.id}
+      className={`p-4 ${isReply ? "pl-16" : ""}`}
+      style={{
+        borderBottom: `1px solid ${colors.border}`,
+        backgroundColor: isReply ? "#F9FAFB" : colors.white,
+      }}
+    >
+      <div className="flex gap-3">
+        <div
+          className={`${isReply ? "w-8 h-8" : "w-10 h-10"} flex-shrink-0 flex items-center justify-center overflow-hidden`}
+          style={{
+            backgroundColor: colors.background,
+            borderRadius: "9999px",
+          }}
+        >
+          {comment.user.avatarUrl ? (
+            <img
+              src={comment.user.avatarUrl}
+              alt={comment.user.name}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <User size={isReply ? 14 : 18} style={{ color: colors.body }} />
+          )}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span
+              className="font-medium text-sm"
+              style={{ color: colors.heading }}
+            >
+              {comment.user.name}
+            </span>
+            {comment.replyToUser && (
+              <span className="text-xs" style={{ color: colors.body }}>
+                replied to{" "}
+                <span className="font-medium" style={{ color: colors.accent }}>
+                  @{comment.replyToUser.name}
+                </span>
+              </span>
+            )}
+            <span className="text-xs" style={{ color: colors.body }}>
+              · {formatDate(comment.createdAt)}
+            </span>
+          </div>
+          <p className="text-sm mt-1" style={{ color: colors.body }}>
+            {renderContent(comment.content)}
+          </p>
+          <div className="flex items-center gap-4 mt-2">
+            <button
+              onClick={() =>
+                handleLikeComment(
+                  comment.id,
+                  comment.is_liked_by_user || false,
+                )
+              }
+              disabled={likingComment === comment.id}
+              className="flex items-center gap-1 text-xs"
+              style={{
+                color: comment.is_liked_by_user
+                  ? colors.error
+                  : colors.body,
+              }}
+            >
+              <Heart
+                size={14}
+                fill={
+                  comment.is_liked_by_user ? colors.error : "none"
+                }
+              />
+              {(comment._count?.likes ?? 0) > 0 &&
+                (comment._count?.likes ?? 0)}
+            </button>
+            <button
+              onClick={() => handleReply(comment)}
+              className="flex items-center gap-1 text-xs"
+              style={{ color: colors.body }}
+            >
+              <Reply size={14} />
+              Reply
+            </button>
+            {currentUserId === comment.user.id && (
+              <button
+                onClick={() => handleDeleteComment(comment.id, isReply, parentId)}
+                className="flex items-center gap-1 text-xs"
+                style={{ color: colors.body }}
+              >
+                <Trash2 size={14} />
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 
   if (loading) {
     return (
@@ -370,6 +593,8 @@ export default function PostDetailPage() {
     );
   }
 
+  const isOwner = currentUserId === post.user.id;
+
   return (
     <div
       style={{ backgroundColor: colors.background }}
@@ -380,17 +605,68 @@ export default function PostDetailPage() {
         className="border-b sticky top-0 z-10"
         style={{ backgroundColor: colors.white, borderColor: colors.border }}
       >
-        <div className="max-w-3xl mx-auto px-4 py-3 flex items-center gap-4">
-          <button
-            onClick={() => router.back()}
-            className="p-2 -ml-2"
-            style={{ color: colors.heading }}
-          >
-            <ChevronLeft size={24} />
-          </button>
-          <h1 className="font-semibold" style={{ color: colors.heading }}>
-            Post
-          </h1>
+        <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => router.back()}
+              className="p-2 -ml-2"
+              style={{ color: colors.heading }}
+            >
+              <ChevronLeft size={24} />
+            </button>
+            <h1 className="font-semibold" style={{ color: colors.heading }}>
+              Post
+            </h1>
+          </div>
+          {isOwner && (
+            <div className="relative">
+              <button
+                onClick={() => setShowPostMenu(!showPostMenu)}
+                className="p-2"
+                style={{ color: colors.body }}
+              >
+                <MoreHorizontal size={20} />
+              </button>
+              {showPostMenu && (
+                <>
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setShowPostMenu(false)}
+                  />
+                  <div
+                    className="absolute right-0 top-full mt-1 w-40 z-50 border py-1"
+                    style={{
+                      backgroundColor: colors.white,
+                      borderColor: colors.border,
+                      borderRadius: "4px",
+                      boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+                    }}
+                  >
+                    <Link
+                      href={`/community/${postId}/edit`}
+                      onClick={() => setShowPostMenu(false)}
+                      className="flex items-center gap-2 w-full px-4 py-2.5 text-sm hover:bg-gray-50"
+                      style={{ color: colors.heading }}
+                    >
+                      <Pencil size={14} />
+                      Edit Post
+                    </Link>
+                    <button
+                      onClick={() => {
+                        setShowPostMenu(false);
+                        setShowDeleteConfirm(true);
+                      }}
+                      className="flex items-center gap-2 w-full px-4 py-2.5 text-sm hover:bg-gray-50"
+                      style={{ color: colors.error }}
+                    >
+                      <Trash2 size={14} />
+                      Delete Post
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
         </div>
       </header>
 
@@ -482,9 +758,6 @@ export default function PostDetailPage() {
                 {formatDate(post.createdAt)}
               </p>
             </div>
-            <button className="p-2">
-              <MoreHorizontal size={20} style={{ color: colors.body }} />
-            </button>
           </div>
 
           {/* Content */}
@@ -578,6 +851,28 @@ export default function PostDetailPage() {
           </div>
         </article>
 
+        {/* Reply indicator */}
+        {replyTo && (
+          <div
+            className="px-4 py-2 flex items-center justify-between"
+            style={{ backgroundColor: colors.successBg }}
+          >
+            <span className="text-sm" style={{ color: colors.accent }}>
+              Replying to <strong>@{replyTo.userName}</strong>
+            </span>
+            <button
+              onClick={() => {
+                setReplyTo(null);
+                setCommentText("");
+              }}
+              className="p-1"
+              style={{ color: colors.accent }}
+            >
+              <X size={16} />
+            </button>
+          </div>
+        )}
+
         {/* Comment Form */}
         <form
           onSubmit={handleSubmitComment}
@@ -585,10 +880,11 @@ export default function PostDetailPage() {
           style={{ backgroundColor: colors.white, borderColor: colors.border }}
         >
           <input
+            ref={commentInputRef}
             type="text"
             value={commentText}
             onChange={(e) => setCommentText(e.target.value)}
-            placeholder="Write a comment..."
+            placeholder={replyTo ? `Reply to @${replyTo.userName}...` : "Write a comment..."}
             className="flex-1 px-4 py-2 border text-sm"
             style={{
               borderColor: colors.border,
@@ -620,81 +916,14 @@ export default function PostDetailPage() {
             </div>
           ) : (
             comments.map((comment) => (
-              <div
-                key={comment.id}
-                className="p-4 border-b"
-                style={{ borderColor: colors.border }}
-              >
-                <div className="flex gap-3">
-                  <div
-                    className="w-10 h-10 flex-shrink-0 flex items-center justify-center overflow-hidden"
-                    style={{
-                      backgroundColor: colors.background,
-                      borderRadius: "9999px",
-                    }}
-                  >
-                    {comment.user.avatarUrl ? (
-                      <img
-                        src={comment.user.avatarUrl}
-                        alt={comment.user.name}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <User size={18} style={{ color: colors.body }} />
-                    )}
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <span
-                        className="font-medium text-sm"
-                        style={{ color: colors.heading }}
-                      >
-                        {comment.user.name}
-                      </span>
-                      <span className="text-xs" style={{ color: colors.body }}>
-                        {formatDate(comment.createdAt)}
-                      </span>
-                    </div>
-                    <p className="text-sm mt-1" style={{ color: colors.body }}>
-                      {comment.content}
-                    </p>
-                    <div className="flex items-center gap-4 mt-2">
-                      <button
-                        onClick={() =>
-                          handleLikeComment(
-                            comment.id,
-                            comment.is_liked_by_user || false,
-                          )
-                        }
-                        disabled={likingComment === comment.id}
-                        className="flex items-center gap-1 text-sm"
-                        style={{
-                          color: comment.is_liked_by_user
-                            ? colors.error
-                            : colors.body,
-                        }}
-                      >
-                        <Heart
-                          size={14}
-                          fill={
-                            comment.is_liked_by_user ? colors.error : "none"
-                          }
-                        />
-                        {(comment._count?.likes ?? 0) > 0 &&
-                          (comment._count?.likes ?? 0)}
-                      </button>
-                      {currentUserId === comment.user.id && (
-                        <button
-                          onClick={() => handleDeleteComment(comment.id)}
-                          className="flex items-center gap-1 text-sm"
-                          style={{ color: colors.body }}
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
+              <div key={comment.id}>
+                {/* Top-level comment */}
+                {renderComment(comment)}
+                {/* Replies */}
+                {comment.replies &&
+                  comment.replies.map((reply) =>
+                    renderComment(reply, true, comment.id),
+                  )}
               </div>
             ))
           )}
@@ -713,6 +942,72 @@ export default function PostDetailPage() {
             className="max-w-full max-h-full object-contain"
           />
         </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <>
+          <div
+            className="fixed inset-0 z-50 bg-black/50"
+            onClick={() => setShowDeleteConfirm(false)}
+          />
+          <div
+            className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-80 p-6 border"
+            style={{
+              backgroundColor: colors.white,
+              borderColor: colors.border,
+              borderRadius: "8px",
+              boxShadow: "0 20px 60px rgba(0,0,0,0.2)",
+            }}
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <div
+                className="w-10 h-10 flex items-center justify-center"
+                style={{ backgroundColor: "#fee2e2", borderRadius: "50%" }}
+              >
+                <AlertTriangle size={20} style={{ color: colors.error }} />
+              </div>
+              <h3
+                className="font-bold text-lg"
+                style={{ color: colors.heading }}
+              >
+                Delete Post?
+              </h3>
+            </div>
+            <p className="text-sm mb-6" style={{ color: colors.body }}>
+              This action cannot be undone. Your post and all its comments will
+              be permanently deleted.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="flex-1 py-2.5 text-sm font-medium border"
+                style={{
+                  borderColor: colors.border,
+                  color: colors.heading,
+                  borderRadius: "4px",
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeletePost}
+                disabled={deleting}
+                className="flex-1 py-2.5 text-sm font-medium text-white disabled:opacity-50"
+                style={{
+                  backgroundColor: colors.error,
+                  borderRadius: "4px",
+                }}
+              >
+                {deleting ? (
+                  <Loader2 size={16} className="animate-spin mx-auto" />
+                ) : (
+                  "Delete"
+                )}
+              </button>
+            </div>
+          </div>
+        </>
       )}
     </div>
   );

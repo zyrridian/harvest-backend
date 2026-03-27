@@ -14,6 +14,8 @@ import {
   User,
   CheckCircle,
   Leaf,
+  Pencil,
+  Trash2,
 } from "lucide-react";
 
 // Design System Colors
@@ -58,7 +60,7 @@ interface Post {
   };
 }
 
-type FilterType = "all" | "following" | "my_posts";
+type FilterType = "all" | "following" | "my_posts" | "farmers";
 
 export default function CommunityPage() {
   const router = useRouter();
@@ -70,6 +72,12 @@ export default function CommunityPage() {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [liking, setLiking] = useState<string | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+
+  useEffect(() => {
+    getCurrentUser();
+  }, []);
 
   useEffect(() => {
     setPosts([]);
@@ -77,6 +85,37 @@ export default function CommunityPage() {
     setHasMore(true);
     fetchPosts(1, true);
   }, [filter, selectedTag]);
+
+  const getCurrentUser = async () => {
+    const token = localStorage.getItem("accessToken");
+    if (!token) return;
+    try {
+      const res = await fetch("/api/v1/auth/me", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setCurrentUserId(data.data.id);
+      }
+    } catch { /* silent */ }
+  };
+
+  const handleDeletePost = async (postId: string) => {
+    const token = localStorage.getItem("accessToken");
+    if (!token) return;
+    if (!confirm("Delete this post? This cannot be undone.")) return;
+    try {
+      const res = await fetch(`/api/v1/community/posts/${postId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        setPosts((prev) => prev.filter((p) => p.id !== postId));
+      }
+    } catch (e) {
+      console.error("Delete post error:", e);
+    }
+  };
 
   const fetchPosts = async (pageNum: number, reset: boolean = false) => {
     try {
@@ -255,8 +294,8 @@ export default function CommunityPage() {
           </div>
 
           {/* Filter tabs */}
-          <div className="flex gap-2 overflow-x-auto pb-2">
-            {(["all", "following", "my_posts"] as FilterType[]).map((f) => (
+          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
+            {(["all", "farmers", "following", "my_posts"] as FilterType[]).map((f) => (
               <button
                 key={f}
                 onClick={() => setFilter(f)}
@@ -270,9 +309,11 @@ export default function CommunityPage() {
               >
                 {f === "all"
                   ? "All Posts"
-                  : f === "following"
-                    ? "Following"
-                    : "My Posts"}
+                  : f === "farmers"
+                    ? "Farmer Updates"
+                    : f === "following"
+                      ? "Following"
+                      : "My Posts"}
               </button>
             ))}
           </div>
@@ -420,9 +461,71 @@ export default function CommunityPage() {
                       {formatDate(post.createdAt)}
                     </p>
                   </div>
-                  <button className="p-2">
-                    <MoreHorizontal size={20} style={{ color: colors.body }} />
-                  </button>
+                  <div className="relative">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setOpenMenuId(openMenuId === post.id ? null : post.id);
+                      }}
+                      className="p-2"
+                    >
+                      <MoreHorizontal size={20} style={{ color: colors.body }} />
+                    </button>
+                    {openMenuId === post.id && (
+                      <>
+                        <div
+                          className="fixed inset-0 z-40"
+                          onClick={() => setOpenMenuId(null)}
+                        />
+                        <div
+                          className="absolute right-0 top-full mt-1 w-36 z-50 border py-1"
+                          style={{
+                            backgroundColor: colors.white,
+                            borderColor: colors.border,
+                            borderRadius: "4px",
+                            boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+                          }}
+                        >
+                          {currentUserId === post.user.id ? (
+                            <>
+                              <Link
+                                href={`/community/${post.id}/edit`}
+                                onClick={() => setOpenMenuId(null)}
+                                className="flex items-center gap-2 w-full px-4 py-2 text-sm hover:bg-gray-50"
+                                style={{ color: colors.heading }}
+                              >
+                                <Pencil size={14} />
+                                Edit
+                              </Link>
+                              <button
+                                onClick={() => {
+                                  setOpenMenuId(null);
+                                  handleDeletePost(post.id);
+                                }}
+                                className="flex items-center gap-2 w-full px-4 py-2 text-sm hover:bg-gray-50"
+                                style={{ color: colors.error }}
+                              >
+                                <Trash2 size={14} />
+                                Delete
+                              </button>
+                            </>
+                          ) : (
+                            <button
+                              onClick={() => {
+                                setOpenMenuId(null);
+                                handleShare(post);
+                              }}
+                              className="flex items-center gap-2 w-full px-4 py-2 text-sm hover:bg-gray-50"
+                              style={{ color: colors.body }}
+                            >
+                              <Share2 size={14} />
+                              Share
+                            </button>
+                          )}
+                        </div>
+                      </>
+                    )}
+                  </div>
                 </div>
 
                 {/* Post Content */}

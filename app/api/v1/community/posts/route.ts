@@ -16,7 +16,7 @@ import { parsePagination, buildPaginationMeta } from "@/lib/helpers/pagination";
  *         name: filter
  *         schema:
  *           type: string
- *           enum: [all, following, my_posts]
+ *           enum: [all, following, my_posts, farmers]
  *       - in: query
  *         name: tag
  *         schema:
@@ -53,6 +53,7 @@ export async function GET(request: NextRequest) {
 
     const where: Record<string, unknown> = {};
     if (filter === "my_posts" && userId) where.userId = userId;
+    if (filter === "farmers") where.farmerId = { not: null };
     if (farmerId) where.farmerId = farmerId;
     if (tag) where.tags = { some: { tag } };
 

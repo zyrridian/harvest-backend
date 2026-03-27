@@ -54,6 +54,7 @@ model User {
   postLikes             PostLike[]
   postComments          PostComment[]
   commentLikes          CommentLike[]
+  commentReplyTo        PostComment[]        @relation("CommentReplyTo")
 
   @@index([email])
   @@index([userType])
@@ -870,20 +871,26 @@ model PostLike {
 }
 
 model PostComment {
-  id         String        @id @default(uuid())
-  postId     String        @map("post_id")
-  userId     String        @map("user_id")
-  content    String        @db.Text
-  likesCount Int           @default(0) @map("likes_count")
-  createdAt  DateTime      @default(now()) @map("created_at")
+  id             String        @id @default(uuid())
+  postId         String        @map("post_id")
+  userId         String        @map("user_id")
+  parentId       String?       @map("parent_id")
+  replyToUserId  String?       @map("reply_to_user_id")
+  content        String        @db.Text
+  likesCount     Int           @default(0) @map("likes_count")
+  createdAt      DateTime      @default(now()) @map("created_at")
 
   // Relations
-  post  CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
-  user  User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  likes CommentLike[]
+  post        CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent      PostComment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies     PostComment[] @relation("CommentReplies")
+  replyToUser User?         @relation("CommentReplyTo", fields: [replyToUserId], references: [id], onDelete: SetNull)
+  likes       CommentLike[]
 
   @@index([postId])
   @@index([userId])
+  @@index([parentId])
   @@map("post_comments")
 }
 

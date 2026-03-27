@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useRouter, useParams } from "next/navigation";
 import {
   ChevronLeft,
   Image as ImageIcon,
@@ -10,7 +10,6 @@ import {
   Hash,
 } from "lucide-react";
 
-// Design System Colors
 const colors = {
   background: "#FAFAF9",
   white: "#FFFFFF",
@@ -24,23 +23,51 @@ const colors = {
   error: "#dc2626",
 };
 
-export default function NewPostPage() {
+export default function EditPostPage() {
   const router = useRouter();
+  const params = useParams();
+  const postId = params.id as string;
+
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [tagInput, setTagInput] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const [images, setImages] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    fetchPost();
+  }, [postId]);
+
+  const fetchPost = async () => {
+    try {
+      const token = localStorage.getItem("accessToken");
+      const response = await fetch(`/api/v1/community/posts/${postId}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      const data = await response.json();
+
+      if (response.ok) {
+        setTitle(data.data.title);
+        setContent(data.data.content);
+        setTags((data.data.tags || []).map((t: {tag:string}) => t.tag));
+        setImages((data.data.images || []).map((i: {url:string}) => i.url));
+      } else {
+        setError("Post not found");
+      }
+    } catch {
+      setError("Failed to load post");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleAddTag = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" || e.key === ",") {
       e.preventDefault();
-      const tag = tagInput
-        .trim()
-        .toLowerCase()
-        .replace(/[^a-z0-9]/g, "");
+      const tag = tagInput.trim().toLowerCase().replace(/[^a-z0-9]/g, "");
       if (tag && !tags.includes(tag) && tags.length < 5) {
         setTags([...tags, tag]);
         setTagInput("");
@@ -48,27 +75,11 @@ export default function NewPostPage() {
     }
   };
 
-  const handleRemoveTag = (tag: string) => {
-    setTags(tags.filter((t) => t !== tag));
-  };
-
-  const handleAddImage = () => {
-    const url = prompt("Enter image URL:");
-    if (url && !images.includes(url)) {
-      setImages([...images, url]);
-    }
-  };
-
-  const handleRemoveImage = (url: string) => {
-    setImages(images.filter((i) => i !== url));
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const token = localStorage.getItem("accessToken");
-
     if (!token) {
-      router.push("/login?redirect=/community/new");
+      router.push("/login");
       return;
     }
 
@@ -81,8 +92,8 @@ export default function NewPostPage() {
     setError("");
 
     try {
-      const response = await fetch("/api/v1/community/posts", {
-        method: "POST",
+      const response = await fetch(`/api/v1/community/posts/${postId}`, {
+        method: "PUT",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
@@ -90,24 +101,37 @@ export default function NewPostPage() {
         body: JSON.stringify({
           title: title.trim(),
           content: content.trim(),
-          tags: tags.length > 0 ? tags : undefined,
-          images: images.length > 0 ? images : undefined,
         }),
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        router.push(`/community/${data.data.id}`);
+        router.push(`/community/${postId}`);
       } else {
-        setError(data.message || "Failed to create post");
+        setError(data.message || "Failed to update post");
       }
     } catch (err: any) {
-      setError(err.message || "Failed to create post");
+      setError(err.message || "Failed to update post");
     } finally {
       setSubmitting(false);
     }
   };
+
+  if (loading) {
+    return (
+      <div
+        className="min-h-screen flex items-center justify-center"
+        style={{ backgroundColor: colors.background }}
+      >
+        <Loader2
+          size={32}
+          className="animate-spin"
+          style={{ color: colors.accent }}
+        />
+      </div>
+    );
+  }
 
   return (
     <div
@@ -129,7 +153,7 @@ export default function NewPostPage() {
               <ChevronLeft size={24} />
             </button>
             <h1 className="font-semibold" style={{ color: colors.heading }}>
-              New Post
+              Edit Post
             </h1>
           </div>
           <button
@@ -145,7 +169,7 @@ export default function NewPostPage() {
             {submitting ? (
               <Loader2 size={16} className="animate-spin" />
             ) : (
-              "Post"
+              "Save"
             )}
           </button>
         </div>
@@ -165,18 +189,6 @@ export default function NewPostPage() {
               {error}
             </div>
           )}
-
-          {/* Info Banner */}
-          <div
-            className="mx-4 mt-4 p-3 text-sm flex items-start gap-2"
-            style={{
-              backgroundColor: colors.successBg,
-              color: colors.accent,
-              borderRadius: "4px",
-            }}
-          >
-            <span className="font-bold">Tip:</span> The community is a shared space for both farmers and consumers. If you run a farm, your posts will automatically be tagged with your farm's badge!
-          </div>
 
           {/* Title */}
           <div
@@ -221,119 +233,74 @@ export default function NewPostPage() {
             />
           </div>
 
-          {/* Tags */}
-          <div
-            className="p-4 border-b"
-            style={{
-              backgroundColor: colors.white,
-              borderColor: colors.border,
-            }}
-          >
-            <div className="flex items-center gap-2 mb-2">
-              <Hash size={18} style={{ color: colors.body }} />
-              <span
-                className="text-sm font-medium"
-                style={{ color: colors.heading }}
-              >
-                Tags
-              </span>
-              <span className="text-xs" style={{ color: colors.body }}>
-                (up to 5)
-              </span>
-            </div>
-            <div className="flex flex-wrap gap-2 mb-2">
-              {tags.map((tag) => (
+          {/* Tags (read-only display for now, editable via API later) */}
+          {tags.length > 0 && (
+            <div
+              className="p-4 border-b"
+              style={{
+                backgroundColor: colors.white,
+                borderColor: colors.border,
+              }}
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <Hash size={18} style={{ color: colors.body }} />
                 <span
-                  key={tag}
-                  className="inline-flex items-center gap-1 px-3 py-1 text-sm"
-                  style={{
-                    backgroundColor: colors.background,
-                    color: colors.accent,
-                    borderRadius: "9999px",
-                  }}
+                  className="text-sm font-medium"
+                  style={{ color: colors.heading }}
                 >
-                  #{tag}
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveTag(tag)}
-                    className="ml-1 hover:opacity-70"
-                  >
-                    <X size={14} />
-                  </button>
+                  Tags
                 </span>
-              ))}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {tags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="inline-flex items-center gap-1 px-3 py-1 text-sm"
+                    style={{
+                      backgroundColor: colors.background,
+                      color: colors.accent,
+                      borderRadius: "9999px",
+                    }}
+                  >
+                    #{tag}
+                  </span>
+                ))}
+              </div>
             </div>
-            {tags.length < 5 && (
-              <input
-                type="text"
-                value={tagInput}
-                onChange={(e) => setTagInput(e.target.value)}
-                onKeyDown={handleAddTag}
-                placeholder="Add a tag and press Enter"
-                className="w-full px-3 py-2 border text-sm outline-none"
-                style={{
-                  borderColor: colors.border,
-                  borderRadius: "4px",
-                  backgroundColor: colors.background,
-                }}
-              />
-            )}
-          </div>
+          )}
 
-          {/* Images */}
-          <div className="p-4" style={{ backgroundColor: colors.white }}>
-            <div className="flex items-center gap-2 mb-4">
-              <ImageIcon size={18} style={{ color: colors.body }} />
-              <span
-                className="text-sm font-medium"
-                style={{ color: colors.heading }}
-              >
-                Images
-              </span>
-            </div>
-
-            {images.length > 0 && (
-              <div className="grid grid-cols-2 gap-2 mb-4">
+          {/* Images (read-only display) */}
+          {images.length > 0 && (
+            <div className="p-4" style={{ backgroundColor: colors.white }}>
+              <div className="flex items-center gap-2 mb-4">
+                <ImageIcon size={18} style={{ color: colors.body }} />
+                <span
+                  className="text-sm font-medium"
+                  style={{ color: colors.heading }}
+                >
+                  Images
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
                 {images.map((url, idx) => (
                   <div
                     key={idx}
                     className="aspect-video relative overflow-hidden"
-                    style={{ borderRadius: "8px", backgroundColor: "#f4f4f5" }}
+                    style={{
+                      borderRadius: "8px",
+                      backgroundColor: "#f4f4f5",
+                    }}
                   >
                     <img
                       src={url}
                       alt=""
                       className="w-full h-full object-cover"
                     />
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveImage(url)}
-                      className="absolute top-2 right-2 p-1"
-                      style={{
-                        backgroundColor: "rgba(0,0,0,0.5)",
-                        borderRadius: "9999px",
-                      }}
-                    >
-                      <X size={16} style={{ color: colors.white }} />
-                    </button>
                   </div>
                 ))}
               </div>
-            )}
-
-            <button
-              type="button"
-              onClick={handleAddImage}
-              className="w-full p-4 border-2 border-dashed text-sm font-medium"
-              style={{
-                borderColor: colors.border,
-                color: colors.body,
-                borderRadius: "8px",
-              }}
-            >
-              + Add image URL
-            </button>
-          </div>
+            </div>
+          )}
         </form>
       </div>
     </div>
