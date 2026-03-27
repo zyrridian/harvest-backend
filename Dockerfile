@@ -1,7 +1,7 @@
 # Dockerfile for Harvest Backend (Next.js + Socket.io)
 
 # 1. BASE
-FROM node:18-alpine AS base
+FROM node:22-alpine AS base
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
@@ -25,9 +25,9 @@ RUN npm run build
 FROM base AS runner
 WORKDIR /app
 
-ENV NODE_ENV production
-ENV PORT 3000
-ENV HOSTNAME "0.0.0.0"
+ENV NODE_ENV=production
+ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
 
 # Copy everything for maximum compatibility with server.ts imports
 COPY --from=builder /app ./
