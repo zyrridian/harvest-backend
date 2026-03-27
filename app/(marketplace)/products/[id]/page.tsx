@@ -126,6 +126,7 @@ export default function ProductDetailPage() {
   const [isFavorite, setIsFavorite] = useState(false);
   const [cartQty, setCartQty] = useState(0); // qty of this product already in cart
   const [addedToast, setAddedToast] = useState(false);
+  const [startingChat, setStartingChat] = useState(false);
 
   useEffect(() => {
     if (productId) {
@@ -275,7 +276,43 @@ export default function ProductDetailPage() {
       }
     } else {
       navigator.clipboard.writeText(url);
-      // Optionally show Toast
+    }
+  };
+
+  const handleChatSeller = async () => {
+    const token = localStorage.getItem("accessToken");
+    if (!token) {
+      router.push(`/login?redirect=/products/${productId}`);
+      return;
+    }
+    if (!product) return;
+
+    setStartingChat(true);
+    try {
+      const response = await fetch("/api/v1/conversations", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          recipient_id: product.seller.seller_id,
+          type: "product",
+          product_id: product.product_id,
+          initial_message: `Hi! I'm interested in your product: ${product.name}`,
+        }),
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        router.push(`/messages/${data.data.conversation_id}`);
+      } else {
+        console.error("Failed to start conversation:", data.message);
+      }
+    } catch (error) {
+      console.error("Chat seller error:", error);
+    } finally {
+      setStartingChat(false);
     }
   };
 
@@ -758,8 +795,27 @@ export default function ProductDetailPage() {
               </button>
             </div>
 
-
-            {/* Trust badges */}
+            {/* Chat Seller button */}
+            <button
+              onClick={handleChatSeller}
+              disabled={startingChat}
+              className="w-full py-3 px-6 flex items-center justify-center gap-2 text-sm font-medium border transition-colors disabled:opacity-50 mb-6"
+              style={{
+                borderColor: colors.accent,
+                color: colors.accent,
+                borderRadius: "4px",
+                backgroundColor: "transparent",
+              }}
+            >
+              {startingChat ? (
+                <Loader2 size={18} className="animate-spin" />
+              ) : (
+                <>
+                  <MessageSquare size={18} />
+                  Chat with Seller
+                </>
+              )}
+            </button>
             <div
               className="grid grid-cols-3 gap-4 p-4 border mb-6"
               style={{
