@@ -8,6 +8,8 @@ services:
       - "3000:3000"
     env_file:
       - .env
+    environment:
+      - NODE_OPTIONS="--dns-result-order=ipv4first"
     restart: always
 
 # Note: Database remains in Supabase, so no Postgres service here.

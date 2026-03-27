@@ -29,6 +29,7 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
+ENV NODE_OPTIONS="--dns-result-order=ipv4first"
 
 # Copy everything for maximum compatibility with server.ts imports
 COPY --from=builder /app ./
