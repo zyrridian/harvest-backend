@@ -2,15 +2,11 @@ version: '3.8'
 
 services:
   harvest-web:
-    build: .
+    # Instead of 'build: .', we now pull the pre-built image directly from GitHub!
+    image: ghcr.io/zyrridian/harvest-web:latest
     container_name: harvest-web
     ports:
       - "3000:3000"
     env_file:
       - .env
-    environment:
-      - NODE_OPTIONS="--dns-result-order=ipv4first"
     restart: always
-
-# Note: Database remains in Supabase, so no Postgres service here.
-# Just pass your Supabase DATABASE_URL in the .env file.

@@ -1,11 +1,42 @@
-name: Deploy to VPS
+name: Build and Deploy to VPS
 
 on:
   push:
     branches: [ main ]
 
+env:
+  REGISTRY: ghcr.io
+  # Hardcoded lowercase repository name to prevent Docker syntax errors
+  IMAGE_NAME: zyrridian/harvest-web
+
 jobs:
-  deploy:
+  # JOB 1: Build the image on GitHub's massive servers
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+
+  # JOB 2: Tell your VPS to download and run it
+  deploy-to-vps:
+    needs: build-and-push # Waits for the build to finish!
     runs-on: ubuntu-latest
     steps:
       - name: Deploy via SSH
@@ -16,8 +47,19 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
             cd harvest-web
+            
+            # Login the VPS to GitHub Packages
+            echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            
+            # Pull new code (just for the docker-compose file)
             git checkout main
             git pull origin main
             
-            # Rebuild and restart the docker container
-            docker-compose up -d --build
+            # Stop existing container to free up port/memory before pull
+            docker-compose down
+            
+            # Pull the completely compiled image
+            docker pull ghcr.io/zyrridian/harvest-web:latest
+            
+            # Turn it on!
+            docker-compose up -d
