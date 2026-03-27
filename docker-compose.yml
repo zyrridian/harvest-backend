@@ -1,9 +1,9 @@
 version: '3.8'
 
 services:
-  farm-marketplace:
+  harvest-web:
     build: .
-    container_name: farm-marketplace
+    container_name: harvest-web
     ports:
       - "3000:3000"
     env_file:
