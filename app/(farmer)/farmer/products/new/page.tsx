@@ -51,6 +51,8 @@ export default function NewProductPage() {
     minimum_order: "1",
     maximum_order: "999",
     is_organic: false,
+    is_harvest: false,
+    target_amount: "",
     harvest_date: "",
     images: [] as { url: string; is_primary: boolean }[],
     tags: [] as string[],
@@ -166,6 +168,8 @@ export default function NewProductPage() {
           maximum_order: parseInt(formData.maximum_order),
           harvest_date: formData.harvest_date || null,
           category_id: formData.category_id || null,
+          is_harvest: formData.is_harvest,
+          target_amount: formData.is_harvest ? parseFloat(formData.target_amount) : null,
         }),
       });
 
@@ -557,8 +561,8 @@ export default function NewProductPage() {
             </div>
           </div>
 
-          {/* Organic Checkbox */}
-          <div className="mt-4">
+          {/* Organic & Harvest Toggle */}
+          <div className="mt-4 flex flex-col gap-4">
             <label className="flex items-center gap-3 cursor-pointer">
               <div
                 className="w-5 h-5 border rounded flex items-center justify-center"
@@ -590,6 +594,68 @@ export default function NewProductPage() {
                 This is an organic product
               </span>
             </label>
+
+            <label className="flex items-center gap-3 cursor-pointer">
+              <div
+                className="w-5 h-5 border rounded flex items-center justify-center"
+                style={{
+                  borderColor: formData.is_harvest
+                    ? colors.accent
+                    : colors.border,
+                  backgroundColor: formData.is_harvest
+                    ? colors.accent
+                    : "transparent",
+                }}
+              >
+                {formData.is_harvest && (
+                  <Check size={14} color={colors.white} />
+                )}
+              </div>
+              <input
+                type="checkbox"
+                checked={formData.is_harvest}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    is_harvest: e.target.checked,
+                  }))
+                }
+                className="sr-only"
+              />
+              <span style={{ color: colors.heading }}>
+                Enable Harvest Mode (Pre-order with deposit)
+              </span>
+            </label>
+
+            {formData.is_harvest && (
+              <div className="pl-8 grid gap-2">
+                <label
+                  className="block text-sm font-medium"
+                  style={{ color: colors.heading }}
+                >
+                  Target Harvest Amount ({formData.unit}) *
+                </label>
+                <input
+                  type="number"
+                  required={formData.is_harvest}
+                  min="1"
+                  value={formData.target_amount}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, target_amount: e.target.value }))
+                  }
+                  placeholder="e.g., 500"
+                  className="w-full sm:w-1/2 px-4 py-2 border outline-none transition-colors focus:border-green-700"
+                  style={{
+                    borderColor: colors.border,
+                    borderRadius: "4px",
+                    color: colors.heading,
+                  }}
+                />
+                <p className="text-xs text-gray-500">
+                  Orders will be capped at this amount. Customers pay 20% deposit.
+                </p>
+              </div>
+            )}
           </div>
         </div>
 

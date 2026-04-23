@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense, useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams, useParams } from "next/navigation";
 import { ChevronLeft, Loader2, AlertCircle, Save, Crosshair, CheckCircle } from "lucide-react";
 import { GoogleMap, useJsApiLoader, Marker } from "@react-google-maps/api";
 
@@ -22,28 +22,18 @@ interface LocationData {
   name: string;
 }
 
-function NewAddressForm() {
+function EditAddressForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const params = useParams();
+  const addressId = params.id as string;
   const redirect = searchParams.get("redirect") || "/profile/addresses";
 
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const [formData, setFormData] = useState({
-    label: "",
-    recipient_name: "",
-    phone: "",
-    full_address: "",
-    province_id: undefined as number | undefined,
-    city_id: undefined as number | undefined,
-    district_id: undefined as number | undefined,
-    postal_code: "",
-    latitude: undefined as number | undefined,
-    longitude: undefined as number | undefined,
-    notes: "",
-    is_primary: false,
-  });
+  const [formData, setFormData] = useState<any>({});
 
   const [provinces, setProvinces] = useState<LocationData[]>([]);
   const [cities, setCities] = useState<LocationData[]>([]);
@@ -57,9 +47,52 @@ function NewAddressForm() {
   });
   const [mapCenter, setMapCenter] = useState({ lat: -6.200000, lng: 106.816666 });
 
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem("accessToken");
+    if (!token) {
+      router.push(`/login?redirect=/profile/addresses/${addressId}/edit`);
+      return null;
+    }
+    return {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    };
+  };
+
   useEffect(() => {
-    loadProvinces();
-  }, []);
+    fetchAddressData();
+  }, [addressId]);
+
+  const fetchAddressData = async () => {
+    try {
+      const headers = getAuthHeaders();
+      if (!headers) return;
+      
+      const res = await fetch("/api/v1/addresses", { headers });
+      const data = await res.json();
+      
+      if (res.ok) {
+         const addresses = data.data.addresses || [];
+         const addr = addresses.find((a: any) => a.address_id === addressId);
+         if (addr) {
+             setFormData(addr);
+             if (addr.latitude && addr.longitude) {
+                 setMapCenter({ lat: addr.latitude, lng: addr.longitude });
+             }
+             await loadProvinces();
+             if (addr.province_id) await loadCities(addr.province_id);
+             if (addr.city_id) await loadDistricts(addr.city_id);
+         } else {
+             setError("Address not found");
+         }
+      }
+    } catch (err) {
+      console.error("Failed to load address", err);
+      setError("Failed to load address data");
+    } finally {
+      setInitialLoading(false);
+    }
+  };
 
   const loadProvinces = async () => {
     try {
@@ -98,20 +131,20 @@ function NewAddressForm() {
   };
 
   const onProvinceChange = (provinceId: number) => {
-    setFormData((prev) => ({ ...prev, province_id: provinceId, city_id: undefined, district_id: undefined }));
+    setFormData((prev: any) => ({ ...prev, province_id: provinceId, city_id: undefined, district_id: undefined }));
     setCities([]);
     setDistricts([]);
     if (provinceId) loadCities(provinceId);
   };
 
   const onCityChange = (cityId: number) => {
-    setFormData((prev) => ({ ...prev, city_id: cityId, district_id: undefined }));
+    setFormData((prev: any) => ({ ...prev, city_id: cityId, district_id: undefined }));
     setDistricts([]);
     if (cityId) loadDistricts(cityId);
   };
 
   const onDistrictChange = (districtId: number) => {
-    setFormData((prev) => ({ ...prev, district_id: districtId }));
+    setFormData((prev: any) => ({ ...prev, district_id: districtId }));
   };
 
   const captureCoordinates = () => {
@@ -124,7 +157,7 @@ function NewAddressForm() {
       (position) => {
         const lat = position.coords.latitude;
         const lng = position.coords.longitude;
-        setFormData((prev) => ({
+        setFormData((prev: any) => ({
           ...prev,
           latitude: lat,
           longitude: lng,
@@ -138,18 +171,6 @@ function NewAddressForm() {
         setLoadingGps(false);
       }
     );
-  };
-
-  const getAuthHeaders = () => {
-    const token = localStorage.getItem("accessToken");
-    if (!token) {
-      router.push(`/login?redirect=/profile/addresses/new`);
-      return null;
-    }
-    return {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    };
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -176,8 +197,8 @@ function NewAddressForm() {
     setError("");
 
     try {
-      const response = await fetch("/api/v1/addresses", {
-        method: "POST",
+      const response = await fetch(`/api/v1/addresses/${addressId}`, {
+        method: "PUT",
         headers,
         body: JSON.stringify({
           label: formData.label,
@@ -198,7 +219,7 @@ function NewAddressForm() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || "Failed to add address");
+        throw new Error(data.message || "Failed to update address");
       }
 
       router.push(redirect);
@@ -215,12 +236,20 @@ function NewAddressForm() {
     >,
   ) => {
     const { name, value, type } = e.target;
-    setFormData((prev) => ({
+    setFormData((prev: any) => ({
       ...prev,
       [name]:
         type === "checkbox" ? (e.target as HTMLInputElement).checked : value,
     }));
   };
+
+  if (initialLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: colors.background }}>
+        <Loader2 size={32} className="animate-spin" style={{ color: colors.accent }} />
+      </div>
+    );
+  }
 
   return (
     <div
@@ -242,7 +271,7 @@ function NewAddressForm() {
               <ChevronLeft size={24} />
             </button>
             <h1 className="text-lg font-bold" style={{ color: colors.heading }}>
-              Add New Address
+              Edit Address
             </h1>
           </div>
         </div>
@@ -269,7 +298,7 @@ function NewAddressForm() {
             </label>
             <select
               name="label"
-              value={formData.label}
+              value={formData.label || ""}
               onChange={handleChange}
               required
               className="w-full p-3 border text-sm"
@@ -298,7 +327,7 @@ function NewAddressForm() {
             <input
               type="text"
               name="recipient_name"
-              value={formData.recipient_name}
+              value={formData.recipient_name || ""}
               onChange={handleChange}
               required
               placeholder="Full name of recipient"
@@ -322,7 +351,7 @@ function NewAddressForm() {
             <input
               type="tel"
               name="phone"
-              value={formData.phone}
+              value={formData.phone || ""}
               onChange={handleChange}
               required
               placeholder="+62812345678"
@@ -426,7 +455,7 @@ function NewAddressForm() {
             <input
               type="text"
               name="postal_code"
-              value={formData.postal_code}
+              value={formData.postal_code || ""}
               onChange={handleChange}
               required
               placeholder="12345"
@@ -472,7 +501,7 @@ function NewAddressForm() {
                     zoom={16}
                     onClick={(e) => {
                       if (e.latLng) {
-                        setFormData((prev) => ({ ...prev, latitude: e.latLng!.lat(), longitude: e.latLng!.lng() }));
+                        setFormData((prev: any) => ({ ...prev, latitude: e.latLng!.lat(), longitude: e.latLng!.lng() }));
                       }
                     }}
                     options={{ disableDefaultUI: true, zoomControl: true }}
@@ -500,7 +529,7 @@ function NewAddressForm() {
             </label>
             <textarea
               name="full_address"
-              value={formData.full_address}
+              value={formData.full_address || ""}
               onChange={handleChange}
               required
               rows={3}
@@ -524,7 +553,7 @@ function NewAddressForm() {
             </label>
             <textarea
               name="notes"
-              value={formData.notes}
+              value={formData.notes || ""}
               onChange={handleChange}
               rows={2}
               placeholder="Gate code, landmarks, special instructions..."
@@ -543,7 +572,7 @@ function NewAddressForm() {
               type="checkbox"
               name="is_primary"
               id="is_primary"
-              checked={formData.is_primary}
+              checked={formData.is_primary || false}
               onChange={handleChange}
               className="w-5 h-5"
               style={{ accentColor: colors.accent }}
@@ -576,7 +605,7 @@ function NewAddressForm() {
             ) : (
               <>
                 <CheckCircle size={18} />
-                Save Address
+                Save Changes
               </>
             )}
           </button>
@@ -586,7 +615,7 @@ function NewAddressForm() {
   );
 }
 
-export default function NewAddressPage() {
+export default function EditAddressPage() {
   return (
     <Suspense
       fallback={
@@ -602,7 +631,7 @@ export default function NewAddressPage() {
         </div>
       }
     >
-      <NewAddressForm />
+      <EditAddressForm />
     </Suspense>
   );
 }

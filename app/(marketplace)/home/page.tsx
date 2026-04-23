@@ -60,6 +60,9 @@ interface Product {
   days_until_harvest?: number;
   countdown_label?: string;
   pre_order_count?: number;
+  is_harvest?: boolean;
+  target_amount?: number | null;
+  current_booked?: number;
 }
 
 interface Farmer {
@@ -447,7 +450,17 @@ export default function HomePage() {
                       </span>
                     </p>
                   </div>
-                  {product.pre_order_count !== undefined && (
+                  {product.is_harvest && product.target_amount ? (
+                    <div className="mt-2">
+                      <div className="flex justify-between text-[10px] mb-1" style={{ color: colors.body }}>
+                        <span>Progress</span>
+                        <span>{product.current_booked} / {product.target_amount} {product.unit}</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-1.5">
+                        <div className="bg-green-600 h-1.5 rounded-full" style={{ width: `${Math.min(100, ((product.current_booked || 0) / product.target_amount) * 100)}%`, backgroundColor: colors.accent }}></div>
+                      </div>
+                    </div>
+                  ) : product.pre_order_count !== undefined && (
                     <p className="text-xs mt-2" style={{ color: colors.body }}>
                       {product.pre_order_count} pre-orders
                     </p>

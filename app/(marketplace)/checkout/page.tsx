@@ -16,6 +16,7 @@ import {
   CheckCircle,
   AlertCircle,
   Leaf,
+  Edit2,
 } from "lucide-react";
 
 // Design System Colors
@@ -373,25 +374,35 @@ export default function CheckoutPage() {
                       style={{ accentColor: colors.accent }}
                     />
                     <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span
-                          className="font-medium text-sm"
-                          style={{ color: colors.heading }}
-                        >
-                          {addr.label}
-                        </span>
-                        {addr.is_primary && (
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center gap-2">
                           <span
-                            className="text-xs px-2 py-0.5"
-                            style={{
-                              backgroundColor: colors.accent,
-                              color: colors.white,
-                              borderRadius: "4px",
-                            }}
+                            className="font-medium text-sm"
+                            style={{ color: colors.heading }}
                           >
-                            Primary
+                            {addr.label}
                           </span>
-                        )}
+                          {addr.is_primary && (
+                            <span
+                              className="text-xs px-2 py-0.5"
+                              style={{
+                                backgroundColor: colors.accent,
+                                color: colors.white,
+                                borderRadius: "4px",
+                              }}
+                            >
+                              Primary
+                            </span>
+                          )}
+                        </div>
+                        <Link
+                          href={`/profile/addresses/${addr.address_id}/edit?redirect=/checkout`}
+                          className="p-1 hover:bg-gray-100 rounded-md transition-colors"
+                          style={{ color: colors.body }}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <Edit2 size={16} />
+                        </Link>
                       </div>
                       <p
                         className="text-sm font-medium"

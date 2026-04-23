@@ -18,43 +18,45 @@ datasource db {
 // ============================================
 
 model User {
-  id           String    @id @default(uuid())
-  email        String    @unique
-  password     String    // Hashed with bcrypt
-  name         String
-  phoneNumber  String?   @map("phone_number")
-  avatarUrl    String?   @map("avatar_url")
-  userType     UserType  @default(CONSUMER) @map("user_type")
-  isVerified   Boolean   @default(false) @map("is_verified")
-  isOnline     Boolean   @default(false) @map("is_online")
-  lastSeen     DateTime? @map("last_seen")
-  createdAt    DateTime  @default(now()) @map("created_at")
-  updatedAt    DateTime  @updatedAt @map("updated_at")
+  id             String    @id @default(uuid())
+  email          String    @unique
+  password       String // Hashed with bcrypt
+  name           String
+  phoneNumber    String?   @map("phone_number")
+  avatarUrl      String?   @map("avatar_url")
+  userType       UserType  @default(CONSUMER) @map("user_type")
+  isVerified     Boolean   @default(false) @map("is_verified")
+  isWholesale    Boolean   @default(false) @map("is_wholesale")
+  wholesaleLimit Float?    @map("wholesale_limit")
+  isOnline       Boolean   @default(false) @map("is_online")
+  lastSeen       DateTime? @map("last_seen")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
 
   // Relations
-  refreshTokens         RefreshToken[]
-  products              Product[]
-  profile               UserProfile?
-  farmer                Farmer?
-  favorites             Favorite[]
-  productViews          ProductView[]
-  cart                  Cart?
-  buyerOrders           Order[]              @relation("BuyerOrders")
-  sellerOrders          Order[]              @relation("SellerOrders")
-  addresses             Address[]
-  reviews               Review[]
-  reviewHelpful         ReviewHelpful[]
-  searchHistory         SearchHistory[]
-  conversationsAsP1     Conversation[]       @relation("Participant1")
-  conversationsAsP2     Conversation[]       @relation("Participant2")
-  sentMessages          Message[]
-  notifications         Notification[]
-  notificationSettings  NotificationSettings?
-  communityPosts        CommunityPost[]
-  postLikes             PostLike[]
-  postComments          PostComment[]
-  commentLikes          CommentLike[]
-  commentReplyTo        PostComment[]        @relation("CommentReplyTo")
+  refreshTokens        RefreshToken[]
+  products             Product[]
+  profile              UserProfile?
+  farmer               Farmer?
+  favorites            Favorite[]
+  productViews         ProductView[]
+  cart                 Cart?
+  buyerOrders          Order[]               @relation("BuyerOrders")
+  sellerOrders         Order[]               @relation("SellerOrders")
+  addresses            Address[]
+  reviews              Review[]
+  reviewHelpful        ReviewHelpful[]
+  searchHistory        SearchHistory[]
+  conversationsAsP1    Conversation[]        @relation("Participant1")
+  conversationsAsP2    Conversation[]        @relation("Participant2")
+  sentMessages         Message[]
+  notifications        Notification[]
+  notificationSettings NotificationSettings?
+  communityPosts       CommunityPost[]
+  postLikes            PostLike[]
+  postComments         PostComment[]
+  commentLikes         CommentLike[]
+  commentReplyTo       PostComment[]         @relation("CommentReplyTo")
 
   @@index([email])
   @@index([userType])
@@ -101,15 +103,15 @@ model UserProfile {
 // ============================================
 
 model Category {
-  id             String        @id @default(uuid())
+  id             String   @id @default(uuid())
   name           String
-  slug           String        @unique
+  slug           String   @unique
   description    String?
   emoji          String?
-  gradientColors String[]      @map("gradient_colors")
-  productCount   Int           @default(0) @map("product_count")
-  displayOrder   Int           @default(0) @map("display_order")
-  isActive       Boolean       @default(true) @map("is_active")
+  gradientColors String[] @map("gradient_colors")
+  productCount   Int      @default(0) @map("product_count")
+  displayOrder   Int      @default(0) @map("display_order")
+  isActive       Boolean  @default(true) @map("is_active")
 
   // Relations
   products      Product[]
@@ -121,14 +123,14 @@ model Category {
 }
 
 model Subcategory {
-  id           String   @id @default(uuid())
-  categoryId   String   @map("category_id")
+  id           String  @id @default(uuid())
+  categoryId   String  @map("category_id")
   name         String
-  slug         String   @unique
+  slug         String  @unique
   description  String?
-  productCount Int      @default(0) @map("product_count")
-  displayOrder Int      @default(0) @map("display_order")
-  isActive     Boolean  @default(true) @map("is_active")
+  productCount Int     @default(0) @map("product_count")
+  displayOrder Int     @default(0) @map("display_order")
+  isActive     Boolean @default(true) @map("is_active")
 
   // Relations
   category Category  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
@@ -160,6 +162,9 @@ model Product {
   minimumOrder    Int       @default(1) @map("minimum_order")
   maximumOrder    Int       @default(999) @map("maximum_order")
   isOrganic       Boolean   @default(false) @map("is_organic")
+  isHarvest       Boolean   @default(false) @map("is_harvest")
+  targetAmount    Float?    @map("target_amount")
+  currentBooked   Float     @default(0) @map("current_booked")
   isAvailable     Boolean   @default(true) @map("is_available")
   rating          Float     @default(0)
   reviewCount     Int       @default(0) @map("review_count")
@@ -169,21 +174,21 @@ model Product {
   updatedAt       DateTime  @updatedAt @map("updated_at")
 
   // Relations
-  seller            User                    @relation(fields: [sellerId], references: [id], onDelete: Cascade)
-  category          Category?               @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  subcategory       Subcategory?            @relation(fields: [subcategoryId], references: [id], onDelete: SetNull)
-  images            ProductImage[]
-  videos            ProductVideo[]
-  specifications    ProductSpecification[]
-  tags              ProductTag[]
-  certifications    ProductCertification[]
-  discounts         ProductDiscount[]
-  favorites         Favorite[]
-  views             ProductView[]
-  cartItems         CartItem[]
-  orderItems        OrderItem[]
-  reviews           Review[]
-  conversations     Conversation[]
+  seller         User                   @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  category       Category?              @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  subcategory    Subcategory?           @relation(fields: [subcategoryId], references: [id], onDelete: SetNull)
+  images         ProductImage[]
+  videos         ProductVideo[]
+  specifications ProductSpecification[]
+  tags           ProductTag[]
+  certifications ProductCertification[]
+  discounts      ProductDiscount[]
+  favorites      Favorite[]
+  views          ProductView[]
+  cartItems      CartItem[]
+  orderItems     OrderItem[]
+  reviews        Review[]
+  conversations  Conversation[]
 
   @@index([sellerId])
   @@index([categoryId])
@@ -326,27 +331,27 @@ model ProductView {
 // ============================================
 
 model Farmer {
-  id                 String   @id @default(uuid())
-  userId             String   @unique @map("user_id")
-  name               String
-  description        String?
-  profileImage       String?  @map("profile_image")
-  coverImage         String?  @map("cover_image")
-  latitude           Float?
-  longitude          Float?
-  address            String?
-  city               String?
-  state              String?
-  rating             Float    @default(0)
-  totalReviews       Int      @default(0) @map("total_reviews")
-  totalProducts      Int      @default(0) @map("total_products")
-  isVerified         Boolean  @default(false) @map("is_verified")
-  verificationBadge  String?  @map("verification_badge")
-  hasMapFeature      Boolean  @default(false) @map("has_map_feature")
-  phoneNumber        String?  @map("phone_number")
-  email              String?
-  joinedDate         DateTime @default(now()) @map("joined_date")
-  followersCount     Int      @default(0) @map("followers_count")
+  id                String   @id @default(uuid())
+  userId            String   @unique @map("user_id")
+  name              String
+  description       String?
+  profileImage      String?  @map("profile_image")
+  coverImage        String?  @map("cover_image")
+  latitude          Float?
+  longitude         Float?
+  address           String?
+  city              String?
+  state             String?
+  rating            Float    @default(0)
+  totalReviews      Int      @default(0) @map("total_reviews")
+  totalProducts     Int      @default(0) @map("total_products")
+  isVerified        Boolean  @default(false) @map("is_verified")
+  verificationBadge String?  @map("verification_badge")
+  hasMapFeature     Boolean  @default(false) @map("has_map_feature")
+  phoneNumber       String?  @map("phone_number")
+  email             String?
+  joinedDate        DateTime @default(now()) @map("joined_date")
+  followersCount    Int      @default(0) @map("followers_count")
 
   // Relations
   user           User              @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -417,35 +422,37 @@ model CartItem {
 // ============================================
 
 model Order {
-  id                  String    @id @default(uuid())
-  orderNumber         String    @unique @map("order_number")
-  buyerId             String    @map("buyer_id")
-  sellerId            String    @map("seller_id")
-  status              String    @default("pending_payment")
-  subtotal            Float
-  deliveryFee         Float     @default(0) @map("delivery_fee")
-  serviceFee          Float     @default(0) @map("service_fee")
-  totalDiscount       Float     @default(0) @map("total_discount")
-  totalAmount         Float     @map("total_amount")
-  paymentMethod       String?   @map("payment_method")
-  paymentStatus       String?   @map("payment_status")
-  deliveryMethod      String?   @map("delivery_method")
-  deliveryAddressId   String?   @map("delivery_address_id")
-  deliveryDate        DateTime? @map("delivery_date")
-  deliveryTimeSlot    String?   @map("delivery_time_slot")
-  trackingNumber      String?   @map("tracking_number")
-  estimatedArrival    DateTime? @map("estimated_arrival")
-  notes               String?
-  cancelledReason     String?   @map("cancelled_reason")
-  cancelledAt         DateTime? @map("cancelled_at")
-  paidAt              DateTime? @map("paid_at")
-  createdAt           DateTime  @default(now()) @map("created_at")
-  updatedAt           DateTime  @updatedAt @map("updated_at")
+  id                String    @id @default(uuid())
+  orderNumber       String    @unique @map("order_number")
+  buyerId           String    @map("buyer_id")
+  sellerId          String    @map("seller_id")
+  status            String    @default("pending_payment")
+  subtotal          Float
+  deliveryFee       Float     @default(0) @map("delivery_fee")
+  serviceFee        Float     @default(0) @map("service_fee")
+  totalDiscount     Float     @default(0) @map("total_discount")
+  totalAmount       Float     @map("total_amount")
+  paymentMethod     String?   @map("payment_method")
+  paymentStatus     String?   @map("payment_status")
+  isDeposit         Boolean   @default(false) @map("is_deposit")
+  depositAmount     Float?    @map("deposit_amount")
+  deliveryMethod    String?   @map("delivery_method")
+  deliveryAddressId String?   @map("delivery_address_id")
+  deliveryDate      DateTime? @map("delivery_date")
+  deliveryTimeSlot  String?   @map("delivery_time_slot")
+  trackingNumber    String?   @map("tracking_number")
+  estimatedArrival  DateTime? @map("estimated_arrival")
+  notes             String?
+  cancelledReason   String?   @map("cancelled_reason")
+  cancelledAt       DateTime? @map("cancelled_at")
+  paidAt            DateTime? @map("paid_at")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
 
   // Relations
-  buyer           User        @relation("BuyerOrders", fields: [buyerId], references: [id], onDelete: Cascade)
-  seller          User        @relation("SellerOrders", fields: [sellerId], references: [id], onDelete: Cascade)
-  deliveryAddress Address?    @relation(fields: [deliveryAddressId], references: [id], onDelete: SetNull)
+  buyer           User           @relation("BuyerOrders", fields: [buyerId], references: [id], onDelete: Cascade)
+  seller          User           @relation("SellerOrders", fields: [sellerId], references: [id], onDelete: Cascade)
+  deliveryAddress Address?       @relation(fields: [deliveryAddressId], references: [id], onDelete: SetNull)
   items           OrderItem[]
   reviews         Review[]
   conversations   Conversation[]
@@ -483,7 +490,7 @@ model OrderItem {
 // ============================================
 
 model Province {
-  id        Int      @id
+  id        Int       @id
   name      String
   cities    City[]
   addresses Address[]
@@ -526,13 +533,13 @@ model Address {
   phone         String
   fullAddress   String   @map("full_address")
   province      String?
-  provinceId    Int       @map("province_id")
+  provinceId    Int      @map("province_id")
   city          String?
-  cityId        Int       @map("city_id")
+  cityId        Int      @map("city_id")
   district      String?
-  districtId    Int       @map("district_id")
+  districtId    Int      @map("district_id")
   subdistrict   String?
-  postalCode    String    @map("postal_code")
+  postalCode    String   @map("postal_code")
   latitude      Float?
   longitude     Float?
   notes         String?
@@ -542,11 +549,11 @@ model Address {
   updatedAt     DateTime @updatedAt @map("updated_at")
 
   // Relations
-  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  provinceRel  Province  @relation(fields: [provinceId], references: [id], onDelete: Restrict)
-  cityRel      City      @relation(fields: [cityId], references: [id], onDelete: Restrict)
-  districtRel  District  @relation(fields: [districtId], references: [id], onDelete: Restrict)
-  orders       Order[]
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provinceRel Province @relation(fields: [provinceId], references: [id], onDelete: Restrict)
+  cityRel     City     @relation(fields: [cityId], references: [id], onDelete: Restrict)
+  districtRel District @relation(fields: [districtId], references: [id], onDelete: Restrict)
+  orders      Order[]
 
   @@index([userId])
   @@index([latitude, longitude])
@@ -558,22 +565,22 @@ model Address {
 // ============================================
 
 model Review {
-  id                 String    @id @default(uuid())
-  productId          String    @map("product_id")
-  userId             String    @map("user_id")
-  orderId            String?   @map("order_id")
+  id                 String   @id @default(uuid())
+  productId          String   @map("product_id")
+  userId             String   @map("user_id")
+  orderId            String?  @map("order_id")
   rating             Float
   title              String?
-  comment            String?   @db.Text
-  isVerifiedPurchase Boolean   @default(false) @map("is_verified_purchase")
-  helpfulCount       Int       @default(0) @map("helpful_count")
-  createdAt          DateTime  @default(now()) @map("created_at")
-  updatedAt          DateTime  @updatedAt @map("updated_at")
+  comment            String?  @db.Text
+  isVerifiedPurchase Boolean  @default(false) @map("is_verified_purchase")
+  helpfulCount       Int      @default(0) @map("helpful_count")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
 
   // Relations
-  product        Product          @relation(fields: [productId], references: [id], onDelete: Cascade)
-  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  order          Order?           @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  product        Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  order          Order?          @relation(fields: [orderId], references: [id], onDelete: SetNull)
   images         ReviewImage[]
   helpfulMarks   ReviewHelpful[]
   sellerResponse SellerResponse?
@@ -585,11 +592,11 @@ model Review {
 }
 
 model ReviewImage {
-  id           String @id @default(uuid())
-  reviewId     String @map("review_id")
-  url          String @db.Text
+  id           String  @id @default(uuid())
+  reviewId     String  @map("review_id")
+  url          String  @db.Text
   thumbnailUrl String? @map("thumbnail_url") @db.Text
-  displayOrder Int    @default(0) @map("display_order")
+  displayOrder Int     @default(0) @map("display_order")
 
   // Relations
   review Review @relation(fields: [reviewId], references: [id], onDelete: Cascade)
@@ -676,26 +683,26 @@ model Conversation {
 }
 
 model Message {
-  id                    String      @id @default(uuid())
-  conversationId        String      @map("conversation_id")
-  senderId              String      @map("sender_id")
-  type                  MessageType @default(TEXT)
-  content               String?     @db.Text
-  replyToMessageId      String?     @map("reply_to_message_id")
-  isRead                Boolean     @default(false) @map("is_read")
-  readAt                DateTime?   @map("read_at")
-  isEdited              Boolean     @default(false) @map("is_edited")
-  editedAt              DateTime?   @map("edited_at")
-  deletedForSender      Boolean     @default(false) @map("deleted_for_sender")
-  deletedForRecipient   Boolean     @default(false) @map("deleted_for_recipient")
-  createdAt             DateTime    @default(now()) @map("created_at")
+  id                  String      @id @default(uuid())
+  conversationId      String      @map("conversation_id")
+  senderId            String      @map("sender_id")
+  type                MessageType @default(TEXT)
+  content             String?     @db.Text
+  replyToMessageId    String?     @map("reply_to_message_id")
+  isRead              Boolean     @default(false) @map("is_read")
+  readAt              DateTime?   @map("read_at")
+  isEdited            Boolean     @default(false) @map("is_edited")
+  editedAt            DateTime?   @map("edited_at")
+  deletedForSender    Boolean     @default(false) @map("deleted_for_sender")
+  deletedForRecipient Boolean     @default(false) @map("deleted_for_recipient")
+  createdAt           DateTime    @default(now()) @map("created_at")
 
   // Relations
-  conversation  Conversation   @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  sender        User           @relation(fields: [senderId], references: [id], onDelete: Cascade)
-  replyTo       Message?       @relation("MessageReplies", fields: [replyToMessageId], references: [id], onDelete: SetNull)
-  replies       Message[]      @relation("MessageReplies")
-  images        MessageImage[]
+  conversation Conversation   @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender       User           @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  replyTo      Message?       @relation("MessageReplies", fields: [replyToMessageId], references: [id], onDelete: SetNull)
+  replies      Message[]      @relation("MessageReplies")
+  images       MessageImage[]
 
   @@index([conversationId])
   @@index([senderId])
@@ -746,18 +753,18 @@ enum MessageType {
 // ============================================
 
 model Notification {
-  id            String           @id @default(uuid())
-  userId        String           @map("user_id")
-  type          NotificationType
-  title         String
-  message       String           @db.Text
-  relatedType   String?          @map("related_type")
-  relatedId     String?          @map("related_id")
-  imageUrl      String?          @map("image_url") @db.Text
-  actionUrl     String?          @map("action_url") @db.Text
-  isRead        Boolean          @default(false) @map("is_read")
-  readAt        DateTime?        @map("read_at")
-  createdAt     DateTime         @default(now()) @map("created_at")
+  id          String           @id @default(uuid())
+  userId      String           @map("user_id")
+  type        NotificationType
+  title       String
+  message     String           @db.Text
+  relatedType String?          @map("related_type")
+  relatedId   String?          @map("related_id")
+  imageUrl    String?          @map("image_url") @db.Text
+  actionUrl   String?          @map("action_url") @db.Text
+  isRead      Boolean          @default(false) @map("is_read")
+  readAt      DateTime?        @map("read_at")
+  createdAt   DateTime         @default(now()) @map("created_at")
 
   // Relations
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -769,13 +776,13 @@ model Notification {
 }
 
 model NotificationSettings {
-  userId                  String  @id @map("user_id")
-  enablePushNotifications Boolean @default(true) @map("enable_push_notifications")
-  enableOrderUpdates      Boolean @default(true) @map("enable_order_updates")
-  enableNewMessages       Boolean @default(true) @map("enable_new_messages")
-  enableReviews           Boolean @default(true) @map("enable_reviews")
-  enablePromotions        Boolean @default(true) @map("enable_promotions")
-  enableCommunity         Boolean @default(true) @map("enable_community")
+  userId                   String  @id @map("user_id")
+  enablePushNotifications  Boolean @default(true) @map("enable_push_notifications")
+  enableOrderUpdates       Boolean @default(true) @map("enable_order_updates")
+  enableNewMessages        Boolean @default(true) @map("enable_new_messages")
+  enableReviews            Boolean @default(true) @map("enable_reviews")
+  enablePromotions         Boolean @default(true) @map("enable_promotions")
+  enableCommunity          Boolean @default(true) @map("enable_community")
   enableEmailNotifications Boolean @default(true) @map("enable_email_notifications")
 
   // Relations
@@ -806,15 +813,15 @@ enum NotificationType {
 // ============================================
 
 model CommunityPost {
-  id           String      @id @default(uuid())
-  userId       String      @map("user_id")
-  farmerId     String?     @map("farmer_id")
-  title        String
-  content      String      @db.Text
-  likesCount   Int         @default(0) @map("likes_count")
-  commentsCount Int        @default(0) @map("comments_count")
-  createdAt    DateTime    @default(now()) @map("created_at")
-  updatedAt    DateTime    @updatedAt @map("updated_at")
+  id            String   @id @default(uuid())
+  userId        String   @map("user_id")
+  farmerId      String?  @map("farmer_id")
+  title         String
+  content       String   @db.Text
+  likesCount    Int      @default(0) @map("likes_count")
+  commentsCount Int      @default(0) @map("comments_count")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
 
   // Relations
   user     User          @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -871,14 +878,14 @@ model PostLike {
 }
 
 model PostComment {
-  id             String        @id @default(uuid())
-  postId         String        @map("post_id")
-  userId         String        @map("user_id")
-  parentId       String?       @map("parent_id")
-  replyToUserId  String?       @map("reply_to_user_id")
-  content        String        @db.Text
-  likesCount     Int           @default(0) @map("likes_count")
-  createdAt      DateTime      @default(now()) @map("created_at")
+  id            String   @id @default(uuid())
+  postId        String   @map("post_id")
+  userId        String   @map("user_id")
+  parentId      String?  @map("parent_id")
+  replyToUserId String?  @map("reply_to_user_id")
+  content       String   @db.Text
+  likesCount    Int      @default(0) @map("likes_count")
+  createdAt     DateTime @default(now()) @map("created_at")
 
   // Relations
   post        CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
@@ -908,24 +915,23 @@ model CommentLike {
   @@map("comment_likes")
 }
 
-
 // ============================================
 // UPLOADED MEDIA & OTHERS
 // ============================================
 
 model UploadedImage {
-  id          String   @id @default(uuid())
-  userId      String?  @map("user_id")
-  url         String   @db.Text
-  thumbnailUrl String? @map("thumbnail_url") @db.Text
-  mediumUrl   String?  @map("medium_url") @db.Text
-  fileName    String   @map("file_name")
-  fileSize    Int      @map("file_size")
-  mimeType    String   @map("mime_type")
-  width       Int?
-  height      Int?
-  type        String?
-  uploadedAt  DateTime @default(now()) @map("uploaded_at")
+  id           String   @id @default(uuid())
+  userId       String?  @map("user_id")
+  url          String   @db.Text
+  thumbnailUrl String?  @map("thumbnail_url") @db.Text
+  mediumUrl    String?  @map("medium_url") @db.Text
+  fileName     String   @map("file_name")
+  fileSize     Int      @map("file_size")
+  mimeType     String   @map("mime_type")
+  width        Int?
+  height       Int?
+  type         String?
+  uploadedAt   DateTime @default(now()) @map("uploaded_at")
 
   @@index([userId])
   @@index([type])
@@ -953,12 +959,12 @@ model UploadedVideo {
 }
 
 model ShareLink {
-  id           String   @id @default(uuid())
-  referenceType String  @map("reference_type")
-  referenceId  String   @map("reference_id")
-  shortCode    String   @unique @map("short_code")
-  shareCount   Int      @default(0) @map("share_count")
-  createdAt    DateTime @default(now()) @map("created_at")
+  id            String   @id @default(uuid())
+  referenceType String   @map("reference_type")
+  referenceId   String   @map("reference_id")
+  shortCode     String   @unique @map("short_code")
+  shareCount    Int      @default(0) @map("share_count")
+  createdAt     DateTime @default(now()) @map("created_at")
 
   @@index([referenceId])
   @@map("share_links")

@@ -99,6 +99,9 @@ interface ProductDetail {
   rating: number;
   review_count: number;
   view_count: number;
+  is_harvest: boolean;
+  target_amount: number | null;
+  current_booked: number;
   specifications: Array<{ key: string; value: string }>;
   certifications: Array<{ name: string; url: string | null }>;
 }
@@ -639,6 +642,27 @@ export default function ProductDetailPage() {
                 </div>
               )}
             </div>
+
+            {/* Harvest Progress */}
+            {product.is_harvest && product.target_amount && (
+              <div className="mb-6 p-4 rounded bg-gray-50 border border-gray-100">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm font-medium" style={{ color: colors.heading }}>Harvest Pre-order</span>
+                  <span className="text-xs" style={{ color: colors.body }}>
+                    {product.current_booked} / {product.target_amount} {product.unit} Booked
+                  </span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2.5">
+                  <div 
+                    className="bg-green-600 h-2.5 rounded-full" 
+                    style={{ width: `${Math.min(100, (product.current_booked / product.target_amount) * 100)}%`, backgroundColor: colors.accent }}
+                  ></div>
+                </div>
+                <p className="text-xs mt-2" style={{ color: colors.body }}>
+                  Book your slot now! Pay 20% deposit to secure your harvest.
+                </p>
+              </div>
+            )}
 
             {/* Stock status */}
             <div className="mb-6">

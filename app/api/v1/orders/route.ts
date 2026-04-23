@@ -182,6 +182,11 @@ export async function POST(request: NextRequest) {
       notes,
     } = CreateOrderSchema.parse(body);
 
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw AppError.notFound("User not found");
+    const isWholesale = user.isWholesale;
+    const orderLimit = isWholesale ? (user.wholesaleLimit || 9999) : 50;
+
     // Get cart items
     const cartItems = await prisma.cartItem.findMany({
       where: {
@@ -229,6 +234,20 @@ export async function POST(request: NextRequest) {
         );
         const totalAmount = subtotal + deliveryFee + serviceFee;
 
+        const hasHarvestItems = items.some((item) => item.product.isHarvest);
+        
+        // Validate harvest limits
+        if (hasHarvestItems) {
+          for (const item of items) {
+            if (item.product.isHarvest && item.quantity > orderLimit) {
+              throw AppError.badRequest(`Harvest limit exceeded for ${item.product.name}. Limit is ${orderLimit}.`);
+            }
+          }
+        }
+
+        const isDeposit = hasHarvestItems;
+        const depositAmount = isDeposit ? totalAmount * 0.2 : null;
+
         const order = await tx.order.create({
           data: {
             orderNumber: generateOrderNumber(),
@@ -242,6 +261,8 @@ export async function POST(request: NextRequest) {
             totalAmount,
             paymentMethod: payment_method,
             paymentStatus: "pending",
+            isDeposit,
+            depositAmount,
             deliveryMethod: delivery_method,
             deliveryAddressId: delivery_address_id,
             deliveryDate: delivery_date ? new Date(delivery_date) : null,
@@ -275,6 +296,18 @@ export async function POST(request: NextRequest) {
         await tx.cartItem.deleteMany({
           where: { id: { in: items.map((item) => item.id) } },
         });
+
+        // Update harvest currentBooked
+        if (hasHarvestItems) {
+          for (const item of items) {
+            if (item.product.isHarvest) {
+              await tx.product.update({
+                where: { id: item.productId },
+                data: { currentBooked: { increment: item.quantity } }
+              });
+            }
+          }
+        }
       }
 
       return orders;
