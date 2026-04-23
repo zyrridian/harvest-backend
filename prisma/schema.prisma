@@ -354,9 +354,10 @@ model Farmer {
   followersCount    Int      @default(0) @map("followers_count")
 
   // Relations
-  user           User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  specialties    FarmerSpecialty[]
-  communityPosts CommunityPost[]
+  user              User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  specialties       FarmerSpecialty[]
+  communityPosts    CommunityPost[]
+  deliverySettings  FarmerDeliverySettings?
 
   @@index([userId])
   @@index([latitude, longitude])
@@ -374,6 +375,21 @@ model FarmerSpecialty {
   @@id([farmerId, specialty])
   @@index([specialty])
   @@map("farmer_specialties")
+}
+
+model FarmerDeliverySettings {
+  farmerId           String  @id @map("farmer_id")
+  farmerDeliveryEnabled Boolean @default(false) @map("farmer_delivery_enabled")
+  baseFee            Float   @default(10000) @map("base_fee")
+  perKmRate          Float   @default(2000) @map("per_km_rate")
+  maxRadiusKm        Float   @default(30) @map("max_radius_km")
+  minOrderForFree    Float?  @map("min_order_for_free")
+  notes              String?
+
+  // Relations
+  farmer Farmer @relation(fields: [farmerId], references: [id], onDelete: Cascade)
+
+  @@map("farmer_delivery_settings")
 }
 
 // ============================================

@@ -90,20 +90,19 @@ const paymentMethods = [
   },
 ];
 
-const deliveryOptions = [
-  {
-    id: "home_delivery",
-    name: "Home Delivery",
-    description: "Delivered to your address",
-    fee: 15000,
-  },
-  {
-    id: "pickup",
-    name: "Store Pickup",
-    description: "Pick up at farmer's location",
-    fee: 0,
-  },
-];
+interface DeliveryEstimate {
+  method: string;
+  name: string;
+  description?: string;
+  available?: boolean;
+  reason?: string;
+  fee?: number;
+  is_free?: boolean;
+  distance_km?: number | null;
+  negotiable?: boolean;
+  farmer_notes?: string | null;
+  services?: { service: string; fee: number; eta: string }[] | null;
+}
 
 const timeSlots = [
   { id: "morning", label: "Morning", time: "08:00 - 12:00" },
@@ -124,10 +123,13 @@ export default function CheckoutPage() {
 
   const [selectedAddress, setSelectedAddress] = useState<string>("");
   const [selectedPayment, setSelectedPayment] = useState("bank_transfer");
-  const [selectedDelivery, setSelectedDelivery] = useState("home_delivery");
+  const [selectedDelivery, setSelectedDelivery] = useState("self_pickup");
+  const [selectedThirdPartyService, setSelectedThirdPartyService] = useState<string | null>(null);
   const [selectedTimeSlot, setSelectedTimeSlot] = useState("morning");
   const [deliveryDate, setDeliveryDate] = useState("");
   const [notes, setNotes] = useState("");
+  const [deliveryEstimates, setDeliveryEstimates] = useState<DeliveryEstimate[]>([]);
+  const [loadingEstimates, setLoadingEstimates] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -148,6 +150,43 @@ export default function CheckoutPage() {
       Authorization: `Bearer ${token}`,
     };
   };
+
+  const fetchDeliveryEstimates = async (addressId: string) => {
+    const headers = getAuthHeaders();
+    if (!headers || cartItems.length === 0) return;
+
+    // Get unique seller IDs from cart
+    const sellerIds = [...new Set(cartItems.map((i) => i.product.seller.user_id))];
+    const subtotal = summary?.subtotal || 0;
+
+    setLoadingEstimates(true);
+    try {
+      // Fetch estimates for first seller (multi-seller: take most restrictive)
+      const sellerId = sellerIds[0];
+      const res = await fetch(
+        `/api/v1/delivery/estimate?address_id=${addressId}&seller_id=${sellerId}&subtotal=${subtotal}`,
+        { headers }
+      );
+      const data = await res.json();
+      if (res.ok) {
+        setDeliveryEstimates(data.data.estimates || []);
+        // Auto-select self_pickup if nothing selected yet
+        setSelectedDelivery((prev) => prev);
+      }
+    } catch (err) {
+      console.error("Failed to fetch delivery estimates", err);
+    } finally {
+      setLoadingEstimates(false);
+    }
+  };
+
+  // Re-fetch estimates when address changes
+  useEffect(() => {
+    if (selectedAddress && cartItems.length > 0) {
+      fetchDeliveryEstimates(selectedAddress);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedAddress, cartItems.length]);
 
   const fetchData = async () => {
     const headers = getAuthHeaders();
@@ -216,6 +255,7 @@ export default function CheckoutPage() {
           cart_item_ids: cartItems.map((item) => item.cart_item_id),
           delivery_address_id: selectedAddress || null,
           delivery_method: selectedDelivery,
+          delivery_fee: selectedEstimate?.fee ?? 0,
           delivery_date: deliveryDate,
           delivery_time_slot: selectedTimeSlot,
           payment_method: selectedPayment,
@@ -241,16 +281,15 @@ export default function CheckoutPage() {
     }
   };
 
-  const selectedDeliveryOption = deliveryOptions.find(
-    (d) => d.id === selectedDelivery,
-  );
+  const selectedEstimate = deliveryEstimates.find((d) => d.method === selectedDelivery);
   const selectedAddressData = addresses.find(
     (a) => a.address_id === selectedAddress,
   );
 
+  const calculatedDeliveryFee = selectedEstimate?.fee ?? 0;
   const calculatedTotal = summary
     ? summary.subtotal +
-      (selectedDeliveryOption?.fee || 0) +
+      calculatedDeliveryFee +
       summary.service_fee -
       summary.total_discount
     : 0;
@@ -437,69 +476,154 @@ export default function CheckoutPage() {
           }}
         >
           <div
-            className="p-4 border-b flex items-center gap-3"
+            className="p-4 border-b flex items-center justify-between"
             style={{ borderColor: colors.border }}
           >
-            <Truck size={20} style={{ color: colors.accent }} />
-            <h2 className="font-bold" style={{ color: colors.heading }}>
-              Delivery Method
-            </h2>
+            <div className="flex items-center gap-3">
+              <Truck size={20} style={{ color: colors.accent }} />
+              <h2 className="font-bold" style={{ color: colors.heading }}>
+                Delivery Method
+              </h2>
+            </div>
+            {loadingEstimates && (
+              <Loader2 size={16} className="animate-spin" style={{ color: colors.body }} />
+            )}
           </div>
           <div className="p-4 space-y-3">
-            {deliveryOptions.map((option) => (
-              <label
-                key={option.id}
-                className={`flex items-center justify-between p-3 border cursor-pointer ${
-                  selectedDelivery === option.id ? "border-green-600" : ""
-                }`}
-                style={{
-                  borderColor:
-                    selectedDelivery === option.id
-                      ? colors.accent
-                      : colors.border,
-                  borderRadius: "4px",
-                  backgroundColor:
-                    selectedDelivery === option.id
-                      ? colors.successBg
-                      : "transparent",
-                }}
-              >
-                <div className="flex items-center gap-3">
-                  <input
-                    type="radio"
-                    name="delivery"
-                    value={option.id}
-                    checked={selectedDelivery === option.id}
-                    onChange={(e) => setSelectedDelivery(e.target.value)}
-                    style={{ accentColor: colors.accent }}
-                  />
-                  <div>
-                    <p
-                      className="font-medium text-sm"
-                      style={{ color: colors.heading }}
-                    >
-                      {option.name}
-                    </p>
-                    <p className="text-xs" style={{ color: colors.body }}>
-                      {option.description}
-                    </p>
-                  </div>
+            {!selectedAddress && (
+              <p className="text-sm" style={{ color: colors.body }}>
+                Select an address above to see delivery options and fees.
+              </p>
+            )}
+            {deliveryEstimates.length === 0 && selectedAddress && !loadingEstimates && (
+              // Fallback: show basic options when no estimate available
+              <>
+                {[
+                  { method: "self_pickup", name: "Self Pickup", description: "Pick up at farmer's location", fee: 0 },
+                  { method: "third_party", name: "Third Party Delivery", description: "JNE / Sicepat", fee: 15000 },
+                ].map((opt) => (
+                  <label
+                    key={opt.method}
+                    className="flex items-center justify-between p-3 border cursor-pointer"
+                    style={{
+                      borderColor: selectedDelivery === opt.method ? colors.accent : colors.border,
+                      borderRadius: "4px",
+                      backgroundColor: selectedDelivery === opt.method ? colors.successBg : "transparent",
+                    }}
+                  >
+                    <div className="flex items-center gap-3">
+                      <input type="radio" name="delivery" value={opt.method} checked={selectedDelivery === opt.method}
+                        onChange={(e) => setSelectedDelivery(e.target.value)} style={{ accentColor: colors.accent }} />
+                      <div>
+                        <p className="font-medium text-sm" style={{ color: colors.heading }}>{opt.name}</p>
+                        <p className="text-xs" style={{ color: colors.body }}>{opt.description}</p>
+                      </div>
+                    </div>
+                    <span className="font-medium text-sm" style={{ color: colors.accent }}>
+                      {opt.fee === 0 ? "Free" : `IDR ${opt.fee.toLocaleString()}`}
+                    </span>
+                  </label>
+                ))}
+              </>
+            )}
+            {deliveryEstimates.map((est) => {
+              const isSelected = selectedDelivery === est.method;
+              const available = est.available !== false;
+              return (
+                <div key={est.method}>
+                  <label
+                    className={`flex items-start justify-between p-3 border ${available ? "cursor-pointer" : "opacity-50 cursor-not-allowed"}`}
+                    style={{
+                      borderColor: isSelected ? colors.accent : colors.border,
+                      borderRadius: "4px",
+                      backgroundColor: isSelected ? colors.successBg : "transparent",
+                    }}
+                  >
+                    <div className="flex items-start gap-3">
+                      <input
+                        type="radio"
+                        name="delivery"
+                        value={est.method}
+                        checked={isSelected}
+                        disabled={!available}
+                        onChange={(e) => setSelectedDelivery(e.target.value)}
+                        style={{ accentColor: colors.accent }}
+                        className="mt-0.5"
+                      />
+                      <div>
+                        <p className="font-medium text-sm" style={{ color: colors.heading }}>{est.name}</p>
+                        {est.reason && (
+                          <p className="text-xs mt-0.5" style={{ color: colors.error }}>{est.reason}</p>
+                        )}
+                        {est.distance_km !== null && est.distance_km !== undefined && (
+                          <p className="text-xs" style={{ color: colors.body }}>
+                            {est.distance_km.toFixed(1)} km away
+                          </p>
+                        )}
+                        {est.negotiable && (
+                          <p className="text-xs mt-0.5" style={{ color: colors.warning }}>
+                            ✦ Price negotiable — add note below
+                          </p>
+                        )}
+                        {est.farmer_notes && (
+                          <p className="text-xs mt-0.5 italic" style={{ color: colors.body }}>
+                            {est.farmer_notes}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <span className="font-medium text-sm flex-shrink-0 ml-4" style={{ color: colors.accent }}>
+                      {!available
+                        ? "N/A"
+                        : est.fee === 0 || est.is_free
+                        ? "Free"
+                        : est.fee !== undefined
+                        ? `IDR ${est.fee.toLocaleString()}`
+                        : "—"}
+                    </span>
+                  </label>
+
+                  {/* Third-party sub-service picker */}
+                  {est.method === "third_party" && isSelected && est.services && (
+                    <div className="mt-2 ml-6 space-y-1">
+                      {est.services.map((svc) => (
+                        <label
+                          key={svc.service}
+                          className="flex items-center justify-between px-3 py-2 border cursor-pointer text-sm"
+                          style={{
+                            borderColor: selectedThirdPartyService === svc.service ? colors.accent : colors.border,
+                            borderRadius: "4px",
+                            backgroundColor: selectedThirdPartyService === svc.service ? colors.successBg : "transparent",
+                          }}
+                        >
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="radio"
+                              name="third_party_service"
+                              value={svc.service}
+                              checked={selectedThirdPartyService === svc.service}
+                              onChange={() => setSelectedThirdPartyService(svc.service)}
+                              style={{ accentColor: colors.accent }}
+                            />
+                            <div>
+                              <span style={{ color: colors.heading }}>{svc.service}</span>
+                              <span className="ml-2 text-xs" style={{ color: colors.body }}>~{svc.eta}</span>
+                            </div>
+                          </div>
+                          <span style={{ color: colors.accent }}>IDR {svc.fee.toLocaleString()}</span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
                 </div>
-                <span
-                  className="font-medium text-sm"
-                  style={{ color: colors.accent }}
-                >
-                  {option.fee > 0
-                    ? `IDR ${option.fee.toLocaleString()}`
-                    : "Free"}
-                </span>
-              </label>
-            ))}
+              );
+            })}
           </div>
         </div>
 
-        {/* Delivery Schedule */}
-        {selectedDelivery === "home_delivery" && (
+        {/* Delivery Schedule — show when not pickup */}
+        {selectedDelivery !== "self_pickup" && (
+
           <div
             className="border"
             style={{
@@ -771,9 +895,9 @@ export default function CheckoutPage() {
             <div className="flex justify-between text-sm">
               <span style={{ color: colors.body }}>Delivery Fee</span>
               <span style={{ color: colors.heading }}>
-                {selectedDeliveryOption?.fee === 0
+                {calculatedDeliveryFee === 0
                   ? "Free"
-                  : `IDR ${Number(selectedDeliveryOption?.fee || 0).toLocaleString()}`}
+                  : `IDR ${Number(calculatedDeliveryFee).toLocaleString()}`}
               </span>
             </div>
             <div className="flex justify-between text-sm">
@@ -802,7 +926,7 @@ export default function CheckoutPage() {
             onClick={handlePlaceOrder}
             disabled={
               submitting ||
-              (selectedDelivery === "home_delivery" && !selectedAddress)
+              (selectedDelivery !== "self_pickup" && !selectedAddress)
             }
             className="w-full py-3 text-sm font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
             style={{

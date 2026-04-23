@@ -19,6 +19,7 @@ import {
   ChevronDown,
   Plus,
   Store,
+  Truck,
 } from "lucide-react";
 
 // Design System Colors
@@ -148,6 +149,7 @@ export default function FarmerDashboardLayout({
     { href: "/farmer/community", label: "Community", icon: Users },
     { href: "/farmer/reviews", label: "Reviews", icon: Star },
     { href: "/farmer/profile", label: "Profile", icon: Store },
+    { href: "/farmer/delivery-settings", label: "Delivery Options", icon: Truck },
     { href: "/farmer/settings", label: "Settings", icon: Settings },
   ];
 

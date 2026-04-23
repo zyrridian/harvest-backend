@@ -176,11 +176,16 @@ export async function POST(request: NextRequest) {
       cart_item_ids,
       delivery_address_id,
       delivery_method,
+      delivery_fee: provided_delivery_fee,
       delivery_date,
       delivery_time_slot,
       payment_method,
       notes,
-    } = CreateOrderSchema.parse(body);
+    } = body;
+
+    // delivery_fee from client (already estimated/negotiated)
+    // Fall back to constant only for home_delivery if not provided
+    const clientDeliveryFee = typeof provided_delivery_fee === "number" ? provided_delivery_fee : null;
 
     const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw AppError.notFound("User not found");
@@ -223,7 +228,15 @@ export async function POST(request: NextRequest) {
 
       for (const [sellerId, items] of Object.entries(itemsBySeller)) {
         const subtotal = items.reduce((sum, item) => sum + item.subtotal, 0);
-        const deliveryFee = BUSINESS.DELIVERY_FEE;
+        // Use client-provided fee if available, else fallback by method
+        let deliveryFee: number;
+        if (clientDeliveryFee !== null) {
+          deliveryFee = clientDeliveryFee;
+        } else if (delivery_method === "self_pickup") {
+          deliveryFee = 0;
+        } else {
+          deliveryFee = BUSINESS.DELIVERY_FEE;
+        }
         const serviceFee = BUSINESS.SERVICE_FEE;
         const totalDiscount = items.reduce(
           (sum, item) =>
