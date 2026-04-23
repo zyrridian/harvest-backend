@@ -130,6 +130,7 @@ export default function ProductDetailPage() {
   const [cartQty, setCartQty] = useState(0); // qty of this product already in cart
   const [addedToast, setAddedToast] = useState(false);
   const [startingChat, setStartingChat] = useState(false);
+  const [isBuyingNow, setIsBuyingNow] = useState(false);
 
   useEffect(() => {
     if (productId) {
@@ -240,6 +241,37 @@ export default function ProductDetailPage() {
       console.error("Add to cart error:", err.message);
     } finally {
       setAddingToCart(false);
+    }
+  };
+
+  const handleBuyNow = async () => {
+    const token = localStorage.getItem("accessToken");
+    if (!token) {
+      router.push(`/login?redirect=/products/${productId}`);
+      return;
+    }
+
+    setIsBuyingNow(true);
+    try {
+      const response = await fetch("/api/v1/cart/items", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ product_id: product?.product_id, quantity }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.message || "Failed to add to cart");
+      }
+
+      window.dispatchEvent(new Event("cartUpdated"));
+      router.push("/checkout");
+    } catch (err: any) {
+      console.error("Buy now error:", err.message);
+      setIsBuyingNow(false);
     }
   };
 
@@ -374,19 +406,19 @@ export default function ProductDetailPage() {
     product.images.length > 0
       ? product.images
       : [
-          {
-            image_id: "placeholder",
-            url: "",
-            thumbnail_url: null,
-            alt_text: null,
-            is_primary: true,
-          },
-        ];
+        {
+          image_id: "placeholder",
+          url: "",
+          thumbnail_url: null,
+          alt_text: null,
+          is_primary: true,
+        },
+      ];
   const ratingValue =
     typeof product.rating === "number"
       ? product.rating
       : typeof (product.rating as { average?: number } | null)?.average ===
-          "number"
+        "number"
         ? (product.rating as { average: number }).average
         : 0;
 
@@ -653,8 +685,8 @@ export default function ProductDetailPage() {
                   </span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2.5">
-                  <div 
-                    className="bg-green-600 h-2.5 rounded-full" 
+                  <div
+                    className="bg-green-600 h-2.5 rounded-full"
                     style={{ width: `${Math.min(100, (product.current_booked / product.target_amount) * 100)}%`, backgroundColor: colors.accent }}
                   ></div>
                 </div>
@@ -773,52 +805,75 @@ export default function ProductDetailPage() {
             )}
 
             {/* Action buttons */}
-            <div className="flex gap-3 mb-6">
-              <button
-                onClick={addToCart}
-                disabled={addingToCart || product.stock_quantity === 0}
-                className="flex-1 py-3 px-6 flex items-center justify-center gap-2 text-sm font-medium transition-colors disabled:opacity-50 relative"
-                style={{
-                  backgroundColor: colors.accent,
-                  color: colors.white,
-                  borderRadius: "4px",
-                }}
-              >
-                {addingToCart ? (
-                  <Loader2 size={18} className="animate-spin" />
-                ) : (
-                  <>
-                    <ShoppingCart size={18} />
-                    {cartQty > 0 ? `Add More (${cartQty} in cart)` : "Add to Cart"}
-                  </>
-                )}
-              </button>
-              <button
-                onClick={toggleFavorite}
-                className="w-12 h-12 flex items-center justify-center border transition-colors hover:bg-gray-50"
-                style={{
-                  borderColor: isFavorite ? colors.error : colors.border,
-                  borderRadius: "4px",
-                }}
-              >
-                <Heart
-                  size={20}
-                  fill={isFavorite ? colors.error : "none"}
-                  style={{ color: isFavorite ? colors.error : colors.body }}
-                />
-              </button>
-              <button
-                onClick={handleShare}
-                className="w-12 h-12 flex items-center justify-center border transition-colors hover:bg-gray-50"
-                style={{
-                  borderColor: colors.border,
-                  borderRadius: "4px",
-                }}
-              >
-                <Share2 size={20} style={{ color: colors.body }} />
-              </button>
+            <div className="flex flex-col gap-3 mb-6">
+              <div className="flex gap-3">
+                <button
+                  onClick={addToCart}
+                  disabled={addingToCart || isBuyingNow || product.stock_quantity === 0}
+                  className="flex-1 py-3 px-6 flex items-center justify-center gap-2 text-sm font-medium transition-colors disabled:opacity-50 relative border"
+                  style={{
+                    backgroundColor: colors.white,
+                    borderColor: colors.accent,
+                    color: colors.accent,
+                    borderRadius: "4px",
+                  }}
+                >
+                  {addingToCart ? (
+                    <Loader2 size={18} className="animate-spin" />
+                  ) : (
+                    <>
+                      <ShoppingCart size={18} />
+                      {cartQty > 0 ? `Add More (${cartQty})` : "Add to Cart"}
+                    </>
+                  )}
+                </button>
+                <button
+                  onClick={handleBuyNow}
+                  disabled={addingToCart || isBuyingNow || product.stock_quantity === 0}
+                  className="flex-1 py-3 px-6 flex items-center justify-center gap-2 text-sm font-medium transition-colors disabled:opacity-50 relative"
+                  style={{
+                    backgroundColor: colors.accent,
+                    color: colors.white,
+                    borderRadius: "4px",
+                  }}
+                >
+                  {isBuyingNow ? (
+                    <Loader2 size={18} className="animate-spin" />
+                  ) : (
+                    "Buy Now"
+                  )}
+                </button>
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={toggleFavorite}
+                  className="flex-1 py-3 flex items-center justify-center gap-2 border transition-colors hover:bg-gray-50 text-sm font-medium"
+                  style={{
+                    borderColor: isFavorite ? colors.error : colors.border,
+                    borderRadius: "4px",
+                    color: isFavorite ? colors.error : colors.body,
+                  }}
+                >
+                  <Heart
+                    size={18}
+                    fill={isFavorite ? colors.error : "none"}
+                  />
+                  {isFavorite ? "Saved" : "Save"}
+                </button>
+                <button
+                  onClick={handleShare}
+                  className="flex-1 py-3 flex items-center justify-center gap-2 border transition-colors hover:bg-gray-50 text-sm font-medium"
+                  style={{
+                    borderColor: colors.border,
+                    borderRadius: "4px",
+                    color: colors.body,
+                  }}
+                >
+                  <Share2 size={18} />
+                  Share
+                </button>
+              </div>
             </div>
-
             {/* Chat Seller button */}
             <button
               onClick={handleChatSeller}

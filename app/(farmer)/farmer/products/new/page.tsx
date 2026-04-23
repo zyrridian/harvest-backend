@@ -456,55 +456,61 @@ export default function NewProductPage() {
             </div>
 
             {/* Stock */}
-            <div>
-              <label
-                className="block text-sm font-medium mb-1"
-                style={{ color: colors.heading }}
-              >
-                Stock Quantity
-              </label>
-              <input
-                type="number"
-                min="0"
-                value={formData.stock}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, stock: e.target.value }))
-                }
-                placeholder="100"
-                className="w-full px-4 py-3 border outline-none transition-colors focus:border-green-700"
-                style={{
-                  borderColor: colors.border,
-                  borderRadius: "4px",
-                  color: colors.heading,
-                }}
-              />
-            </div>
+            {!formData.is_harvest && (
+              <div>
+                <label
+                  className="block text-sm font-medium mb-1"
+                  style={{ color: colors.heading }}
+                >
+                  Stock Quantity *
+                </label>
+                <input
+                  type="number"
+                  required
+                  min="0"
+                  value={formData.stock}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, stock: e.target.value }))
+                  }
+                  placeholder="100"
+                  className="w-full px-4 py-3 border outline-none transition-colors focus:border-green-700"
+                  style={{
+                    borderColor: colors.border,
+                    borderRadius: "4px",
+                    color: colors.heading,
+                  }}
+                />
+              </div>
+            )}
 
             {/* Harvest Date */}
-            <div>
-              <label
-                className="block text-sm font-medium mb-1"
-                style={{ color: colors.heading }}
-              >
-                Harvest Date
-              </label>
-              <input
-                type="date"
-                value={formData.harvest_date}
-                onChange={(e) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    harvest_date: e.target.value,
-                  }))
-                }
-                className="w-full px-4 py-3 border outline-none transition-colors focus:border-green-700"
-                style={{
-                  borderColor: colors.border,
-                  borderRadius: "4px",
-                  color: colors.heading,
-                }}
-              />
-            </div>
+            {formData.is_harvest && (
+              <div>
+                <label
+                  className="block text-sm font-medium mb-1"
+                  style={{ color: colors.heading }}
+                >
+                  Harvest Date *
+                </label>
+                <input
+                  type="date"
+                  required
+                  value={formData.harvest_date}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      harvest_date: e.target.value,
+                    }))
+                  }
+                  className="w-full px-4 py-3 border outline-none transition-colors focus:border-green-700"
+                  style={{
+                    borderColor: colors.border,
+                    borderRadius: "4px",
+                    color: colors.heading,
+                  }}
+                />
+              </div>
+            )}
 
             {/* Min Order */}
             <div>
