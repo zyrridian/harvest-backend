@@ -57,6 +57,7 @@ model User {
   postComments         PostComment[]
   commentLikes         CommentLike[]
   commentReplyTo       PostComment[]         @relation("CommentReplyTo")
+  recipes              Recipe[]
 
   @@index([email])
   @@index([userType])
@@ -189,6 +190,7 @@ model Product {
   orderItems     OrderItem[]
   reviews        Review[]
   conversations  Conversation[]
+  recipeIngredients RecipeIngredient[]
 
   @@index([sellerId])
   @@index([categoryId])
@@ -1059,4 +1061,51 @@ model ShareLink {
 
   @@index([referenceId])
   @@map("share_links")
+}
+
+// ============================================
+// RECIPES
+// ============================================
+
+model Recipe {
+  id               String   @id @default(uuid())
+  authorId         String   @map("author_id")
+  title            String
+  description      String?  @db.Text
+  imageUrl         String?  @map("image_url")
+  prepTimeMinutes  Int?     @map("prep_time_minutes")
+  cookTimeMinutes  Int?     @map("cook_time_minutes")
+  servings         Int?
+  difficulty       String?  // easy, medium, hard
+  isFeatured       Boolean  @default(false) @map("is_featured")
+  instructions     String[] // array of step descriptions
+  likesCount       Int      @default(0) @map("likes_count")
+  viewsCount       Int      @default(0) @map("views_count")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  author      User               @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  ingredients RecipeIngredient[]
+
+  @@index([authorId])
+  @@index([isFeatured])
+  @@map("recipes")
+}
+
+model RecipeIngredient {
+  id           String  @id @default(uuid())
+  recipeId     String  @map("recipe_id")
+  name         String  // The text name (e.g. "2 cups of flour")
+  quantity     Float?  
+  unit         String? 
+  productId    String? @map("product_id") // Optional link to a marketplace product
+
+  // Relations
+  recipe  Recipe   @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  product Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@index([recipeId])
+  @@index([productId])
+  @@map("recipe_ingredients")
 }

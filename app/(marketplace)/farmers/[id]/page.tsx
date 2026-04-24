@@ -50,11 +50,11 @@ interface FarmerDetail {
   address: string | null;
   city: string | null;
   state: string | null;
-  phone: string | null;
+  phone_number: string | null;
   email: string | null;
   website: string | null;
   rating: number;
-  review_count: number;
+  total_reviews: number;
   total_products: number;
   total_sold: number;
   is_verified: boolean;
@@ -79,7 +79,7 @@ interface Product {
   stock_quantity: number;
   is_organic: boolean;
   rating: number | null;
-  image: string | null;
+  image_url: string | null;
 }
 
 interface Review {
@@ -449,7 +449,7 @@ export default function FarmerDetailPage() {
                       {farmer.rating?.toFixed(1) || "New"}
                     </span>
                     <span className="text-sm" style={{ color: colors.body }}>
-                      ({farmer.review_count} reviews)
+                      ({farmer.total_reviews} reviews)
                     </span>
                   </div>
                   <span className="text-sm" style={{ color: colors.body }}>
@@ -516,9 +516,9 @@ export default function FarmerDetailPage() {
                     </>
                   )}
                 </button>
-                {farmer.phone && (
+                {farmer.phone_number && (
                   <a
-                    href={`tel:${farmer.phone}`}
+                    href={`tel:${farmer.phone_number}`}
                     className="px-6 py-2.5 text-sm font-medium flex items-center justify-center gap-2 border"
                     style={{
                       borderColor: colors.border,
@@ -546,7 +546,7 @@ export default function FarmerDetailPage() {
             { key: "products", label: `Products (${farmer.total_products})` },
             { key: "community", label: `Posts (${communityPosts.length})` },
             { key: "about", label: "About" },
-            { key: "reviews", label: `Reviews (${farmer.review_count})` },
+            { key: "reviews", label: `Reviews (${farmer.total_reviews})` },
           ].map((tab) => (
             <button
               key={tab.key}
@@ -594,9 +594,9 @@ export default function FarmerDetailPage() {
                           className="aspect-square relative"
                           style={{ backgroundColor: "#f4f4f5" }}
                         >
-                          {product.image ? (
+                          {product.image_url ? (
                             <img
-                              src={product.image}
+                              src={product.image_url}
                               alt={product.name}
                               className="w-full h-full object-cover"
                             />
@@ -963,15 +963,15 @@ export default function FarmerDetailPage() {
                       </p>
                     </div>
                   )}
-                  {farmer.phone && (
+                  {farmer.phone_number && (
                     <div className="flex items-center gap-3">
                       <Phone size={18} style={{ color: colors.accent }} />
                       <a
-                        href={`tel:${farmer.phone}`}
+                        href={`tel:${farmer.phone_number}`}
                         className="text-sm hover:underline"
                         style={{ color: colors.heading }}
                       >
-                        {farmer.phone}
+                        {farmer.phone_number}
                       </a>
                     </div>
                   )}

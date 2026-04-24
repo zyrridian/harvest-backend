@@ -37,7 +37,7 @@ interface Farmer {
   city: string | null;
   state: string | null;
   rating: number;
-  review_count: number;
+  total_reviews: number;
   total_products: number;
   is_verified: boolean;
   distance_km?: number;
@@ -372,8 +372,8 @@ function FarmersContent() {
                           style={{ color: colors.warning }}
                         />
                         {farmer.rating?.toFixed(1) || "New"}
-                        {farmer.review_count > 0 && (
-                          <span>({farmer.review_count})</span>
+                        {farmer.total_reviews > 0 && (
+                          <span>({farmer.total_reviews})</span>
                         )}
                       </span>
                       <span style={{ color: colors.body }}>
