@@ -27,6 +27,7 @@ export async function GET(request: NextRequest) {
             per_km_rate: farmer.deliverySettings.perKmRate,
             max_radius_km: farmer.deliverySettings.maxRadiusKm,
             min_order_for_free: farmer.deliverySettings.minOrderForFree,
+            cash_on_delivery_enabled: farmer.deliverySettings.cashOnDeliveryEnabled,
             notes: farmer.deliverySettings.notes,
           }
         : null,
@@ -55,6 +56,7 @@ export async function PUT(request: NextRequest) {
       per_km_rate,
       max_radius_km,
       min_order_for_free,
+      cash_on_delivery_enabled,
       notes,
     } = body;
 
@@ -67,6 +69,7 @@ export async function PUT(request: NextRequest) {
         perKmRate: per_km_rate ?? 2000,
         maxRadiusKm: max_radius_km ?? 30,
         minOrderForFree: min_order_for_free ?? null,
+        cashOnDeliveryEnabled: cash_on_delivery_enabled ?? false,
         notes: notes ?? null,
       },
       update: {
@@ -75,6 +78,7 @@ export async function PUT(request: NextRequest) {
         ...(per_km_rate !== undefined && { perKmRate: per_km_rate }),
         ...(max_radius_km !== undefined && { maxRadiusKm: max_radius_km }),
         ...(min_order_for_free !== undefined && { minOrderForFree: min_order_for_free }),
+        ...(cash_on_delivery_enabled !== undefined && { cashOnDeliveryEnabled: cash_on_delivery_enabled }),
         ...(notes !== undefined && { notes }),
       },
     });
@@ -86,6 +90,7 @@ export async function PUT(request: NextRequest) {
         per_km_rate: settings.perKmRate,
         max_radius_km: settings.maxRadiusKm,
         min_order_for_free: settings.minOrderForFree,
+        cash_on_delivery_enabled: settings.cashOnDeliveryEnabled,
         notes: settings.notes,
       },
       { message: "Delivery settings updated" }

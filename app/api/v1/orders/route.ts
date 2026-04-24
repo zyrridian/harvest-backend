@@ -227,6 +227,15 @@ export async function POST(request: NextRequest) {
       const orders = [];
 
       for (const [sellerId, items] of Object.entries(itemsBySeller)) {
+        const farmer = await tx.farmer.findUnique({
+          where: { userId: sellerId },
+          include: { deliverySettings: true },
+        });
+
+        if (payment_method === "cod" && !farmer?.deliverySettings?.cashOnDeliveryEnabled) {
+          throw AppError.badRequest(`Cash on Delivery is not available for ${farmer?.name || "this farmer"}`);
+        }
+
         const subtotal = items.reduce((sum, item) => sum + item.subtotal, 0);
         // Use client-provided fee if available, else fallback by method
         let deliveryFee: number;
@@ -261,19 +270,22 @@ export async function POST(request: NextRequest) {
         const isDeposit = hasHarvestItems;
         const depositAmount = isDeposit ? totalAmount * 0.2 : null;
 
+        const isCOD = payment_method === "cod";
+        const orderStatus = isCOD ? "confirmed" : "pending_payment";
+
         const order = await tx.order.create({
           data: {
             orderNumber: generateOrderNumber(),
             buyerId: userId,
             sellerId,
-            status: "pending_payment",
+            status: orderStatus,
             subtotal,
             deliveryFee,
             serviceFee,
             totalDiscount,
             totalAmount,
             paymentMethod: payment_method,
-            paymentStatus: "pending",
+            paymentStatus: isCOD ? "pending" : "pending", // both pending, but status is different
             isDeposit,
             depositAmount,
             deliveryMethod: delivery_method,
@@ -326,26 +338,28 @@ export async function POST(request: NextRequest) {
       return orders;
     });
 
+    const isCOD = payment_method === "cod";
+    const totalAmount = createdOrders.reduce((sum, order) => sum + order.total_amount, 0);
+
     return successResponse(
       {
         orders: createdOrders,
         payment_summary: {
           total_orders: createdOrders.length,
-          grand_total: createdOrders.reduce(
-            (sum, order) => sum + order.total_amount,
-            0,
-          ),
+          grand_total: totalAmount,
           payment_method,
-          payment_instructions: {
-            bank_name: "Bank Mandiri",
-            account_number: "1234567890",
-            account_name: "Farm Market",
-            amount: createdOrders.reduce(
-              (sum, order) => sum + order.total_amount,
-              0,
-            ),
-            valid_until: new Date(Date.now() + 24 * 60 * 60 * 1000),
-          },
+          payment_instructions: isCOD
+            ? {
+                message: "Please prepare the exact amount to pay the farmer upon delivery.",
+                amount: totalAmount,
+              }
+            : {
+                bank_name: "Bank Mandiri",
+                account_number: "1234567890",
+                account_name: "Farm Market",
+                amount: totalAmount,
+                valid_until: new Date(Date.now() + 24 * 60 * 60 * 1000),
+              },
         },
       },
       { message: "Order created successfully", status: 201 },

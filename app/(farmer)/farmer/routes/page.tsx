@@ -46,6 +46,8 @@ interface Stop {
   address_lat: number | null;
   address_lng: number | null;
   status: string;
+  payment_method: string | null;
+  total_amount: number;
   estimated_arrival: string | null;
   actual_arrival: string | null;
   items: { productName: string; quantity: number }[];
@@ -449,6 +451,14 @@ export default function FarmerRoutePlanPage() {
                                       · {item.productName} ×{item.quantity}
                                     </p>
                                   ))}
+                                  {stop.payment_method === "cod" && (
+                                    <div className="mt-2 p-2 inline-block border-2 border-dashed rounded" style={{ borderColor: colors.warning, backgroundColor: colors.warningBg }}>
+                                      <p className="text-[10px] font-bold uppercase" style={{ color: colors.warning }}>Collect Cash</p>
+                                      <p className="text-sm font-bold" style={{ color: colors.heading }}>
+                                        Rp {stop.total_amount.toLocaleString()}
+                                      </p>
+                                    </div>
+                                  )}
                                 </div>
                                 <Icon size={18} style={{ color: statusColors[stop.status] || colors.body, flexShrink: 0 }} />
                               </div>

@@ -385,6 +385,7 @@ model FarmerDeliverySettings {
   perKmRate          Float   @default(2000) @map("per_km_rate")
   maxRadiusKm        Float   @default(30) @map("max_radius_km")
   minOrderForFree    Float?  @map("min_order_for_free")
+  cashOnDeliveryEnabled Boolean @default(false) @map("cash_on_delivery_enabled")
   notes              String?
 
   // Relations

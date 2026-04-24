@@ -17,6 +17,7 @@ import {
   AlertCircle,
   Leaf,
   Edit2,
+  Banknote,
 } from "lucide-react";
 
 // Design System Colors
@@ -88,6 +89,13 @@ const paymentMethods = [
     icon: CreditCard,
     description: "Visa, Mastercard, JCB",
   },
+  {
+    id: "cod",
+    name: "Cash on Delivery",
+    icon: Banknote,
+    description: "Pay cash to the farmer upon delivery",
+    requiresFarmerCod: true,
+  },
 ];
 
 interface DeliveryEstimate {
@@ -101,6 +109,7 @@ interface DeliveryEstimate {
   distance_km?: number | null;
   negotiable?: boolean;
   farmer_notes?: string | null;
+  cash_on_delivery_available?: boolean;
   services?: { service: string; fee: number; eta: string }[] | null;
 }
 
@@ -130,6 +139,8 @@ export default function CheckoutPage() {
   const [notes, setNotes] = useState("");
   const [deliveryEstimates, setDeliveryEstimates] = useState<DeliveryEstimate[]>([]);
   const [loadingEstimates, setLoadingEstimates] = useState(false);
+
+  const selectedEstimate = deliveryEstimates.find((d) => d.method === selectedDelivery);
 
   useEffect(() => {
     fetchData();
@@ -187,6 +198,13 @@ export default function CheckoutPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedAddress, cartItems.length]);
+
+  // Handle payment method validity when delivery changes
+  useEffect(() => {
+    if (selectedPayment === "cod" && !selectedEstimate?.cash_on_delivery_available) {
+      setSelectedPayment("bank_transfer");
+    }
+  }, [selectedDelivery, selectedEstimate]);
 
   const fetchData = async () => {
     const headers = getAuthHeaders();
@@ -281,7 +299,6 @@ export default function CheckoutPage() {
     }
   };
 
-  const selectedEstimate = deliveryEstimates.find((d) => d.method === selectedDelivery);
   const selectedAddressData = addresses.find(
     (a) => a.address_id === selectedAddress,
   );
@@ -792,8 +809,13 @@ export default function CheckoutPage() {
             </h2>
           </div>
           <div className="p-4 space-y-3">
-            {paymentMethods.map((method) => {
-              const Icon = method.icon;
+            {paymentMethods.filter(method => {
+              if (method.id === "cod") {
+                return selectedDelivery === "farmer_delivery" && selectedEstimate?.cash_on_delivery_available;
+              }
+              return true;
+            }).map((method) => {
+              const Icon = method.id === "cod" ? Banknote : method.icon;
               return (
                 <label
                   key={method.id}
@@ -818,19 +840,24 @@ export default function CheckoutPage() {
                     value={method.id}
                     checked={selectedPayment === method.id}
                     onChange={(e) => setSelectedPayment(e.target.value)}
+                    className="mt-0.5"
                     style={{ accentColor: colors.accent }}
                   />
-                  <Icon size={20} style={{ color: colors.heading }} />
-                  <div>
-                    <p
-                      className="font-medium text-sm"
-                      style={{ color: colors.heading }}
-                    >
-                      {method.name}
-                    </p>
-                    <p className="text-xs" style={{ color: colors.body }}>
-                      {method.description}
-                    </p>
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-gray-50 rounded" style={{ color: colors.body }}>
+                      <Icon size={20} />
+                    </div>
+                    <div>
+                      <p
+                        className="font-medium text-sm"
+                        style={{ color: colors.heading }}
+                      >
+                        {method.name}
+                      </p>
+                      <p className="text-xs" style={{ color: colors.body }}>
+                        {method.id === "cod" ? "Pay cash to the farmer upon delivery" : method.description}
+                      </p>
+                    </div>
                   </div>
                 </label>
               );

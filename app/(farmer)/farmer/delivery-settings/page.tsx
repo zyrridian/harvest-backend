@@ -10,6 +10,7 @@ import {
   CheckCircle,
   AlertCircle,
   Info,
+  Banknote,
 } from "lucide-react";
 
 const colors = {
@@ -33,6 +34,7 @@ interface DeliverySettings {
   per_km_rate: number;
   max_radius_km: number;
   min_order_for_free: number | null;
+  cash_on_delivery_enabled: boolean;
   notes: string | null;
 }
 
@@ -49,6 +51,7 @@ export default function FarmerDeliverySettingsPage() {
     per_km_rate: 2000,
     max_radius_km: 30,
     min_order_for_free: null,
+    cash_on_delivery_enabled: false,
     notes: "",
   });
 
@@ -102,6 +105,7 @@ export default function FarmerDeliverySettingsPage() {
           per_km_rate: settings.per_km_rate,
           max_radius_km: settings.max_radius_km,
           min_order_for_free: settings.min_order_for_free || null,
+          cash_on_delivery_enabled: settings.cash_on_delivery_enabled,
           notes: settings.notes || null,
         }),
       });
@@ -168,26 +172,56 @@ export default function FarmerDeliverySettingsPage() {
         )}
 
         {/* Enable Toggle */}
-        <div className="p-5 border" style={{ backgroundColor: colors.white, borderColor: colors.border, borderRadius: "4px" }}>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-semibold" style={{ color: colors.heading }}>Enable Farmer Delivery</p>
-              <p className="text-sm mt-1" style={{ color: colors.body }}>
-                Offer direct delivery to buyers in your area
-              </p>
+        <div className="space-y-4">
+          <div className="p-5 border" style={{ backgroundColor: colors.white, borderColor: colors.border, borderRadius: "4px" }}>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-semibold" style={{ color: colors.heading }}>Enable Farmer Delivery</p>
+                <p className="text-sm mt-1" style={{ color: colors.body }}>
+                  Offer direct delivery to buyers in your area
+                </p>
+              </div>
+              <button
+                onClick={() => setSettings((prev) => ({ ...prev, farmer_delivery_enabled: !prev.farmer_delivery_enabled }))}
+                className="relative w-12 h-6 rounded-full transition-colors"
+                style={{
+                  backgroundColor: settings.farmer_delivery_enabled ? colors.accent : colors.border,
+                }}
+              >
+                <span
+                  className="absolute top-1 w-4 h-4 rounded-full bg-white transition-transform shadow"
+                  style={{ transform: settings.farmer_delivery_enabled ? "translateX(24px)" : "translateX(4px)" }}
+                />
+              </button>
             </div>
-            <button
-              onClick={() => setSettings((prev) => ({ ...prev, farmer_delivery_enabled: !prev.farmer_delivery_enabled }))}
-              className="relative w-12 h-6 rounded-full transition-colors"
-              style={{
-                backgroundColor: settings.farmer_delivery_enabled ? colors.accent : colors.border,
-              }}
-            >
-              <span
-                className="absolute top-1 w-4 h-4 rounded-full bg-white transition-transform shadow"
-                style={{ transform: settings.farmer_delivery_enabled ? "translateX(24px)" : "translateX(4px)" }}
-              />
-            </button>
+          </div>
+
+          <div className="p-5 border" style={{ backgroundColor: colors.white, borderColor: colors.border, borderRadius: "4px" }}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-start gap-3">
+                <div className="p-2 bg-gray-50 rounded" style={{ color: colors.warning }}>
+                  <Banknote size={20} />
+                </div>
+                <div>
+                  <p className="font-semibold" style={{ color: colors.heading }}>Allow Cash on Delivery (COD)</p>
+                  <p className="text-sm mt-1" style={{ color: colors.body }}>
+                    Buyers can pay you cash when you arrive at their location
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setSettings((prev) => ({ ...prev, cash_on_delivery_enabled: !prev.cash_on_delivery_enabled }))}
+                className="relative w-12 h-6 rounded-full transition-colors"
+                style={{
+                  backgroundColor: settings.cash_on_delivery_enabled ? colors.accent : colors.border,
+                }}
+              >
+                <span
+                  className="absolute top-1 w-4 h-4 rounded-full bg-white transition-transform shadow"
+                  style={{ transform: settings.cash_on_delivery_enabled ? "translateX(24px)" : "translateX(4px)" }}
+                />
+              </button>
+            </div>
           </div>
         </div>
 

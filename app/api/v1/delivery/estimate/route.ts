@@ -149,6 +149,7 @@ export async function GET(request: NextRequest) {
         is_free: isFreeByOrder,
         negotiable: true,
         farmer_notes: settings.notes,
+        cash_on_delivery_available: settings.cashOnDeliveryEnabled,
       };
     }
 

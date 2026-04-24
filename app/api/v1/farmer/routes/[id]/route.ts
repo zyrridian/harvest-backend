@@ -25,6 +25,7 @@ export async function GET(
               select: {
                 orderNumber: true,
                 totalAmount: true,
+                paymentMethod: true,
                 items: {
                   take: 2,
                   select: { productName: true, quantity: true },
@@ -55,6 +56,8 @@ export async function GET(
         stop_order: s.stopOrder,
         order_id: s.orderId,
         order_number: s.order.orderNumber,
+        payment_method: s.order.paymentMethod,
+        total_amount: s.order.totalAmount,
         buyer_name: s.order.buyer.name,
         recipient_name: s.recipientName,
         address_label: s.addressLabel,
@@ -93,14 +96,27 @@ export async function PATCH(
 
     // Update stop status if provided
     if (stop_id) {
-      await prisma.routeStop.update({
+      const stop = await prisma.routeStop.update({
         where: { id: stop_id },
         data: {
           status: stop_status,
           notes: stop_notes,
-          ...(stop_status === "arrived" && { actualArrival: new Date() }),
+          ...(stop_status === "completed" && { actualArrival: new Date() }),
         },
+        include: { order: true },
       });
+
+      // If stop completed, update the main order status
+      if (stop_status === "completed") {
+        const isCOD = stop.order.paymentMethod === "cod";
+        await prisma.order.update({
+          where: { id: stop.orderId },
+          data: {
+            status: "completed",
+            ...(isCOD && { paymentStatus: "paid", paidAt: new Date() }),
+          },
+        });
+      }
     }
 
     // Update route fields
