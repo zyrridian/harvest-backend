@@ -358,6 +358,7 @@ model Farmer {
   specialties       FarmerSpecialty[]
   communityPosts    CommunityPost[]
   deliverySettings  FarmerDeliverySettings?
+  routes            DeliveryRoute[]
 
   @@index([userId])
   @@index([latitude, longitude])
@@ -472,6 +473,7 @@ model Order {
   items           OrderItem[]
   reviews         Review[]
   conversations   Conversation[]
+  routeStop       RouteStop?
 
   @@index([buyerId])
   @@index([sellerId])
@@ -479,6 +481,78 @@ model Order {
   @@index([orderNumber])
   @@index([createdAt])
   @@map("orders")
+}
+
+// ============================================
+// DELIVERY ROUTES & TRACKING
+// ============================================
+
+model DeliveryRoute {
+  id               String    @id @default(uuid())
+  farmerId         String    @map("farmer_id")
+  deliveryDate     DateTime  @map("delivery_date") @db.Date
+  status           String    @default("draft")  // draft | active | completed | cancelled
+  trackingEnabled  Boolean   @default(false) @map("tracking_enabled")
+  // Current farmer location (ephemeral, updated by farmer)
+  currentLat       Float?    @map("current_lat")
+  currentLng       Float?    @map("current_lng")
+  locationUpdatedAt DateTime? @map("location_updated_at")
+  // ORS-optimized waypoint order stored as JSON array of stop IDs
+  optimizedOrder   String?   @map("optimized_order") @db.Text
+  totalDistanceKm  Float?    @map("total_distance_km")
+  estimatedMinutes Int?      @map("estimated_minutes")
+  startedAt        DateTime? @map("started_at")
+  completedAt      DateTime? @map("completed_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  farmer Farmer       @relation(fields: [farmerId], references: [id], onDelete: Cascade)
+  stops  RouteStop[]
+  pings  DeliveryLocationPing[]
+
+  @@index([farmerId])
+  @@index([deliveryDate])
+  @@index([status])
+  @@map("delivery_routes")
+}
+
+model RouteStop {
+  id              String    @id @default(uuid())
+  routeId         String    @map("route_id")
+  orderId         String    @unique @map("order_id")
+  stopOrder       Int       @map("stop_order")  // position in route (1-indexed)
+  addressLat      Float?    @map("address_lat")
+  addressLng      Float?    @map("address_lng")
+  addressLabel    String?   @map("address_label")
+  recipientName   String?   @map("recipient_name")
+  status          String    @default("pending")  // pending | arrived | completed | skipped
+  estimatedArrival DateTime? @map("estimated_arrival")
+  actualArrival   DateTime? @map("actual_arrival")
+  notes           String?
+
+  // Relations
+  route DeliveryRoute @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  order Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([routeId])
+  @@map("route_stops")
+}
+
+model DeliveryLocationPing {
+  id        String   @id @default(uuid())
+  routeId   String   @map("route_id")
+  latitude  Float
+  longitude Float
+  accuracy  Float?   // GPS accuracy in meters
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  route DeliveryRoute @relation(fields: [routeId], references: [id], onDelete: Cascade)
+
+  @@index([routeId])
+  @@index([createdAt])
+  @@map("delivery_location_pings")
 }
 
 model OrderItem {

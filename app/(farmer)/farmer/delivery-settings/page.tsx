@@ -139,7 +139,7 @@ export default function FarmerDeliverySettingsPage() {
   return (
     <div style={{ backgroundColor: colors.background }} className="min-h-screen pb-24">
       {/* Header */}
-      <div className="border-b sticky top-0 z-10" style={{ backgroundColor: colors.white, borderColor: colors.border }}>
+      <div className="border-b sticky top-16 z-10" style={{ backgroundColor: colors.white, borderColor: colors.border }}>
         <div className="max-w-2xl mx-auto px-4 py-4 flex items-center gap-4">
           <button onClick={() => router.back()} style={{ color: colors.body }}>
             <ChevronLeft size={24} />

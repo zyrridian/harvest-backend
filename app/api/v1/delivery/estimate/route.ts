@@ -68,6 +68,7 @@ export async function GET(request: NextRequest) {
     const farmer = await prisma.farmer.findUnique({
       where: { userId: sellerId },
       select: {
+        name: true,
         latitude: true,
         longitude: true,
         city: true,
@@ -113,19 +114,19 @@ export async function GET(request: NextRequest) {
     const settings = farmer.deliverySettings;
     let farmerDelivery: object;
 
-    if (!settings || !settings.farmerDeliveryEnabled) {
+    if (!settings || settings.farmerDeliveryEnabled === false) {
       farmerDelivery = {
         method: "farmer_delivery",
         name: "Farmer Delivery",
         available: false,
-        reason: "Farmer has not enabled direct delivery",
+        reason: `${farmer.name} has not enabled direct delivery`,
       };
     } else if (distanceKm !== null && distanceKm > settings.maxRadiusKm) {
       farmerDelivery = {
         method: "farmer_delivery",
         name: "Farmer Delivery",
         available: false,
-        reason: `Outside farmer's delivery radius (${settings.maxRadiusKm} km)`,
+        reason: `Outside ${farmer.name}'s delivery radius (${settings.maxRadiusKm} km)`,
         distance_km: distanceKm,
       };
     } else {
