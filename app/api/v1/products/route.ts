@@ -145,6 +145,9 @@ export async function GET(request: NextRequest) {
         farmer: farmer
           ? { name: farmer.name, profile_image: farmer.profileImage, is_verified: farmer.isVerified }
           : { name: product.seller.name, profile_image: product.seller.avatarUrl, is_verified: false },
+        is_harvest: product.isHarvest,
+        target_amount: product.targetAmount,
+        current_booked: product.currentBooked,
         harvest_date: product.harvestDate,
         tags: product.tags.map((t) => t.tag),
         created_at: product.createdAt,

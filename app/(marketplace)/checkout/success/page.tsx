@@ -14,6 +14,8 @@ import {
   ArrowRight,
   Home,
   Loader2,
+  Banknote,
+  AlertCircle,
 } from "lucide-react";
 
 // Design System Colors
@@ -77,6 +79,9 @@ function CheckoutSuccessContent() {
   const orderIds = searchParams.get("orders") || "";
   const total = searchParams.get("total") || "0";
   const method = searchParams.get("method") || "bank_transfer";
+  const isPending = searchParams.get("pending") === "1";
+  const isCOD = method === "cod";
+  const isPaid = !isCOD && !isPending;
 
   const [copied, setCopied] = useState(false);
   const [timeLeft, setTimeLeft] = useState(24 * 60 * 60); // 24 hours in seconds
@@ -124,18 +129,28 @@ function CheckoutSuccessContent() {
         >
           <div
             className="w-20 h-20 mx-auto mb-4 rounded-full flex items-center justify-center"
-            style={{ backgroundColor: colors.successBg }}
+            style={{ backgroundColor: isCOD ? colors.successBg : isPending ? colors.warningBg : colors.successBg }}
           >
-            <CheckCircle size={40} style={{ color: colors.success }} />
+            {isCOD
+              ? <Banknote size={40} style={{ color: colors.success }} />
+              : isPending
+              ? <Clock size={40} style={{ color: colors.warning }} />
+              : <CheckCircle size={40} style={{ color: colors.success }} />
+            }
           </div>
-          <h1
-            className="text-2xl font-bold mb-2"
-            style={{ color: colors.heading }}
-          >
-            Order Placed Successfully!
+          <h1 className="text-2xl font-bold mb-2" style={{ color: colors.heading }}>
+            {isCOD
+              ? "Order Confirmed!"
+              : isPending
+              ? "Payment Pending"
+              : "Payment Successful!"}
           </h1>
           <p className="text-sm" style={{ color: colors.body }}>
-            Your order has been received and is waiting for payment
+            {isCOD
+              ? "Pay the farmer in cash when they deliver your order."
+              : isPending
+              ? "We're waiting for your payment. Your order is reserved."
+              : "Your payment was received. The farmer will prepare your order."}
           </p>
         </div>
 
@@ -188,134 +203,132 @@ function CheckoutSuccessContent() {
           </div>
         </div>
 
-        {/* Payment Countdown */}
-        <div
-          className="p-4 mb-6 flex items-center justify-center gap-3"
-          style={{
-            backgroundColor: colors.warningBg,
-            borderRadius: "8px",
-          }}
-        >
-          <Clock size={20} style={{ color: colors.warning }} />
-          <div className="text-center">
-            <p className="text-sm" style={{ color: colors.warning }}>
-              Complete payment within
-            </p>
-            <p
-              className="text-2xl font-bold font-mono"
-              style={{ color: colors.warning }}
-            >
-              {formatTime(timeLeft)}
-            </p>
+        {/* Payment Countdown — only shown for non-COD pending payments */}
+        {!isCOD && (
+          <div
+            className="p-4 mb-6 flex items-center justify-center gap-3"
+            style={{
+              backgroundColor: colors.warningBg,
+              borderRadius: "8px",
+            }}
+          >
+            <Clock size={20} style={{ color: colors.warning }} />
+            <div className="text-center">
+              <p className="text-sm" style={{ color: colors.warning }}>
+                Complete payment within
+              </p>
+              <p
+                className="text-2xl font-bold font-mono"
+                style={{ color: colors.warning }}
+              >
+                {formatTime(timeLeft)}
+              </p>
+            </div>
           </div>
-        </div>
+        )}
 
-        {/* Payment Instructions */}
-        <div
-          className="p-6 border mb-6"
-          style={{
-            backgroundColor: colors.white,
-            borderColor: colors.border,
-            borderRadius: "8px",
-          }}
-        >
-          <div className="flex items-center gap-3 mb-4">
-            <Icon size={20} style={{ color: colors.accent }} />
-            <h2 className="font-bold" style={{ color: colors.heading }}>
-              {instructions.title} Instructions
-            </h2>
-          </div>
+        {/* Payment Instructions — skip for COD */}
+        {!isCOD && (
+          <div
+            className="p-6 border mb-6"
+            style={{
+              backgroundColor: colors.white,
+              borderColor: colors.border,
+              borderRadius: "8px",
+            }}
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <Icon size={20} style={{ color: colors.accent }} />
+              <h2 className="font-bold" style={{ color: colors.heading }}>
+                {instructions.title} Instructions
+              </h2>
+            </div>
 
-          {method === "bank_transfer" && (
-            <div
-              className="p-4 mb-4"
-              style={{
-                backgroundColor: colors.background,
-                borderRadius: "4px",
-              }}
-            >
-              <div className="space-y-3">
-                <div>
-                  <p className="text-xs" style={{ color: colors.body }}>
-                    Bank Name
-                  </p>
-                  <p className="font-medium" style={{ color: colors.heading }}>
-                    {bankDetails.bank_name}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs" style={{ color: colors.body }}>
-                    Account Number
-                  </p>
-                  <div className="flex items-center justify-between">
-                    <p
-                      className="font-medium font-mono text-lg"
-                      style={{ color: colors.heading }}
-                    >
-                      {bankDetails.account_number}
-                    </p>
-                    <button
-                      onClick={() =>
-                        copyToClipboard(bankDetails.account_number)
-                      }
-                      className="p-2 flex items-center gap-1 text-xs"
-                      style={{ color: colors.accent }}
-                    >
-                      <Copy size={14} />
-                      {copied ? "Copied!" : "Copy"}
-                    </button>
+            {method === "bank_transfer" && (
+              <div
+                className="p-4 mb-4"
+                style={{
+                  backgroundColor: colors.background,
+                  borderRadius: "4px",
+                }}
+              >
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-xs" style={{ color: colors.body }}>Bank Name</p>
+                    <p className="font-medium" style={{ color: colors.heading }}>{bankDetails.bank_name}</p>
                   </div>
-                </div>
-                <div>
-                  <p className="text-xs" style={{ color: colors.body }}>
-                    Account Name
-                  </p>
-                  <p className="font-medium" style={{ color: colors.heading }}>
-                    {bankDetails.account_name}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs" style={{ color: colors.body }}>
-                    Amount
-                  </p>
-                  <div className="flex items-center justify-between">
-                    <p
-                      className="font-bold text-lg"
-                      style={{ color: colors.accent }}
-                    >
-                      IDR {Number(total).toLocaleString()}
-                    </p>
-                    <button
-                      onClick={() => copyToClipboard(total)}
-                      className="p-2 flex items-center gap-1 text-xs"
-                      style={{ color: colors.accent }}
-                    >
-                      <Copy size={14} />
-                      Copy
-                    </button>
+                  <div>
+                    <p className="text-xs" style={{ color: colors.body }}>Account Number</p>
+                    <div className="flex items-center justify-between">
+                      <p className="font-medium font-mono text-lg" style={{ color: colors.heading }}>{bankDetails.account_number}</p>
+                      <button onClick={() => copyToClipboard(bankDetails.account_number)} className="p-2 flex items-center gap-1 text-xs" style={{ color: colors.accent }}>
+                        <Copy size={14} />{copied ? "Copied!" : "Copy"}
+                      </button>
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-xs" style={{ color: colors.body }}>Account Name</p>
+                    <p className="font-medium" style={{ color: colors.heading }}>{bankDetails.account_name}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs" style={{ color: colors.body }}>Amount</p>
+                    <div className="flex items-center justify-between">
+                      <p className="font-bold text-lg" style={{ color: colors.accent }}>IDR {Number(total).toLocaleString()}</p>
+                      <button onClick={() => copyToClipboard(total)} className="p-2 flex items-center gap-1 text-xs" style={{ color: colors.accent }}>
+                        <Copy size={14} />Copy
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
 
-          <ol className="space-y-3">
-            {instructions.steps.map((step, index) => (
-              <li key={index} className="flex gap-3 text-sm">
-                <span
-                  className="w-6 h-6 flex-shrink-0 rounded-full flex items-center justify-center text-xs font-medium"
-                  style={{
-                    backgroundColor: colors.successBg,
-                    color: colors.accent,
-                  }}
-                >
-                  {index + 1}
-                </span>
-                <span style={{ color: colors.body }}>{step}</span>
-              </li>
-            ))}
-          </ol>
-        </div>
+            <ol className="space-y-3">
+              {instructions.steps.map((step, index) => (
+                <li key={index} className="flex gap-3 text-sm">
+                  <span
+                    className="w-6 h-6 flex-shrink-0 rounded-full flex items-center justify-center text-xs font-medium"
+                    style={{ backgroundColor: colors.successBg, color: colors.accent }}
+                  >
+                    {index + 1}
+                  </span>
+                  <span style={{ color: colors.body }}>{step}</span>
+                </li>
+              ))}
+            </ol>
+          </div>
+        )}
+
+        {/* COD confirmation card */}
+        {isCOD && (
+          <div
+            className="p-6 border mb-6"
+            style={{ backgroundColor: colors.white, borderColor: colors.border, borderRadius: "8px" }}
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <Banknote size={20} style={{ color: colors.accent }} />
+              <h2 className="font-bold" style={{ color: colors.heading }}>Cash on Delivery</h2>
+            </div>
+            <ul className="space-y-3">
+              {[
+                "Prepare the exact cash amount ready for the farmer.",
+                "The farmer will contact you to arrange handover.",
+                "Pay only upon receiving your order.",
+                "Order will be marked paid automatically after delivery.",
+              ].map((step, i) => (
+                <li key={i} className="flex gap-3 text-sm">
+                  <span
+                    className="w-6 h-6 flex-shrink-0 rounded-full flex items-center justify-center text-xs font-medium"
+                    style={{ backgroundColor: colors.successBg, color: colors.accent }}
+                  >
+                    {i + 1}
+                  </span>
+                  <span style={{ color: colors.body }}>{step}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         {/* Action Buttons */}
         <div className="space-y-3">

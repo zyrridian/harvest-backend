@@ -54,6 +54,7 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "20");
     const status = searchParams.get("status") || "all";
+    const deliveryMethod = searchParams.get("delivery_method");
     const skip = (page - 1) * limit;
 
     // Build where clause
@@ -63,6 +64,10 @@ export async function GET(request: NextRequest) {
 
     if (status !== "all") {
       where.status = status;
+    }
+
+    if (deliveryMethod) {
+      where.deliveryMethod = deliveryMethod;
     }
 
     const [orders, totalItems, stats] = await Promise.all([
@@ -103,6 +108,12 @@ export async function GET(request: NextRequest) {
               fullAddress: true,
               city: true,
               province: true,
+            },
+          },
+          routeStop: {
+            select: {
+              id: true,
+              routeId: true,
             },
           },
         },
@@ -159,6 +170,8 @@ export async function GET(request: NextRequest) {
       tracking_number: order.trackingNumber,
       estimated_arrival: order.estimatedArrival,
       notes: order.notes,
+      is_assigned: !!order.routeStop,
+      route_id: order.routeStop?.routeId || null,
       created_at: order.createdAt,
       updated_at: order.updatedAt,
     }));

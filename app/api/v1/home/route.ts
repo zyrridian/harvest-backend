@@ -82,6 +82,7 @@ export async function GET(request: NextRequest) {
     const preOrders = await prisma.product.findMany({
       where: {
         isAvailable: true,
+        isHarvest: true,
         harvestDate: {
           gte: now,
         },
@@ -97,6 +98,9 @@ export async function GET(request: NextRequest) {
         unit: true,
         stockQuantity: true,
         harvestDate: true,
+        targetAmount: true,
+        currentBooked: true,
+        isHarvest: true,
         isOrganic: true,
         images: {
           where: { isPrimary: true },
@@ -143,6 +147,9 @@ export async function GET(request: NextRequest) {
         unit: product.unit,
         stock_quantity: product.stockQuantity,
         harvest_date: product.harvestDate,
+        target_amount: product.targetAmount,
+        current_booked: product.currentBooked,
+        is_harvest: product.isHarvest,
         days_until_harvest: daysUntilHarvest,
         countdown_label:
           daysUntilHarvest === 0

@@ -2,6 +2,25 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
+
+const DropPointsMap = dynamic<{
+  height?: string;
+  initialLat?: number;
+  initialLng?: number;
+  initialZoom?: number;
+  farmerId?: string;
+  selectedPoint?: any;
+  onPointSelect?: (point: any) => void;
+}>(() => import("../components/DropPointsMap"), {
+  ssr: false,
+  loading: () => (
+    <div className="h-[320px] bg-gray-50 flex items-center justify-center border border-dashed rounded-lg">
+      <Loader2 className="animate-spin text-green-700" size={24} />
+    </div>
+  ),
+});
+
 import {
   Leaf,
   ChevronRight,
@@ -11,6 +30,7 @@ import {
   CheckCircle,
   Loader2,
   ShoppingCart,
+  Navigation,
 } from "lucide-react";
 
 // Design System Colors
@@ -60,6 +80,9 @@ interface Product {
   days_until_harvest?: number;
   countdown_label?: string;
   pre_order_count?: number;
+  is_harvest?: boolean;
+  target_amount?: number | null;
+  current_booked?: number;
 }
 
 interface Farmer {
@@ -293,6 +316,94 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Drop Points Map — Main Feature */}
+      <section
+        style={{
+          background: `linear-gradient(135deg, #14532d 0%, #166534 50%, #15803d 100%)`,
+          padding: "32px 0",
+        }}
+      >
+        <div className="max-w-7xl mx-auto px-4">
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
+                <Navigation size={20} style={{ color: "#86efac" }} />
+                <h2 style={{ fontSize: "20px", fontWeight: 800, color: "#ffffff", margin: 0 }}>
+                  Drop Points Near You
+                </h2>
+              </div>
+              <p style={{ fontSize: "13px", color: "#bbf7d0", margin: 0 }}>
+                Find farmers selling directly — navigate straight to their spot
+              </p>
+            </div>
+            <Link
+              href="/drop-points"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "4px",
+                padding: "8px 16px",
+                backgroundColor: "rgba(255,255,255,0.15)",
+                color: "white",
+                borderRadius: "4px",
+                fontSize: "13px",
+                fontWeight: 600,
+                textDecoration: "none",
+                border: "1px solid rgba(255,255,255,0.25)",
+                whiteSpace: "nowrap",
+              }}
+            >
+              View all <ChevronRight size={14} />
+            </Link>
+          </div>
+
+          <div
+            style={{
+              borderRadius: "8px",
+              overflow: "hidden",
+              border: "2px solid rgba(255,255,255,0.15)",
+              boxShadow: "0 8px 32px rgba(0,0,0,0.2)",
+            }}
+          >
+            <DropPointsMap
+              height="320px"
+              initialLat={-6.2}
+              initialLng={106.816}
+              initialZoom={11}
+            />
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              gap: "12px",
+              marginTop: "12px",
+              flexWrap: "wrap",
+            }}
+          >
+            {[
+              { icon: "🌿", text: "Tap a pin to see what's sold" },
+              { icon: "🧭", text: "Navigate directly" },
+              { icon: "👨‍🌾", text: "Buy fresh from the source" },
+            ].map((tip) => (
+              <div
+                key={tip.text}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  fontSize: "12px",
+                  color: "#bbf7d0",
+                }}
+              >
+                <span>{tip.icon}</span>
+                <span>{tip.text}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Categories */}
       {categories.length > 0 && (
         <section className="max-w-7xl mx-auto px-4 py-8">
@@ -447,7 +558,17 @@ export default function HomePage() {
                       </span>
                     </p>
                   </div>
-                  {product.pre_order_count !== undefined && (
+                  {product.is_harvest && product.target_amount ? (
+                    <div className="mt-2">
+                      <div className="flex justify-between text-[10px] mb-1" style={{ color: colors.body }}>
+                        <span>Progress</span>
+                        <span>{product.current_booked} / {product.target_amount} {product.unit}</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-1.5">
+                        <div className="bg-green-600 h-1.5 rounded-full" style={{ width: `${Math.min(100, ((product.current_booked || 0) / product.target_amount) * 100)}%`, backgroundColor: colors.accent }}></div>
+                      </div>
+                    </div>
+                  ) : product.pre_order_count !== undefined && (
                     <p className="text-xs mt-2" style={{ color: colors.body }}>
                       {product.pre_order_count} pre-orders
                     </p>

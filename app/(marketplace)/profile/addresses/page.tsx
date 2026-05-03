@@ -356,209 +356,316 @@ export default function AddressesPage() {
             </div>
           )}
 
-          <form onSubmit={saveAddress} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Contact Info */}
-              <div className="space-y-4">
-                <h3 className="font-semibold" style={{ color: colors.heading }}>Contact Info</h3>
-                
-                <div>
-                  <label className="block text-sm font-medium mb-1" style={{ color: colors.body }}>Label (e.g., Home, Office)*</label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.label || ""}
-                    onChange={(e) => setFormData({ ...formData, label: e.target.value })}
-                    className="w-full p-3 border rounded-md"
-                    placeholder="Home"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-1" style={{ color: colors.body }}>Recipient Name*</label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.recipient_name || ""}
-                    onChange={(e) => setFormData({ ...formData, recipient_name: e.target.value })}
-                    className="w-full p-3 border rounded-md"
-                    placeholder="John Doe"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-1" style={{ color: colors.body }}>Phone Number*</label>
-                  <input
-                    type="tel"
-                    required
-                    value={formData.phone || ""}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    className="w-full p-3 border rounded-md"
-                    placeholder="08123456789"
-                  />
-                </div>
-              </div>
-
-              {/* Geographic Info */}
-              <div className="space-y-4">
-                <h3 className="font-semibold" style={{ color: colors.heading }}>Location</h3>
-
-                <div>
-                  <label className="block text-sm font-medium mb-1" style={{ color: colors.body }}>Province*</label>
-                  <select
-                    required
-                    value={formData.province_id || ""}
-                    onChange={(e) => onProvinceChange(Number(e.target.value))}
-                    className="w-full p-3 border rounded-md bg-white"
-                  >
-                    <option value="" disabled>Select Province</option>
-                    {provinces.map((p) => (
-                      <option key={p.id} value={p.id}>{p.name}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-1" style={{ color: colors.body }}>
-                    City / Regency* {loadingLocations && <Loader2 size={12} className="inline animate-spin text-gray-400" />}
-                  </label>
-                  <select
-                    required
-                    disabled={!formData.province_id || cities.length === 0}
-                    value={formData.city_id || ""}
-                    onChange={(e) => onCityChange(Number(e.target.value))}
-                    className="w-full p-3 border rounded-md bg-white disabled:bg-gray-50 disabled:text-gray-400"
-                  >
-                    <option value="" disabled>Select City</option>
-                    {cities.map((c) => (
-                      <option key={c.id} value={c.id}>{c.name}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-1" style={{ color: colors.body }}>
-                    District* {loadingLocations && <Loader2 size={12} className="inline animate-spin text-gray-400" />}
-                  </label>
-                  <select
-                    required
-                    disabled={!formData.city_id || districts.length === 0}
-                    value={formData.district_id || ""}
-                    onChange={(e) => onDistrictChange(Number(e.target.value))}
-                    className="w-full p-3 border rounded-md bg-white disabled:bg-gray-50 disabled:text-gray-400"
-                  >
-                    <option value="" disabled>Select District</option>
-                    {districts.map((d) => (
-                      <option key={d.id} value={d.id}>{d.name}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="grid grid-cols-1 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-1" style={{ color: colors.body }}>Postal Code*</label>
-                    <input
-                      type="text"
-                      required
-                      value={formData.postal_code || ""}
-                      onChange={(e) => setFormData({ ...formData, postal_code: e.target.value })}
-                      className="w-full p-3 border rounded-md"
-                      placeholder="12345"
-                    />
-                  </div>
-                  
-                  <div className="min-h-[350px]">
-                    <div className="flex items-center justify-between mb-2">
-                       <label className="block text-sm font-medium" style={{ color: colors.body }}>Map Location (Pinpoint precise location)*</label>
-                       <button
-                          type="button"
-                          onClick={captureCoordinates}
-                          disabled={loadingGps}
-                          className="text-sm font-bold flex items-center gap-1 hover:opacity-80 transition-opacity"
-                          style={{ color: colors.accent }}
-                        >
-                          {loadingGps ? <Loader2 size={16} className="animate-spin" /> : <Crosshair size={16} />}
-                          Auto Detect
-                        </button>
-                    </div>
-                    
-                    <div className="w-full h-[300px] border rounded-md overflow-hidden bg-gray-100 relative">
-                       {!isMapLoaded ? (
-                          <div className="flex items-center justify-center w-full h-full text-gray-500 text-sm gap-2">
-                             <Loader2 className="animate-spin" size={20} /> Loading Google Maps...
-                          </div>
-                       ) : (
-                          <GoogleMap
-                            mapContainerStyle={{ width: '100%', height: '100%' }}
-                            center={mapCenter}
-                            zoom={16}
-                            onClick={(e) => {
-                              if (e.latLng) {
-                                setFormData((prev) => ({ ...prev, latitude: e.latLng!.lat(), longitude: e.latLng!.lng() }));
-                              }
-                            }}
-                            options={{ disableDefaultUI: true, zoomControl: true }}
-                          >
-                            {formData.latitude && formData.longitude && (
-                               <Marker position={{ lat: formData.latitude, lng: formData.longitude }} />
-                            )}
-                          </GoogleMap>
-                       )}
-                    </div>
-                    {!formData.latitude && (
-                        <p className="text-xs font-semibold mt-1" style={{ color: colors.error }}>
-                          Please tap on the map to place a pin for your exact house location.
-                        </p>
-                    )}
-                  </div>
-                </div>
-              </div>
+          <form onSubmit={saveAddress} className="space-y-6">
+            {/* Address Label */}
+            <div>
+              <label
+                className="block text-sm font-medium mb-2"
+                style={{ color: colors.heading }}
+              >
+                Address Label *
+              </label>
+              <select
+                required
+                value={formData.label || ""}
+                onChange={(e) => setFormData({ ...formData, label: e.target.value })}
+                className="w-full p-3 border text-sm"
+                style={{
+                  borderColor: colors.border,
+                  borderRadius: "4px",
+                  color: colors.heading,
+                }}
+              >
+                <option value="">Select label</option>
+                <option value="Home">Home</option>
+                <option value="Office">Office</option>
+                <option value="Apartment">Apartment</option>
+                <option value="Other">Other</option>
+              </select>
             </div>
 
-            <div className="pt-2">
-              <label className="block text-sm font-medium mb-1" style={{ color: colors.body }}>Full Address*</label>
+            {/* Recipient Name */}
+            <div>
+              <label
+                className="block text-sm font-medium mb-2"
+                style={{ color: colors.heading }}
+              >
+                Recipient Name *
+              </label>
+              <input
+                type="text"
+                required
+                value={formData.recipient_name || ""}
+                onChange={(e) => setFormData({ ...formData, recipient_name: e.target.value })}
+                placeholder="Full name of recipient"
+                className="w-full p-3 border text-sm"
+                style={{
+                  borderColor: colors.border,
+                  borderRadius: "4px",
+                  color: colors.heading,
+                }}
+              />
+            </div>
+
+            {/* Phone */}
+            <div>
+              <label
+                className="block text-sm font-medium mb-2"
+                style={{ color: colors.heading }}
+              >
+                Phone Number *
+              </label>
+              <input
+                type="tel"
+                required
+                value={formData.phone || ""}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                placeholder="+62812345678"
+                className="w-full p-3 border text-sm"
+                style={{
+                  borderColor: colors.border,
+                  borderRadius: "4px",
+                  color: colors.heading,
+                }}
+              />
+            </div>
+
+            {/* Province */}
+            <div>
+              <label
+                className="block text-sm font-medium mb-2"
+                style={{ color: colors.heading }}
+              >
+                Province *
+              </label>
+              <select
+                required
+                value={formData.province_id || ""}
+                onChange={(e) => onProvinceChange(Number(e.target.value))}
+                className="w-full p-3 border text-sm bg-white"
+                style={{
+                  borderColor: colors.border,
+                  borderRadius: "4px",
+                  color: colors.heading,
+                }}
+              >
+                <option value="" disabled>Select Province</option>
+                {provinces.map((p) => (
+                  <option key={p.id} value={p.id}>{p.name}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* City */}
+            <div>
+              <label
+                className="block text-sm font-medium mb-2"
+                style={{ color: colors.heading }}
+              >
+                City / Regency * {loadingLocations && <Loader2 size={12} className="inline animate-spin text-gray-400" />}
+              </label>
+              <select
+                required
+                disabled={!formData.province_id || cities.length === 0}
+                value={formData.city_id || ""}
+                onChange={(e) => onCityChange(Number(e.target.value))}
+                className="w-full p-3 border text-sm bg-white disabled:bg-gray-50 disabled:text-gray-400"
+                style={{
+                  borderColor: colors.border,
+                  borderRadius: "4px",
+                  color: colors.heading,
+                }}
+              >
+                <option value="" disabled>Select City</option>
+                {cities.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* District */}
+            <div>
+              <label
+                className="block text-sm font-medium mb-2"
+                style={{ color: colors.heading }}
+              >
+                District * {loadingLocations && <Loader2 size={12} className="inline animate-spin text-gray-400" />}
+              </label>
+              <select
+                required
+                disabled={!formData.city_id || districts.length === 0}
+                value={formData.district_id || ""}
+                onChange={(e) => onDistrictChange(Number(e.target.value))}
+                className="w-full p-3 border text-sm bg-white disabled:bg-gray-50 disabled:text-gray-400"
+                style={{
+                  borderColor: colors.border,
+                  borderRadius: "4px",
+                  color: colors.heading,
+                }}
+              >
+                <option value="" disabled>Select District</option>
+                {districts.map((d) => (
+                  <option key={d.id} value={d.id}>{d.name}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Postal Code */}
+            <div>
+              <label
+                className="block text-sm font-medium mb-2"
+                style={{ color: colors.heading }}
+              >
+                Postal Code *
+              </label>
+              <input
+                type="text"
+                required
+                value={formData.postal_code || ""}
+                onChange={(e) => setFormData({ ...formData, postal_code: e.target.value })}
+                placeholder="12345"
+                className="w-full p-3 border text-sm"
+                style={{
+                  borderColor: colors.border,
+                  borderRadius: "4px",
+                  color: colors.heading,
+                }}
+              />
+            </div>
+
+            {/* Map Location */}
+            <div className="min-h-[350px]">
+              <div className="flex items-center justify-between mb-2">
+                <label
+                  className="block text-sm font-medium"
+                  style={{ color: colors.heading }}
+                >
+                  Map Location (Pinpoint precise location) *
+                </label>
+                <button
+                  type="button"
+                  onClick={captureCoordinates}
+                  disabled={loadingGps}
+                  className="text-sm font-bold flex items-center gap-1 hover:opacity-80 transition-opacity"
+                  style={{ color: colors.accent }}
+                >
+                  {loadingGps ? <Loader2 size={16} className="animate-spin" /> : <Crosshair size={16} />}
+                  Auto Detect
+                </button>
+              </div>
+              
+              <div className="w-full h-[300px] border overflow-hidden bg-gray-100 relative" style={{ borderRadius: "4px", borderColor: colors.border }}>
+                 {!isMapLoaded ? (
+                    <div className="flex items-center justify-center w-full h-full text-gray-500 text-sm gap-2">
+                       <Loader2 className="animate-spin" size={20} /> Loading Google Maps...
+                    </div>
+                 ) : (
+                    <GoogleMap
+                      mapContainerStyle={{ width: '100%', height: '100%' }}
+                      center={mapCenter}
+                      zoom={16}
+                      onClick={(e) => {
+                        if (e.latLng) {
+                          setFormData((prev) => ({ ...prev, latitude: e.latLng!.lat(), longitude: e.latLng!.lng() }));
+                        }
+                      }}
+                      options={{ disableDefaultUI: true, zoomControl: true }}
+                    >
+                      {formData.latitude && formData.longitude && (
+                         <Marker position={{ lat: formData.latitude, lng: formData.longitude }} />
+                      )}
+                    </GoogleMap>
+                 )}
+              </div>
+              {!formData.latitude && (
+                  <p className="text-xs font-semibold mt-1" style={{ color: colors.error }}>
+                    Please tap on the map to place a pin for your exact house location.
+                  </p>
+              )}
+            </div>
+
+            {/* Full Address */}
+            <div>
+              <label
+                className="block text-sm font-medium mb-2"
+                style={{ color: colors.heading }}
+              >
+                Full Address *
+              </label>
               <textarea
                 required
                 rows={3}
                 value={formData.full_address || ""}
                 onChange={(e) => setFormData({ ...formData, full_address: e.target.value })}
-                className="w-full p-3 border rounded-md resize-none"
-                placeholder="Jl. Merdeka No. 1, Block A..."
+                placeholder="Street name, building, unit number, etc."
+                className="w-full p-3 border text-sm resize-none"
+                style={{
+                  borderColor: colors.border,
+                  borderRadius: "4px",
+                  color: colors.heading,
+                }}
               />
             </div>
 
+            {/* Notes */}
             <div>
-              <label className="block text-sm font-medium mb-1" style={{ color: colors.body }}>Notes / Instructions (Optional)</label>
-              <input
-                type="text"
+              <label
+                className="block text-sm font-medium mb-2"
+                style={{ color: colors.heading }}
+              >
+                Delivery Notes (Optional)
+              </label>
+              <textarea
                 value={formData.notes || ""}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                className="w-full p-3 border rounded-md"
-                placeholder="Near the post office, green gate..."
+                rows={2}
+                placeholder="Gate code, landmarks, special instructions..."
+                className="w-full p-3 border text-sm resize-none"
+                style={{
+                  borderColor: colors.border,
+                  borderRadius: "4px",
+                  color: colors.heading,
+                }}
               />
             </div>
 
-            <label className="flex items-center gap-2 pt-2 cursor-pointer w-fit">
+            {/* Set as Primary */}
+            <div className="flex items-center gap-3">
               <input
                 type="checkbox"
+                id="is_primary"
                 checked={formData.is_primary || false}
                 onChange={(e) => setFormData({ ...formData, is_primary: e.target.checked })}
-                className="w-5 h-5 accent-green-700"
+                className="w-5 h-5"
+                style={{ accentColor: colors.accent }}
               />
-              <span className="font-medium" style={{ color: colors.heading }}>Set as primary address</span>
-            </label>
-
-            <div className="pt-6">
-              <button
-                type="submit"
-                disabled={loadingForm}
-                className="w-full flex items-center justify-center gap-2 py-4 rounded-md font-bold text-white transition-opacity disabled:opacity-70"
-                style={{ backgroundColor: colors.accent }}
+              <label
+                htmlFor="is_primary"
+                className="text-sm"
+                style={{ color: colors.heading }}
               >
-                {loadingForm ? <Loader2 className="animate-spin" /> : <Save size={20} />}
-                {formData.address_id ? "Save Changes" : "Save New Address"}
-              </button>
+                Set as primary address
+              </label>
             </div>
+
+            {/* Submit */}
+            <button
+              type="submit"
+              disabled={loadingForm}
+              className="w-full py-3 text-sm font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              style={{
+                backgroundColor: colors.accent,
+                color: colors.white,
+                borderRadius: "4px",
+              }}
+            >
+              {loadingForm ? (
+                <Loader2 size={18} className="animate-spin" />
+              ) : (
+                <Save size={18} />
+              )}
+              {formData.address_id ? "Save Changes" : "Save Address"}
+            </button>
           </form>
         </div>
       </div>

@@ -19,6 +19,9 @@ import {
   ChevronDown,
   Plus,
   Store,
+  Truck,
+  Route,
+  Navigation,
 } from "lucide-react";
 
 // Design System Colors
@@ -145,9 +148,12 @@ export default function FarmerDashboardLayout({
     { href: "/farmer/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/farmer/products", label: "Products", icon: Package },
     { href: "/farmer/orders", label: "Orders", icon: ShoppingCart },
+    { href: "/farmer/drop-points", label: "Drop Points", icon: Navigation },
     { href: "/farmer/community", label: "Community", icon: Users },
     { href: "/farmer/reviews", label: "Reviews", icon: Star },
     { href: "/farmer/profile", label: "Profile", icon: Store },
+    { href: "/farmer/delivery-settings", label: "Delivery Options", icon: Truck },
+    { href: "/farmer/routes", label: "Route Plan", icon: Route },
     { href: "/farmer/settings", label: "Settings", icon: Settings },
   ];
 
@@ -190,7 +196,7 @@ export default function FarmerDashboardLayout({
           {/* Left: Logo & Mobile Menu Toggle */}
           <div className="flex items-center gap-4">
             <button
-              className="lg:hidden p-2 -ml-2"
+              className="md:hidden p-2 -ml-2"
               onClick={() => setShowMobileMenu(!showMobileMenu)}
             >
               {showMobileMenu ? (
@@ -224,15 +230,15 @@ export default function FarmerDashboardLayout({
             {/* Quick Actions */}
             <Link
               href="/farmer/products/new"
-              className="hidden sm:flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors"
+              className="flex items-center gap-2 px-3 sm:px-4 py-2 text-sm font-medium transition-colors"
               style={{
                 backgroundColor: colors.accent,
                 color: colors.white,
                 borderRadius: "4px",
               }}
             >
-              <Plus size={16} />
-              Add Product
+              <Plus size={18} />
+              <span className="hidden sm:inline">Add Product</span>
             </Link>
 
             {/* Notifications */}
@@ -357,7 +363,7 @@ export default function FarmerDashboardLayout({
 
       {/* Sidebar */}
       <aside
-        className={`fixed top-16 left-0 bottom-0 w-64 border-r z-30 transform transition-transform lg:transform-none ${
+        className={`fixed top-16 left-0 bottom-0 w-64 border-r z-30 transition-transform md:translate-x-0 ${
           showMobileMenu ? "translate-x-0" : "-translate-x-full"
         }`}
         style={{ backgroundColor: colors.white, borderColor: colors.border }}
@@ -396,7 +402,7 @@ export default function FarmerDashboardLayout({
       </aside>
 
       {/* Main Content */}
-      <main className="lg:pl-64 pt-16">
+      <main className="md:pl-64 pt-16">
         <div className="p-4 md:p-6 lg:p-8">{children}</div>
       </main>
     </div>

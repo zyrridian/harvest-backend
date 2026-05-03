@@ -20,6 +20,7 @@ import {
   AlertCircle,
   CheckCircle,
   Leaf,
+  ChefHat,
 } from "lucide-react";
 
 // Design System Colors
@@ -242,6 +243,12 @@ export default function ProfilePage() {
       label: "Messages",
       description: "Chat with sellers",
       href: "/messages",
+    },
+    {
+      icon: ChefHat,
+      label: "My Recipes",
+      description: "Share your cooking",
+      href: "/profile/recipes",
     },
     {
       icon: Settings,

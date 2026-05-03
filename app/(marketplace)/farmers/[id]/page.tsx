@@ -2,7 +2,26 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useParams, useRouter } from "next/navigation";
+
+const DropPointsMap = dynamic<{
+  height?: string;
+  initialLat?: number;
+  initialLng?: number;
+  initialZoom?: number;
+  farmerId?: string;
+  selectedPoint?: any;
+  onPointSelect?: (point: any) => void;
+}>(() => import("../../components/DropPointsMap"), {
+  ssr: false,
+  loading: () => (
+    <div className="h-[300px] bg-gray-50 flex items-center justify-center border border-dashed rounded-lg">
+      <Loader2 className="animate-spin text-green-700" size={24} />
+    </div>
+  ),
+});
+
 import {
   MapPin,
   Star,
@@ -21,6 +40,7 @@ import {
   ShoppingCart,
   Heart,
   Users,
+  Navigation,
 } from "lucide-react";
 
 // Design System Colors
@@ -50,11 +70,11 @@ interface FarmerDetail {
   address: string | null;
   city: string | null;
   state: string | null;
-  phone: string | null;
+  phone_number: string | null;
   email: string | null;
   website: string | null;
   rating: number;
-  review_count: number;
+  total_reviews: number;
   total_products: number;
   total_sold: number;
   is_verified: boolean;
@@ -79,7 +99,7 @@ interface Product {
   stock_quantity: number;
   is_organic: boolean;
   rating: number | null;
-  image: string | null;
+  image_url: string | null;
 }
 
 interface Review {
@@ -125,7 +145,7 @@ export default function FarmerDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState<
-    "products" | "about" | "reviews" | "community"
+    "products" | "drop-points" | "about" | "reviews" | "community"
   >("products");
   const [addingToCart, setAddingToCart] = useState<string | null>(null);
   const [startingChat, setStartingChat] = useState(false);
@@ -449,7 +469,7 @@ export default function FarmerDetailPage() {
                       {farmer.rating?.toFixed(1) || "New"}
                     </span>
                     <span className="text-sm" style={{ color: colors.body }}>
-                      ({farmer.review_count} reviews)
+                      ({farmer.total_reviews} reviews)
                     </span>
                   </div>
                   <span className="text-sm" style={{ color: colors.body }}>
@@ -516,9 +536,9 @@ export default function FarmerDetailPage() {
                     </>
                   )}
                 </button>
-                {farmer.phone && (
+                {farmer.phone_number && (
                   <a
-                    href={`tel:${farmer.phone}`}
+                    href={`tel:${farmer.phone_number}`}
                     className="px-6 py-2.5 text-sm font-medium flex items-center justify-center gap-2 border"
                     style={{
                       borderColor: colors.border,
@@ -544,9 +564,10 @@ export default function FarmerDetailPage() {
         >
           {[
             { key: "products", label: `Products (${farmer.total_products})` },
+            { key: "drop-points", label: "📍 Drop Points" },
             { key: "community", label: `Posts (${communityPosts.length})` },
             { key: "about", label: "About" },
-            { key: "reviews", label: `Reviews (${farmer.review_count})` },
+            { key: "reviews", label: `Reviews (${farmer.total_reviews})` },
           ].map((tab) => (
             <button
               key={tab.key}
@@ -594,9 +615,9 @@ export default function FarmerDetailPage() {
                           className="aspect-square relative"
                           style={{ backgroundColor: "#f4f4f5" }}
                         >
-                          {product.image ? (
+                          {product.image_url ? (
                             <img
-                              src={product.image}
+                              src={product.image_url}
                               alt={product.name}
                               className="w-full h-full object-cover"
                             />
@@ -686,6 +707,62 @@ export default function FarmerDetailPage() {
                   ))}
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Drop Points tab */}
+          {activeTab === "drop-points" && (
+            <div>
+              <div
+                style={{
+                  backgroundColor: colors.successBg,
+                  border: `1px solid ${colors.border}`,
+                  borderRadius: "8px",
+                  padding: "12px 16px",
+                  marginBottom: "16px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "10px",
+                }}
+              >
+                <Navigation size={18} style={{ color: colors.accent, flexShrink: 0 }} />
+                <div>
+                  <p style={{ fontWeight: 600, fontSize: "14px", color: colors.heading, margin: 0 }}>
+                    Physical Selling Locations
+                  </p>
+                  <p style={{ fontSize: "12px", color: colors.body, margin: "2px 0 0 0" }}>
+                    Visit these spots to buy fresh produce directly from {farmer.name}
+                  </p>
+                </div>
+              </div>
+
+              <div
+                style={{
+                  borderRadius: "8px",
+                  overflow: "hidden",
+                  border: `1px solid ${colors.border}`,
+                  marginBottom: "16px",
+                }}
+              >
+                <DropPointsMap
+                  height="300px"
+                  initialLat={farmer?.address ? -6.2 : -6.2}
+                  initialLng={106.816}
+                  initialZoom={12}
+                  farmerId={farmerId}
+                />
+              </div>
+
+              <p
+                style={{
+                  fontSize: "12px",
+                  color: colors.body,
+                  textAlign: "center",
+                  marginTop: "8px",
+                }}
+              >
+                Tap a pin on the map, then press <strong>Navigate</strong> to get directions
+              </p>
             </div>
           )}
 
@@ -963,15 +1040,15 @@ export default function FarmerDetailPage() {
                       </p>
                     </div>
                   )}
-                  {farmer.phone && (
+                  {farmer.phone_number && (
                     <div className="flex items-center gap-3">
                       <Phone size={18} style={{ color: colors.accent }} />
                       <a
-                        href={`tel:${farmer.phone}`}
+                        href={`tel:${farmer.phone_number}`}
                         className="text-sm hover:underline"
                         style={{ color: colors.heading }}
                       >
-                        {farmer.phone}
+                        {farmer.phone_number}
                       </a>
                     </div>
                   )}

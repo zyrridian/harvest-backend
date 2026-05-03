@@ -16,7 +16,9 @@ import {
   Leaf,
   Pencil,
   Trash2,
+  ChefHat,
 } from "lucide-react";
+import RecipesTab from "./RecipesTab";
 
 // Design System Colors
 const colors = {
@@ -60,7 +62,7 @@ interface Post {
   };
 }
 
-type FilterType = "all" | "following" | "my_posts" | "farmers";
+type FilterType = "all" | "following" | "my_posts" | "farmers" | "recipes";
 
 export default function CommunityPage() {
   const router = useRouter();
@@ -295,7 +297,7 @@ export default function CommunityPage() {
 
           {/* Filter tabs */}
           <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
-            {(["all", "farmers", "following", "my_posts"] as FilterType[]).map((f) => (
+            {(["all", "recipes", "farmers", "following", "my_posts"] as FilterType[]).map((f) => (
               <button
                 key={f}
                 onClick={() => setFilter(f)}
@@ -309,11 +311,13 @@ export default function CommunityPage() {
               >
                 {f === "all"
                   ? "All Posts"
-                  : f === "farmers"
-                    ? "Farmer Updates"
-                    : f === "following"
-                      ? "Following"
-                      : "My Posts"}
+                  : f === "recipes"
+                    ? "Kitchen Recipes"
+                    : f === "farmers"
+                      ? "Farmer Updates"
+                      : f === "following"
+                        ? "Following"
+                        : "My Posts"}
               </button>
             ))}
           </div>
@@ -341,8 +345,12 @@ export default function CommunityPage() {
           ))}
         </div>
 
-        {/* Posts */}
-        {loading && posts.length === 0 ? (
+        {filter === "recipes" ? (
+          <RecipesTab />
+        ) : (
+          <>
+            {/* Posts */}
+            {loading && posts.length === 0 ? (
           <div className="flex justify-center py-12">
             <Loader2
               size={32}
@@ -655,6 +663,8 @@ export default function CommunityPage() {
               </div>
             )}
           </div>
+        )}
+          </>
         )}
       </div>
     </div>
