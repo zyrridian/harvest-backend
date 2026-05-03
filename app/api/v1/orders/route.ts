@@ -6,6 +6,7 @@ import { successResponse } from "@/lib/helpers/response";
 import { parsePagination, buildPaginationMeta } from "@/lib/helpers/pagination";
 import { CreateOrderSchema } from "@/lib/validation";
 import { BUSINESS } from "@/config/constants";
+import { snap } from "@/lib/midtrans";
 
 // Helper function to generate order number
 function generateOrderNumber(): string {
@@ -341,9 +342,67 @@ export async function POST(request: NextRequest) {
     const isCOD = payment_method === "cod";
     const totalAmount = createdOrders.reduce((sum, order) => sum + order.total_amount, 0);
 
+    // Generate Midtrans Snap token for non-COD payments
+    let snapToken: string | null = null;
+    let paymentUrl: string | null = null;
+
+    if (!isCOD) {
+      try {
+        const user = await prisma.user.findUnique({ where: { id: userId } });
+        const orderIds = createdOrders.map((o) => o.order_id).join(",");
+
+        const snapParameter = {
+          transaction_details: {
+            order_id: `HARVEST-${createdOrders[0].order_number}-${Date.now()}`,
+            gross_amount: Math.round(totalAmount),
+          },
+          customer_details: {
+            first_name: user?.name || "Customer",
+            email: user?.email || undefined,
+          },
+          item_details: createdOrders.map((o) => ({
+            id: o.order_id,
+            price: Math.round(o.total_amount),
+            quantity: 1,
+            name: `Order ${o.order_number}`,
+          })),
+          callbacks: {
+            finish: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/checkout/success?orders=${orderIds}&total=${totalAmount}&method=${payment_method}`,
+            error: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/checkout?error=payment_failed`,
+            pending: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/checkout/success?orders=${orderIds}&total=${totalAmount}&method=${payment_method}&pending=1`,
+          },
+          // Allow all enabled Midtrans payment methods, or narrow by type
+          enabled_payments: payment_method === "bank_transfer"
+            ? ["bca_va", "bni_va", "bri_va", "permata_va", "mandiri_bill", "other_va"]
+            : payment_method === "e_wallet"
+            ? ["gopay", "shopeepay", "dana", "ovo", "qris"]
+            : payment_method === "credit_card"
+            ? ["credit_card"]
+            : undefined,
+        };
+
+        const snapResponse = await snap.createTransaction(snapParameter);
+        snapToken = snapResponse.token;
+        paymentUrl = snapResponse.redirect_url;
+
+        // Store the Midtrans order_id reference in each order
+        for (const o of createdOrders) {
+          await prisma.order.update({
+            where: { id: o.order_id },
+            data: { trackingNumber: snapParameter.transaction_details.order_id },
+          });
+        }
+      } catch (err: any) {
+        console.error("Midtrans token generation failed:", err);
+        // Don't block order creation — let frontend fall back to success page without Snap
+      }
+    }
+
     return successResponse(
       {
         orders: createdOrders,
+        snap_token: snapToken,
+        payment_url: paymentUrl,
         payment_summary: {
           total_orders: createdOrders.length,
           grand_total: totalAmount,
@@ -351,6 +410,11 @@ export async function POST(request: NextRequest) {
           payment_instructions: isCOD
             ? {
                 message: "Please prepare the exact amount to pay the farmer upon delivery.",
+                amount: totalAmount,
+              }
+            : snapToken
+            ? {
+                message: "Complete your payment via Midtrans.",
                 amount: totalAmount,
               }
             : {

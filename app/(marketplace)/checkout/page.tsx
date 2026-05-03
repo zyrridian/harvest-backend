@@ -141,6 +141,21 @@ export default function CheckoutPage() {
   const [loadingEstimates, setLoadingEstimates] = useState(false);
 
   const selectedEstimate = deliveryEstimates.find((d) => d.method === selectedDelivery);
+  const [snapReady, setSnapReady] = useState(false);
+
+  // Load Midtrans Snap.js
+  useEffect(() => {
+    const clientKey = process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY;
+    if (!clientKey) return;
+    const script = document.createElement("script");
+    script.src = process.env.NODE_ENV === "production"
+      ? "https://app.midtrans.com/snap/snap.js"
+      : "https://app.sandbox.midtrans.com/snap/snap.js";
+    script.setAttribute("data-client-key", clientKey);
+    script.onload = () => setSnapReady(true);
+    document.head.appendChild(script);
+    return () => { document.head.removeChild(script); };
+  }, []);
 
   useEffect(() => {
     fetchData();
@@ -254,7 +269,7 @@ export default function CheckoutPage() {
   };
 
   const handlePlaceOrder = async () => {
-    if (!selectedAddress && selectedDelivery === "home_delivery") {
+    if (!selectedAddress && selectedDelivery !== "self_pickup") {
       setError("Please select a delivery address");
       return;
     }
@@ -287,15 +302,46 @@ export default function CheckoutPage() {
         throw new Error(data.message || "Failed to create order");
       }
 
-      // Navigate to payment success page with order details
       const orderIds = data.data.orders.map((o: any) => o.order_id).join(",");
-      router.push(
-        `/checkout/success?orders=${orderIds}&total=${data.data.payment_summary.grand_total}&method=${selectedPayment}`,
-      );
+      const total = data.data.payment_summary.grand_total;
+
+      // COD: skip Midtrans, go directly to success
+      if (selectedPayment === "cod") {
+        router.push(`/checkout/success?orders=${orderIds}&total=${total}&method=cod`);
+        return;
+      }
+
+      // Non-COD: open Midtrans Snap popup
+      const snapToken = data.data.snap_token;
+      if (snapToken && snapReady && (window as any).snap) {
+        setSubmitting(false);
+        (window as any).snap.pay(snapToken, {
+          onSuccess: () => {
+            router.push(`/checkout/success?orders=${orderIds}&total=${total}&method=${selectedPayment}`);
+          },
+          onPending: () => {
+            router.push(`/checkout/success?orders=${orderIds}&total=${total}&method=${selectedPayment}&pending=1`);
+          },
+          onError: (result: any) => {
+            setError("Payment failed. Please try again.");
+            console.error("Snap error:", result);
+          },
+          onClose: () => {
+            setError("Payment window closed. Your order is saved — you can pay later from My Orders.");
+          },
+        });
+      } else {
+        // Fallback: redirect to payment URL or success page
+        if (data.data.payment_url) {
+          window.location.href = data.data.payment_url;
+        } else {
+          router.push(`/checkout/success?orders=${orderIds}&total=${total}&method=${selectedPayment}`);
+        }
+      }
     } catch (err: any) {
       setError(err.message);
     } finally {
-      setSubmitting(false);
+      if (selectedPayment === "cod") setSubmitting(false);
     }
   };
 
@@ -967,10 +1013,15 @@ export default function CheckoutPage() {
                 <Loader2 size={18} className="animate-spin" />
                 Processing...
               </>
-            ) : (
+            ) : selectedPayment === "cod" ? (
               <>
                 <CheckCircle size={18} />
-                Place Order
+                Confirm Order (Pay on Delivery)
+              </>
+            ) : (
+              <>
+                <CreditCard size={18} />
+                Pay Now
               </>
             )}
           </button>

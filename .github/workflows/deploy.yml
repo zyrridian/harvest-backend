@@ -33,6 +33,10 @@ jobs:
           context: .
           push: true
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          build-args: |
+            NEXT_PUBLIC_MIDTRANS_CLIENT_KEY=${{ secrets.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY }}
+            NEXT_PUBLIC_APP_URL=https://marketplace.zyrridian.dev
+            NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=${{ secrets.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY }}
 
   # JOB 2: Tell your VPS to download and run it
   deploy-to-vps:
