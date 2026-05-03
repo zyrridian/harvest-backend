@@ -37,13 +37,14 @@ function fuzzLocation(lat: number, lng: number, orderId: string): { lat: number;
 // Applies fuzzy location unless farmer is within 2km of buyer.
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const payload = await verifyAuth(request);
 
     const order = await prisma.order.findFirst({
-      where: { id: params.id, buyerId: payload.userId },
+      where: { id: id, buyerId: payload.userId },
       include: {
         routeStop: {
           include: {
