@@ -1,6 +1,7 @@
 import MidtransClient from "midtrans-client";
 
-const isProduction = process.env.NODE_ENV === "production";
+// const isProduction = process.env.NODE_ENV === "production";
+const isProduction = false; // Forced to sandbox for testing
 
 export const snap = new MidtransClient.Snap({
   isProduction,
