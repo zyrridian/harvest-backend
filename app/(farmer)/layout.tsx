@@ -21,6 +21,7 @@ import {
   Store,
   Truck,
   Route,
+  Navigation,
 } from "lucide-react";
 
 // Design System Colors
@@ -147,6 +148,7 @@ export default function FarmerDashboardLayout({
     { href: "/farmer/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/farmer/products", label: "Products", icon: Package },
     { href: "/farmer/orders", label: "Orders", icon: ShoppingCart },
+    { href: "/farmer/drop-points", label: "Drop Points", icon: Navigation },
     { href: "/farmer/community", label: "Community", icon: Users },
     { href: "/farmer/reviews", label: "Reviews", icon: Star },
     { href: "/farmer/profile", label: "Profile", icon: Store },

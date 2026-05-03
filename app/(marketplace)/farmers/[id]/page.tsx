@@ -2,7 +2,26 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useParams, useRouter } from "next/navigation";
+
+const DropPointsMap = dynamic<{
+  height?: string;
+  initialLat?: number;
+  initialLng?: number;
+  initialZoom?: number;
+  farmerId?: string;
+  selectedPoint?: any;
+  onPointSelect?: (point: any) => void;
+}>(() => import("../../components/DropPointsMap"), {
+  ssr: false,
+  loading: () => (
+    <div className="h-[300px] bg-gray-50 flex items-center justify-center border border-dashed rounded-lg">
+      <Loader2 className="animate-spin text-green-700" size={24} />
+    </div>
+  ),
+});
+
 import {
   MapPin,
   Star,
@@ -21,6 +40,7 @@ import {
   ShoppingCart,
   Heart,
   Users,
+  Navigation,
 } from "lucide-react";
 
 // Design System Colors
@@ -125,7 +145,7 @@ export default function FarmerDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState<
-    "products" | "about" | "reviews" | "community"
+    "products" | "drop-points" | "about" | "reviews" | "community"
   >("products");
   const [addingToCart, setAddingToCart] = useState<string | null>(null);
   const [startingChat, setStartingChat] = useState(false);
@@ -544,6 +564,7 @@ export default function FarmerDetailPage() {
         >
           {[
             { key: "products", label: `Products (${farmer.total_products})` },
+            { key: "drop-points", label: "📍 Drop Points" },
             { key: "community", label: `Posts (${communityPosts.length})` },
             { key: "about", label: "About" },
             { key: "reviews", label: `Reviews (${farmer.total_reviews})` },
@@ -686,6 +707,62 @@ export default function FarmerDetailPage() {
                   ))}
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Drop Points tab */}
+          {activeTab === "drop-points" && (
+            <div>
+              <div
+                style={{
+                  backgroundColor: colors.successBg,
+                  border: `1px solid ${colors.border}`,
+                  borderRadius: "8px",
+                  padding: "12px 16px",
+                  marginBottom: "16px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "10px",
+                }}
+              >
+                <Navigation size={18} style={{ color: colors.accent, flexShrink: 0 }} />
+                <div>
+                  <p style={{ fontWeight: 600, fontSize: "14px", color: colors.heading, margin: 0 }}>
+                    Physical Selling Locations
+                  </p>
+                  <p style={{ fontSize: "12px", color: colors.body, margin: "2px 0 0 0" }}>
+                    Visit these spots to buy fresh produce directly from {farmer.name}
+                  </p>
+                </div>
+              </div>
+
+              <div
+                style={{
+                  borderRadius: "8px",
+                  overflow: "hidden",
+                  border: `1px solid ${colors.border}`,
+                  marginBottom: "16px",
+                }}
+              >
+                <DropPointsMap
+                  height="300px"
+                  initialLat={farmer?.address ? -6.2 : -6.2}
+                  initialLng={106.816}
+                  initialZoom={12}
+                  farmerId={farmerId}
+                />
+              </div>
+
+              <p
+                style={{
+                  fontSize: "12px",
+                  color: colors.body,
+                  textAlign: "center",
+                  marginTop: "8px",
+                }}
+              >
+                Tap a pin on the map, then press <strong>Navigate</strong> to get directions
+              </p>
             </div>
           )}
 
