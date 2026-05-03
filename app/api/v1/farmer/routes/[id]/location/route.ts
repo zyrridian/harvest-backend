@@ -10,15 +10,16 @@ import { successResponse } from "@/lib/helpers/response";
 // Body: { latitude, longitude, accuracy? }
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const payload = await verifyAuth(request);
     const farmer = await prisma.farmer.findUnique({ where: { userId: payload.userId } });
     if (!farmer) throw AppError.notFound("Farmer profile not found");
 
     const route = await prisma.deliveryRoute.findFirst({
-      where: { id: params.id, farmerId: farmer.id, status: "active" },
+      where: { id: id, farmerId: farmer.id, status: "active" },
     });
     if (!route) throw AppError.notFound("Active route not found");
 
@@ -34,7 +35,7 @@ export async function POST(
 
     // Update current location on route (no history kept past 24h)
     await prisma.deliveryRoute.update({
-      where: { id: params.id },
+      where: { id: id },
       data: {
         currentLat: latitude,
         currentLng: longitude,
@@ -44,13 +45,13 @@ export async function POST(
 
     // Insert ping for trail (buyers can see last 30 minutes of trail)
     await prisma.deliveryLocationPing.create({
-      data: { routeId: params.id, latitude, longitude, accuracy: accuracy ?? null },
+      data: { routeId: id, latitude, longitude, accuracy: accuracy ?? null },
     });
 
     // Purge pings older than 24h for this route (keep DB clean)
     const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
     await prisma.deliveryLocationPing.deleteMany({
-      where: { routeId: params.id, createdAt: { lt: cutoff } },
+      where: { routeId: id, createdAt: { lt: cutoff } },
     });
 
     return successResponse({ ok: true, updated_at: new Date() });

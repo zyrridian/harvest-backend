@@ -6,11 +6,9 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  # Hardcoded lowercase repository name to prevent Docker syntax errors
   IMAGE_NAME: zyrridian/harvest-web
 
 jobs:
-  # JOB 1: Build the image on GitHub's massive servers
   build-and-push:
     runs-on: ubuntu-latest
     permissions:
@@ -38,9 +36,8 @@ jobs:
             NEXT_PUBLIC_APP_URL=https://marketplace.zyrridian.dev
             NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=${{ secrets.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY }}
 
-  # JOB 2: Tell your VPS to download and run it
   deploy-to-vps:
-    needs: build-and-push # Waits for the build to finish!
+    needs: build-and-push 
     runs-on: ubuntu-latest
     steps:
       - name: Deploy via SSH
