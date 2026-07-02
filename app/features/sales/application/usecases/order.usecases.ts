@@ -44,6 +44,7 @@ export class GetOrdersUseCase {
                 status: order.paymentStatus,
                 payment_url: order.paymentUrl,
                 snap_token: order.snapToken,
+                expires_at: new Date(order.createdAt.getTime() + 24 * 60 * 60 * 1000),
             },
             created_at: order.createdAt,
         }));
@@ -228,6 +229,7 @@ export class GetOrderByIdUseCase {
                 paid_at: order.paidAt,
                 payment_url: order.paymentUrl,
                 snap_token: order.snapToken,
+                expires_at: new Date(order.createdAt.getTime() + 24 * 60 * 60 * 1000),
             },
             timeline,
             notes: order.notes,
