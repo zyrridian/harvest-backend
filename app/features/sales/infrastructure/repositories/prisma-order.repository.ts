@@ -251,6 +251,13 @@ export class PrismaOrderRepository implements IOrderRepository {
     });
   }
 
+  async updatePaymentInfo(orderId: string, snapToken: string, paymentUrl: string): Promise<void> {
+    await prisma.order.update({
+      where: { id: orderId },
+      data: { snapToken, paymentUrl },
+    });
+  }
+
   async getStopAheadCount(routeId: string, stopOrder: number): Promise<number> {
     const allStops = await prisma.routeStop.findMany({
       where: {

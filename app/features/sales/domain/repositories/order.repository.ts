@@ -15,6 +15,7 @@ export interface IOrderRepository {
     orderLimit: number
   ): Promise<any[]>;
   updateTrackingNumber(orderId: string, trackingNumber: string): Promise<void>;
+  updatePaymentInfo(orderId: string, snapToken: string, paymentUrl: string): Promise<void>;
 
   // For Tracking
   getStopAheadCount(routeId: string, stopOrder: number): Promise<number>;

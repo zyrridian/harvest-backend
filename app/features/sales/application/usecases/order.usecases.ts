@@ -39,6 +39,12 @@ export class GetOrdersUseCase {
                 date: order.deliveryDate,
                 tracking_number: order.trackingNumber,
             },
+            payment: {
+                method: order.paymentMethod,
+                status: order.paymentStatus,
+                payment_url: order.paymentUrl,
+                snap_token: order.snapToken,
+            },
             created_at: order.createdAt,
         }));
         return {
@@ -120,6 +126,7 @@ export class CreateOrderUseCase {
                 paymentUrl = snapResponse.redirect_url;
                 for (const o of createdOrders) {
                     await this.orderRepo.updateTrackingNumber(o.order_id, snapParameter.transaction_details.order_id);
+                    await this.orderRepo.updatePaymentInfo(o.order_id, snapToken, paymentUrl);
                 }
             } catch (err: any) {
                 console.error("Midtrans token generation failed:", err);
@@ -219,6 +226,8 @@ export class GetOrderByIdUseCase {
                 method: order.paymentMethod,
                 status: order.paymentStatus,
                 paid_at: order.paidAt,
+                payment_url: order.paymentUrl,
+                snap_token: order.snapToken,
             },
             timeline,
             notes: order.notes,
