@@ -19,7 +19,7 @@ export const getApiDocs = async () => {
       },
       servers: [
         {
-          url: "https://harvest-backend-amber.vercel.app",
+          url: "https://marketplace.zyrridian.dev",
           description: "Production server",
         },
         {

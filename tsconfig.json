@@ -20,7 +20,8 @@
     ],
     "paths": {
       "@/*": ["./app/*"],
-      "@/generated/*": ["./app/generated/*"]
+      "@/generated/*": ["./app/generated/*"],
+      "@/utils/*": ["./utils/*"]
     }
   },
   "include": [
