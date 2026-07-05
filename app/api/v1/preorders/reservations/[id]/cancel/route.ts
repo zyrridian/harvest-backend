@@ -24,6 +24,15 @@ import { preOrderRepository } from "@/features/preorder/infrastructure/repositor
  *     responses:
  *       200:
  *         description: Reservation cancelled successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
  */
 export async function POST(
   request: NextRequest,

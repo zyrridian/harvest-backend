@@ -21,6 +21,16 @@ import { preOrderRepository } from "@/features/preorder/infrastructure/repositor
  *         required: true
  *         schema:
  *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               paymentMethod:
+ *                 type: string
+ *                 default: BANK_TRANSFER
  *     responses:
  *       200:
  *         description: Payment processed successfully

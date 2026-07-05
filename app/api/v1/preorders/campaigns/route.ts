@@ -4,6 +4,7 @@ import { handleRouteError } from "@/core/errors";
 import { successResponse } from "@/core/helpers/response";
 import { parseBody } from "@/core/helpers/parseBody";
 import { preOrderRepository } from "@/features/preorder/infrastructure/repositories/prisma-preorder.repository";
+import prisma from "@/core/database/prisma";
 
 /**
  * @swagger
@@ -15,6 +16,51 @@ import { preOrderRepository } from "@/features/preorder/infrastructure/repositor
  *       - Preorders
  *     security:
  *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - title
+ *               - unit
+ *               - pricePerUnit
+ *               - targetQuantity
+ *               - estimatedHarvestDate
+ *             properties:
+ *               title:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               unit:
+ *                 type: string
+ *               pricePerUnit:
+ *                 type: number
+ *               minimumOrderQuantity:
+ *                 type: number
+ *                 default: 1
+ *               targetQuantity:
+ *                 type: number
+ *               depositPercentage:
+ *                 type: number
+ *                 default: 0
+ *               estimatedHarvestDate:
+ *                 type: string
+ *                 format: date-time
+ *               status:
+ *                 type: string
+ *                 default: ACTIVE
+ *             example:
+ *               title: "Fresh Organic Tomatoes"
+ *               description: "Sweet and juicy tomatoes from our next harvest."
+ *               unit: "kg"
+ *               pricePerUnit: 25000
+ *               targetQuantity: 100
+ *               estimatedHarvestDate: "2026-08-15T00:00:00Z"
+ *               minimumOrderQuantity: 1
+ *               depositPercentage: 50
+ *               status: "ACTIVE"
  *     responses:
  *       200:
  *         description: Campaign created successfully
@@ -37,7 +83,12 @@ export async function POST(request: NextRequest) {
       throw new Error("Missing required fields for campaign");
     }
 
-    const campaign = await preOrderRepository.createCampaign(payload.userId, {
+    const farmer = await prisma.farmer.findUnique({ where: { userId: payload.userId } });
+    if (!farmer) {
+      throw new Error("User is not a registered farmer");
+    }
+
+    const campaign = await preOrderRepository.createCampaign(farmer.id, {
       title: body.title,
       description: body.description,
       unit: body.unit,
