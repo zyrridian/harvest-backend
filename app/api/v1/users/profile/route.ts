@@ -97,6 +97,9 @@ export async function GET(request: NextRequest) {
  *               bio:
  *                 type: string
  *                 example: Updated bio text
+ *               avatar_url:
+ *                 type: string
+ *                 example: https://your-storage-url.com/uploads/123.jpg
  *     responses:
  *       200:
  *         description: Profile updated successfully
@@ -132,6 +135,7 @@ export async function PUT(request: NextRequest) {
       name: input.name,
       phoneNumber: input.phone_number,
       bio: input.bio,
+      avatarUrl: input.avatar_url,
     });
 
     return successResponse(profileData, {

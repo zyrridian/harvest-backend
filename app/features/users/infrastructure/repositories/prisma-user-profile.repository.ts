@@ -17,9 +17,10 @@ export class PrismaUserProfileRepository implements IUserProfileRepository {
   }
 
   async updateProfile(userId: string, data: UpdateProfileData): Promise<UserWithProfileEntity> {
-    const updateData: { name?: string; phoneNumber?: string } = {};
+    const updateData: { name?: string; phoneNumber?: string; avatarUrl?: string } = {};
     if (data.name !== undefined) updateData.name = data.name;
     if (data.phoneNumber !== undefined) updateData.phoneNumber = data.phoneNumber;
+    if (data.avatarUrl !== undefined) updateData.avatarUrl = data.avatarUrl;
 
     // We can run these in parallel or sequentially. Sequential is safer for returning the final state.
     if (Object.keys(updateData).length > 0) {
