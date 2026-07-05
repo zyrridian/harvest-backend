@@ -26,21 +26,20 @@ export default function NotificationsPage() {
 
   const fetchNotifications = async () => {
     setLoading(false);
-    // TODO: Implement when notifications API is ready
-    // try {
-    //   const token = localStorage.getItem("accessToken");
-    //   const response = await fetch("/api/v1/notifications", {
-    //     headers: { Authorization: `Bearer ${token}` },
-    //   });
-    //   const data = await response.json();
-    //   if (response.ok) {
-    //     setNotifications(data.data || []);
-    //   }
-    // } catch (error) {
-    //   console.error("Failed to fetch notifications:", error);
-    // } finally {
-    //   setLoading(false);
-    // }
+    try {
+      const token = localStorage.getItem("accessToken");
+      const response = await fetch("/api/v1/notifications", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await response.json();
+      if (response.ok) {
+        setNotifications(data.data?.notifications || []);
+      }
+    } catch (error) {
+      console.error("Failed to fetch notifications:", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

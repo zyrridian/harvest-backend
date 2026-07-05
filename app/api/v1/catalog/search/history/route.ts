@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyAuth } from "@/features/auth";
-import prisma from "@/core/database/prisma";
+import { searchRepository } from "@/features/catalog/infrastructure/repositories/prisma-search.repository";
+import { GetSearchHistoryUseCase, ClearSearchHistoryUseCase } from "@/features/catalog/application/usecases/search/search-history.usecases";
 
 /**
  * @swagger
@@ -30,29 +31,21 @@ export async function GET(request: NextRequest) {
 
     const limit = parseInt(searchParams.get("limit") || "10");
 
-    const history = await prisma.searchHistory.findMany({
-      where: {
-        userId: payload.userId,
-      },
-      orderBy: {
-        searchedAt: "desc",
-      },
-      take: limit,
-    });
-
-    const data = history.map((item) => ({
-      id: item.id,
-      query: item.query,
-      result_count: item.resultCount,
-      searched_at: item.searchedAt.toISOString(),
-    }));
+    const useCase = new GetSearchHistoryUseCase(searchRepository);
+    const data = await useCase.execute(payload.userId, limit);
 
     return NextResponse.json({
       status: "success",
       data,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Get search history error:", error);
+    if (error.name === "AppError") {
+      return NextResponse.json(
+        { status: "error", message: error.message },
+        { status: error.statusCode }
+      );
+    }
     return NextResponse.json(
       { status: "error", message: "Failed to fetch search history" },
       { status: 500 },
@@ -78,18 +71,21 @@ export async function DELETE(request: NextRequest) {
   try {
     const payload = await verifyAuth(request);
 
-    await prisma.searchHistory.deleteMany({
-      where: {
-        userId: payload.userId,
-      },
-    });
+    const useCase = new ClearSearchHistoryUseCase(searchRepository);
+    await useCase.execute(payload.userId);
 
     return NextResponse.json({
       status: "success",
       message: "Search history cleared",
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Clear search history error:", error);
+    if (error.name === "AppError") {
+      return NextResponse.json(
+        { status: "error", message: error.message },
+        { status: error.statusCode }
+      );
+    }
     return NextResponse.json(
       { status: "error", message: "Failed to clear search history" },
       { status: 500 },

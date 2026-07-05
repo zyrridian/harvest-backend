@@ -14,13 +14,23 @@ import { preOrderRepository } from "@/features/preorder/infrastructure/repositor
  *     tags:
  *       - Preorders
  *     security:
- *       - BearerAuth: []
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
  *         schema:
  *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               paymentMethod:
+ *                 type: string
+ *                 default: BANK_TRANSFER
  *     responses:
  *       200:
  *         description: Payment processed successfully

@@ -486,6 +486,8 @@ model Order {
   totalAmount       Float     @map("total_amount")
   paymentMethod     String?   @map("payment_method")
   paymentStatus     String?   @map("payment_status")
+  paymentUrl        String?   @map("payment_url")
+  snapToken         String?   @map("snap_token")
   isDeposit         Boolean   @default(false) @map("is_deposit")
   depositAmount     Float?    @map("deposit_amount")
   deliveryMethod    String?   @map("delivery_method")
