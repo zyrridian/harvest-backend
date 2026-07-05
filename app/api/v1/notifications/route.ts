@@ -4,10 +4,10 @@ import { verifyAuth } from "@/features/auth";
 
 /**
  * @swagger
- * /api/v1/community/notifications:
+ * /api/v1/notifications:
  *   get:
  *     summary: Get user's notifications
- *     tags: [Community]
+ *     tags: [Notifications]
  *     security:
  *       - bearerAuth: []
  *     parameters:

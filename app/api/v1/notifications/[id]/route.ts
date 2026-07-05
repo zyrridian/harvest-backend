@@ -4,10 +4,10 @@ import { verifyAuth } from "@/features/auth";
 
 /**
  * @swagger
- * /api/v1/community/notifications/{id}/read:
- *   put:
- *     summary: Mark notification as read
- *     tags: [Community]
+ * /api/v1/notifications/{id}:
+ *   delete:
+ *     summary: Delete a notification
+ *     tags: [Notifications]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -18,7 +18,7 @@ import { verifyAuth } from "@/features/auth";
  *           type: string
  *     responses:
  *       200:
- *         description: Notification marked as read
+ *         description: Notification deleted successfully
  *       401:
  *         description: Unauthorized
  *       403:
@@ -26,7 +26,7 @@ import { verifyAuth } from "@/features/auth";
  *       404:
  *         description: Notification not found
  */
-export async function PUT(
+export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
@@ -52,31 +52,26 @@ export async function PUT(
       return NextResponse.json(
         {
           status: "error",
-          message: "You do not have permission to update this notification",
+          message: "You do not have permission to delete this notification",
         },
         { status: 403 },
       );
     }
 
-    const updated = await prisma.notification.update({
+    await prisma.notification.delete({
       where: { id },
-      data: {
-        isRead: true,
-        readAt: new Date(),
-      },
     });
 
     return NextResponse.json({
       status: "success",
-      message: "Notification marked as read",
-      data: updated,
+      message: "Notification deleted successfully",
     });
   } catch (error: any) {
-    console.error("Mark notification as read error:", error);
+    console.error("Delete notification error:", error);
     return NextResponse.json(
       {
         status: "error",
-        message: error.message || "Failed to mark notification as read",
+        message: error.message || "Failed to delete notification",
       },
       { status: error.status || 500 },
     );
