@@ -1,4 +1,4 @@
-import { CommunityPostEntity, PostCommentEntity } from "../entities/community.entity";
+import { CommunityPostEntity, PostCommentEntity, RecipeEntity } from "../entities/community.entity";
 
 export interface PaginationParams {
   page: number;
@@ -17,6 +17,13 @@ export interface FindCommentsParams extends PaginationParams {
   search?: string;
   postId?: string;
   parentId?: string | null;
+}
+
+export interface FindRecipesParams extends PaginationParams {
+  search?: string;
+  authorId?: string;
+  difficulty?: string;
+  isFeatured?: boolean;
 }
 
 export interface ICommunityRepository {
@@ -42,6 +49,9 @@ export interface ICommunityRepository {
   checkPostLike(postId: string, userId: string): Promise<boolean>;
   getFarmerIdByUserId(userId: string): Promise<string | null>;
 
+  // --- Tags ---
+  getTrendingTags(limit: number): Promise<string[]>;
+
   // --- Admin/Generic Comments ---
   findComments(params: FindCommentsParams): Promise<PostCommentEntity[]>;
   countComments(params: FindCommentsParams): Promise<number>;
@@ -60,4 +70,27 @@ export interface ICommunityRepository {
   likeComment(commentId: string, userId: string): Promise<void>;
   unlikeComment(commentId: string, userId: string): Promise<void>;
   checkCommentLike(commentId: string, userId: string): Promise<boolean>;
+
+  // --- Recipes ---
+  findRecipes(params: FindRecipesParams): Promise<RecipeEntity[]>;
+  countRecipes(params: FindRecipesParams): Promise<number>;
+  findRecipeById(id: string): Promise<RecipeEntity | null>;
+  createRecipe(data: {
+    authorId: string;
+    title: string;
+    description?: string;
+    imageUrl?: string;
+    prepTimeMinutes?: number;
+    cookTimeMinutes?: number;
+    servings?: number;
+    difficulty?: string;
+    isFeatured?: boolean;
+    instructions: string[];
+    ingredients?: Array<{
+      name: string;
+      quantity?: number;
+      unit?: string;
+      productId?: string;
+    }>;
+  }): Promise<RecipeEntity>;
 }

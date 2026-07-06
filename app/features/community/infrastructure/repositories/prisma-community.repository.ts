@@ -1,6 +1,6 @@
 import prisma from "@/core/database/prisma";
-import { ICommunityRepository, FindPostsParams, FindCommentsParams } from "../../domain/repositories/community.repository";
-import { CommunityPostEntity, PostCommentEntity } from "../../domain/entities/community.entity";
+import { ICommunityRepository, FindPostsParams, FindCommentsParams, FindRecipesParams } from "../../domain/repositories/community.repository";
+import { CommunityPostEntity, PostCommentEntity, RecipeEntity } from "../../domain/entities/community.entity";
 
 const postInclude = {
   user: {
@@ -327,6 +327,143 @@ export class PrismaCommunityRepository implements ICommunityRepository {
       where: { commentId_userId: { commentId, userId } },
     });
     return !!like;
+  }
+
+  // --- Tags ---
+
+  async getTrendingTags(limit: number): Promise<string[]> {
+    const tags = await prisma.postTag.groupBy({
+      by: ['tag'],
+      _count: {
+        tag: true,
+      },
+      orderBy: {
+        _count: {
+          tag: 'desc',
+        },
+      },
+      take: limit,
+    });
+
+    return tags.map((t) => t.tag);
+  }
+
+  // --- Recipes ---
+
+  async findRecipes(params: FindRecipesParams): Promise<RecipeEntity[]> {
+    const { search, authorId, difficulty, isFeatured, page, limit } = params;
+    const skip = (page - 1) * limit;
+
+    const where: any = {};
+    if (search) {
+      where.OR = [
+        { title: { contains: search, mode: "insensitive" } },
+        { description: { contains: search, mode: "insensitive" } },
+      ];
+    }
+    
+    if (authorId) where.authorId = authorId;
+    if (difficulty) where.difficulty = difficulty;
+    if (isFeatured !== undefined) where.isFeatured = isFeatured;
+
+    const recipes = await prisma.recipe.findMany({
+      where,
+      skip,
+      take: limit,
+      orderBy: { createdAt: "desc" },
+      include: {
+        author: {
+          select: { id: true, name: true, avatarUrl: true },
+        },
+        ingredients: true,
+      },
+    });
+
+    return recipes as unknown as RecipeEntity[];
+  }
+
+  async countRecipes(params: FindRecipesParams): Promise<number> {
+    const { search, authorId, difficulty, isFeatured } = params;
+
+    const where: any = {};
+    if (search) {
+      where.OR = [
+        { title: { contains: search, mode: "insensitive" } },
+        { description: { contains: search, mode: "insensitive" } },
+      ];
+    }
+    
+    if (authorId) where.authorId = authorId;
+    if (difficulty) where.difficulty = difficulty;
+    if (isFeatured !== undefined) where.isFeatured = isFeatured;
+
+    return prisma.recipe.count({ where });
+  }
+
+  async findRecipeById(id: string): Promise<RecipeEntity | null> {
+    const recipe = await prisma.recipe.findUnique({
+      where: { id },
+      include: {
+        author: {
+          select: { id: true, name: true, avatarUrl: true },
+        },
+        ingredients: true,
+      },
+    });
+
+    return (recipe as unknown as RecipeEntity) || null;
+  }
+
+  async createRecipe(data: {
+    authorId: string;
+    title: string;
+    description?: string;
+    imageUrl?: string;
+    prepTimeMinutes?: number;
+    cookTimeMinutes?: number;
+    servings?: number;
+    difficulty?: string;
+    isFeatured?: boolean;
+    instructions: string[];
+    ingredients?: Array<{
+      name: string;
+      quantity?: number;
+      unit?: string;
+      productId?: string;
+    }>;
+  }): Promise<RecipeEntity> {
+    const recipe = await prisma.recipe.create({
+      data: {
+        authorId: data.authorId,
+        title: data.title,
+        description: data.description,
+        imageUrl: data.imageUrl,
+        prepTimeMinutes: data.prepTimeMinutes,
+        cookTimeMinutes: data.cookTimeMinutes,
+        servings: data.servings,
+        difficulty: data.difficulty,
+        isFeatured: data.isFeatured ?? false,
+        instructions: data.instructions,
+        ingredients: data.ingredients?.length
+          ? {
+              create: data.ingredients.map((ing) => ({
+                name: ing.name,
+                quantity: ing.quantity,
+                unit: ing.unit,
+                productId: ing.productId,
+              })),
+            }
+          : undefined,
+      },
+      include: {
+        author: {
+          select: { id: true, name: true, avatarUrl: true },
+        },
+        ingredients: true,
+      },
+    });
+
+    return recipe as unknown as RecipeEntity;
   }
 }
 
