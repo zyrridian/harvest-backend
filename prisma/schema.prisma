@@ -192,6 +192,7 @@ model Product {
   reviews        Review[]
   conversations  Conversation[]
   recipeIngredients RecipeIngredient[]
+  groupBuys      GroupBuy[]
 
   @@index([sellerId])
   @@index([categoryId])
@@ -364,6 +365,9 @@ model Farmer {
   routes            DeliveryRoute[]
   dropPoints        DropPoint[]
   preorderCampaigns PreorderCampaign[]
+  liveStreams       LiveStream[]
+  experiences       FarmExperience[]
+  groupBuys         GroupBuy[]
 
   @@index([userId])
   @@index([latitude, longitude])
@@ -1197,3 +1201,72 @@ model PreorderReservation {
   @@index([userId])
   @@map("preorder_reservations")
 }
+
+// ============================================
+// EXPLORE FEATURE MODELS
+// ============================================
+
+model LiveStream {
+  id          String    @id @default(uuid())
+  farmerId    String    @map("farmer_id")
+  title       String
+  thumbnail   String?
+  streamUrl   String    @map("stream_url") // HLS URL (.m3u8)
+  viewers     Int       @default(0)
+  isLive      Boolean   @default(false) @map("is_live")
+  startedAt   DateTime  @default(now()) @map("started_at")
+  endedAt     DateTime? @map("ended_at")
+
+  // Relations
+  farmer      Farmer    @relation(fields: [farmerId], references: [id], onDelete: Cascade)
+
+  @@index([isLive])
+  @@index([farmerId])
+  @@map("live_streams")
+}
+
+model FarmExperience {
+  id          String   @id @default(uuid())
+  farmerId    String   @map("farmer_id")
+  title       String
+  description String?  @db.Text
+  location    String
+  eventDate   DateTime @map("event_date")
+  price       Float
+  image       String?
+  maxCapacity Int      @default(10) @map("max_capacity")
+  bookedCount Int      @default(0) @map("booked_count")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  // Relations
+  farmer      Farmer   @relation(fields: [farmerId], references: [id], onDelete: Cascade)
+
+  @@index([farmerId])
+  @@map("farm_experiences")
+}
+
+model GroupBuy {
+  id            String   @id @default(uuid())
+  farmerId      String   @map("farmer_id")
+  productId     String   @map("product_id")
+  title         String
+  price         Float
+  originalPrice Float    @map("original_price")
+  image         String?
+  targetCount   Int      @map("target_count")
+  joinedCount   Int      @default(0) @map("joined_count")
+  expiresAt     DateTime @map("expires_at")
+  status        String   @default("ACTIVE") // ACTIVE, SUCCESS, FAILED
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  farmer        Farmer   @relation(fields: [farmerId], references: [id], onDelete: Cascade)
+  product       Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@index([farmerId])
+  @@index([productId])
+  @@map("group_buys")
+}
+
