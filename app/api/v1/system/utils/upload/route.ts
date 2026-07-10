@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 import prisma from "@/core/database/prisma";
 import { getOptionalAuth } from "@/features/auth/infrastructure/guards/auth.guard";
+import { logger } from "@/core/logger";
 
 /**
  * @swagger
@@ -95,7 +96,7 @@ export async function POST(request: NextRequest) {
       });
 
     if (error) {
-      console.error("Supabase upload error:", error);
+      logger.error({ err: error }, "Supabase upload error:", error);
       throw new Error(`Storage error: ${error.message}`);
     }
 
@@ -138,7 +139,7 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error: any) {
-    console.error("Error uploading file:", error);
+    logger.error({ err: error }, "Error uploading file:", error);
     return NextResponse.json(
       { status: "error", message: error.message || "Failed to process the upload" },
       { status: 500 }

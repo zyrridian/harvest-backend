@@ -2,11 +2,17 @@ version: '3.8'
 
 services:
   harvest-web:
-    # Instead of 'build: .', we now pull the pre-built image directly from GitHub!
     image: ghcr.io/zyrridian/harvest-web:latest
     container_name: harvest-web
     ports:
       - "3000:3000"
     env_file:
       - .env
+    restart: always
+
+  redis:
+    image: redis:alpine
+    container_name: harvest-redis
+    ports:
+      - "6379:6379"
     restart: always

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/core/database/prisma";
 import { verifyAuth } from "@/features/auth";
+import { logger } from "@/core/logger";
 
 /**
  * @swagger
@@ -38,7 +39,7 @@ export async function GET(request: NextRequest) {
       data: settings,
     });
   } catch (error: any) {
-    console.error("Get notification settings error:", error);
+    logger.error({ err: error }, "Get notification settings error:", error);
     return NextResponse.json(
       {
         status: "error",
@@ -128,7 +129,7 @@ export async function PUT(request: NextRequest) {
       data: settings,
     });
   } catch (error: any) {
-    console.error("Update notification settings error:", error);
+    logger.error({ err: error }, "Update notification settings error:", error);
     return NextResponse.json(
       {
         status: "error",

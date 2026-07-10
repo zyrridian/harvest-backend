@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/core/database/prisma";
 import { verifyAdmin } from "@/features/auth";
+import { logger } from "@/core/logger";
 
 /**
  * @swagger
@@ -91,7 +92,7 @@ export async function PUT(
       data: updated,
     });
   } catch (error: any) {
-    console.error("Verify farmer error:", error);
+    logger.error({ err: error }, "Verify farmer error:", error);
     return NextResponse.json(
       {
         status: "error",

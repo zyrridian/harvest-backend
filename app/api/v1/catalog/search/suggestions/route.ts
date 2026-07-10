@@ -4,6 +4,7 @@ import { productRepository } from "@/features/catalog/infrastructure/repositorie
 import { categoryRepository } from "@/features/catalog/infrastructure/repositories/prisma-category.repository";
 import { farmerRepository } from "@/features/catalog/infrastructure/repositories/prisma-farmer.repository";
 import { SearchSuggestionsSchema } from "@/features/catalog/validation/search.schema";
+import { logger } from "@/core/logger";
 
 /**
  * @swagger
@@ -58,7 +59,7 @@ export async function GET(request: NextRequest) {
       data: suggestions,
     });
   } catch (error) {
-    console.error("Search suggestions error:", error);
+    logger.error({ err: error }, "Search suggestions error:", error);
     return NextResponse.json(
       { status: "error", message: "Failed to get suggestions" },
       { status: 500 },

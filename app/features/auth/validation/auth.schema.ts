@@ -3,7 +3,7 @@ import { z } from "zod";
 export const LoginSchema = z.object({
   email: z.email("Invalid email address"),
   password: z.string().min(1, "Password is required"),
-});
+}).strict();
 
 export const RegisterSchema = z.object({
   email: z.email("Invalid email address"),
@@ -14,7 +14,7 @@ export const RegisterSchema = z.object({
     .enum(["CONSUMER", "PRODUCER"])
     .default("CONSUMER")
     .describe("Account type (ADMIN cannot be registered publicly)"),
-});
+}).strict();
 
 export type LoginInput = z.infer<typeof LoginSchema>;
 export type RegisterInput = z.infer<typeof RegisterSchema>;

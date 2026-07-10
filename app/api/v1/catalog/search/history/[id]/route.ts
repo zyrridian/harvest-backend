@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyAuth } from "@/features/auth";
 import prisma from "@/core/database/prisma";
+import { logger } from "@/core/logger";
 
 /**
  * @swagger
@@ -64,7 +65,7 @@ export async function DELETE(
       message: "Search history item deleted",
     });
   } catch (error) {
-    console.error("Delete search history item error:", error);
+    logger.error({ err: error }, "Delete search history item error:", error);
     return NextResponse.json(
       { status: "error", message: "Failed to delete search history item" },
       { status: 500 },

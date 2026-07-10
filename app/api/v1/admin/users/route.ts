@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/core/database/prisma";
 import { verifyAdmin } from "@/features/auth";
+import { logger } from "@/core/logger";
 
 /**
  * @swagger
@@ -115,7 +116,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error: any) {
-    console.error("Get users error:", error);
+    logger.error({ err: error }, "Get users error:", error);
     return NextResponse.json(
       {
         status: "error",

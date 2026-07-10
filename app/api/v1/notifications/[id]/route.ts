@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/core/database/prisma";
 import { verifyAuth } from "@/features/auth";
+import { logger } from "@/core/logger";
 
 /**
  * @swagger
@@ -67,7 +68,7 @@ export async function DELETE(
       message: "Notification deleted successfully",
     });
   } catch (error: any) {
-    console.error("Delete notification error:", error);
+    logger.error({ err: error }, "Delete notification error:", error);
     return NextResponse.json(
       {
         status: "error",

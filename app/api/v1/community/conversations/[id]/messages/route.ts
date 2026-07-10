@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyAuth } from "@/features/auth";
 import prisma from "@/core/database/prisma";
+import { logger } from "@/core/logger";
 
 /**
  * @swagger
@@ -119,7 +120,7 @@ export async function POST(
       { status: 201 },
     );
   } catch (error) {
-    console.error("Send message error:", error);
+    logger.error({ err: error }, "Send message error:", error);
     return NextResponse.json(
       { status: "error", message: "Failed to send message" },
       { status: 500 },

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/core/database/prisma";
 import { verifyAdmin } from "@/features/auth";
+import { logger } from "@/core/logger";
 
 /**
  * @swagger
@@ -141,7 +142,7 @@ export async function GET(
       );
     }
 
-    console.error("Error fetching category:", error);
+    logger.error({ err: error }, "Error fetching category:", error);
     return NextResponse.json(
       { status: "error", message: "Failed to fetch category" },
       { status: 500 },
@@ -242,7 +243,7 @@ export async function PATCH(
       );
     }
 
-    console.error("Error updating category:", error);
+    logger.error({ err: error }, "Error updating category:", error);
     return NextResponse.json(
       { status: "error", message: "Failed to update category" },
       { status: 500 },
@@ -338,7 +339,7 @@ export async function DELETE(
       );
     }
 
-    console.error("Error deleting category:", error);
+    logger.error({ err: error }, "Error deleting category:", error);
     return NextResponse.json(
       { status: "error", message: "Failed to delete category" },
       { status: 500 },

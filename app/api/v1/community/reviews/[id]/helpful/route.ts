@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyAuth } from "@/features/auth";
 import prisma from "@/core/database/prisma";
+import { logger } from "@/core/logger";
 
 /**
  * @swagger
@@ -90,7 +91,7 @@ export async function POST(
       },
     });
   } catch (error) {
-    console.error("Mark helpful error:", error);
+    logger.error({ err: error }, "Mark helpful error:", error);
     return NextResponse.json(
       { status: "error", message: "Failed to mark review as helpful" },
       { status: 500 },
@@ -188,7 +189,7 @@ export async function DELETE(
       },
     });
   } catch (error) {
-    console.error("Remove helpful error:", error);
+    logger.error({ err: error }, "Remove helpful error:", error);
     return NextResponse.json(
       { status: "error", message: "Failed to remove helpful mark" },
       { status: 500 },

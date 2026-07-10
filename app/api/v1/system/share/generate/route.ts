@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/core/database/prisma";
 import { nanoid } from "nanoid";
+import { logger } from "@/core/logger";
 
 /**
  * @swagger
@@ -92,7 +93,7 @@ export async function POST(request: NextRequest) {
       { status: 201 },
     );
   } catch (error: any) {
-    console.error("Generate share link error:", error);
+    logger.error({ err: error }, "Generate share link error:", error);
     return NextResponse.json(
       {
         status: "error",

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { masterDataRepository } from "@/features/catalog/infrastructure/repositories/prisma-master-data.repository";
 import { GetCitiesUseCase } from "@/features/catalog/application/usecases/master-data/get-master-data.usecases";
+import { logger } from "@/core/logger";
 
 /**
  * @swagger
@@ -51,7 +52,7 @@ export async function GET(request: NextRequest) {
       data: mappedCities,
     });
   } catch (error) {
-    console.error("Error fetching cities:", error);
+    logger.error({ err: error }, "Error fetching cities:", error);
     return NextResponse.json(
       { status: "error", message: "Failed to fetch cities" },
       { status: 500 }

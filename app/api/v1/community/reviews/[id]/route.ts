@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyAuth } from "@/features/auth";
 import prisma from "@/core/database/prisma";
+import { logger } from "@/core/logger";
 
 /**
  * @swagger
@@ -97,7 +98,7 @@ export async function GET(
       },
     });
   } catch (error: any) {
-    console.error("Error fetching reviews:", error);
+    logger.error({ err: error }, "Error fetching reviews:", error);
     return NextResponse.json(
       {
         status: "error",
@@ -211,7 +212,7 @@ export async function PUT(
       },
     });
   } catch (error) {
-    console.error("Update review error:", error);
+    logger.error({ err: error }, "Update review error:", error);
     return NextResponse.json(
       { status: "error", message: "Failed to update review" },
       { status: 500 },
@@ -281,7 +282,7 @@ export async function DELETE(
       message: "Review deleted successfully",
     });
   } catch (error) {
-    console.error("Delete review error:", error);
+    logger.error({ err: error }, "Delete review error:", error);
     return NextResponse.json(
       { status: "error", message: "Failed to delete review" },
       { status: 500 },

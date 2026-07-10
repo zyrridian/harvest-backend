@@ -23,18 +23,18 @@ export const CreatePostSchema = z.object({
   content: z.string().min(1, "Content is required"),
   images: z.array(z.string().url()).optional(),
   tags: z.array(z.string()).optional(),
-});
+}).strict();
 
 export const UpdatePostSchema = z.object({
   title: z.string().optional(),
   content: z.string().optional(),
-});
+}).strict();
 
 export const AddCommentSchema = z.object({
   content: z.string().min(1, "Content is required"),
   parent_id: z.string().optional(),
   reply_to_user_id: z.string().optional(),
-});
+}).strict();
 
 // --- Recipe Schemas ---
 
@@ -63,4 +63,4 @@ export const CreateRecipeSchema = z.object({
     unit: z.string().optional(),
     product_id: z.string().optional(),
   })).optional(),
-});
+}).strict();

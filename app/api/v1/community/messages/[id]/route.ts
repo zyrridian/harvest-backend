@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyAuth } from "@/features/auth";
 import prisma from "@/core/database/prisma";
+import { logger } from "@/core/logger";
 
 /**
  * @swagger
@@ -101,7 +102,7 @@ export async function PUT(
       },
     });
   } catch (error) {
-    console.error("Edit message error:", error);
+    logger.error({ err: error }, "Edit message error:", error);
     return NextResponse.json(
       { status: "error", message: "Failed to edit message" },
       { status: 500 },
@@ -213,7 +214,7 @@ export async function DELETE(
       message: "Message deleted",
     });
   } catch (error) {
-    console.error("Delete message error:", error);
+    logger.error({ err: error }, "Delete message error:", error);
     return NextResponse.json(
       { status: "error", message: "Failed to delete message" },
       { status: 500 },

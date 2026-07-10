@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/core/database/prisma";
 import { verifyToken, extractBearerToken } from "@/features/auth";
+import { logger } from "@/core/logger";
 
 /**
  * @swagger
@@ -89,7 +90,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error: any) {
-    console.error("Error fetching farmer profile:", error);
+    logger.error({ err: error }, "Error fetching farmer profile:", error);
     return NextResponse.json(
       {
         status: "error",
@@ -304,7 +305,7 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error: any) {
-    console.error("Error creating/updating farmer profile:", error);
+    logger.error({ err: error }, "Error creating/updating farmer profile:", error);
     return NextResponse.json(
       {
         status: "error",

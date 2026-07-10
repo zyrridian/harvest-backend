@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { farmerRepository } from "@/features/catalog/infrastructure/repositories/prisma-farmer.repository";
 import { GetFarmersUseCase } from "@/features/catalog/application/usecases/search/get-farmers.usecase";
 import { SearchFarmersSchema } from "@/features/catalog/validation/search.schema";
+import { logger } from "@/core/logger";
 
 /**
  * @swagger
@@ -71,7 +72,7 @@ export async function GET(request: NextRequest) {
       meta: result.pagination,
     });
   } catch (error) {
-    console.error("Search farmers error:", error);
+    logger.error({ err: error }, "Search farmers error:", error);
     return NextResponse.json(
       { status: "error", message: "Failed to search farmers" },
       { status: 500 },

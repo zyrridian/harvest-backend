@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/core/database/prisma";
 import { verifyAuth } from "@/features/auth";
+import { logger } from "@/core/logger";
 
 /**
  * @swagger
@@ -72,7 +73,7 @@ export async function PUT(
       data: updated,
     });
   } catch (error: any) {
-    console.error("Mark notification as read error:", error);
+    logger.error({ err: error }, "Mark notification as read error:", error);
     return NextResponse.json(
       {
         status: "error",

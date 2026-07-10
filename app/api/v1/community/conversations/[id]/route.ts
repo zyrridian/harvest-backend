@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyAuth } from "@/features/auth";
 import prisma from "@/core/database/prisma";
+import { logger } from "@/core/logger";
 
 /**
  * @swagger
@@ -212,7 +213,7 @@ export async function GET(
       },
     });
   } catch (error) {
-    console.error("Get conversation details error:", error);
+    logger.error({ err: error }, "Get conversation details error:", error);
     return NextResponse.json(
       { status: "error", message: "Failed to fetch conversation" },
       { status: 500 },

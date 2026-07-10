@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyAuth } from "@/features/auth";
 import prisma from "@/core/database/prisma";
+import { logger } from "@/core/logger";
 
 /**
  * @swagger
@@ -121,7 +122,7 @@ export async function POST(
       { status: 201 },
     );
   } catch (error) {
-    console.error("Add seller response error:", error);
+    logger.error({ err: error }, "Add seller response error:", error);
     return NextResponse.json(
       { status: "error", message: "Failed to add response" },
       { status: 500 },

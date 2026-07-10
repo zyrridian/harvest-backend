@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/core/database/prisma";
 import { coreApi, MIDTRANS_SERVER_KEY } from "@/core/services/midtrans";
 import crypto from "crypto";
+import { logger } from "@/core/logger";
 
 /**
  * POST /api/v1/payments/midtrans/notification
@@ -87,13 +88,13 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    console.log(
+    logger.info(
       `Midtrans: updated ${orders.length} order(s) for ${order_id} → ${paymentStatus}`,
     );
 
     return NextResponse.json({ status: "ok" });
   } catch (error: any) {
-    console.error("Midtrans notification error:", error);
+    logger.error({ err: error }, "Midtrans notification error:", error);
     return NextResponse.json(
       { status: "error", message: error.message },
       { status: 500 },

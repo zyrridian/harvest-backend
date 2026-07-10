@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyAuth } from "@/features/auth";
 import prisma from "@/core/database/prisma";
+import { logger } from "@/core/logger";
 
 /**
  * @swagger
@@ -86,7 +87,7 @@ export async function PATCH(
       },
     });
   } catch (error) {
-    console.error("Mark message as read error:", error);
+    logger.error({ err: error }, "Mark message as read error:", error);
     return NextResponse.json(
       { status: "error", message: "Failed to mark message as read" },
       { status: 500 },

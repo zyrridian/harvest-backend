@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/core/database/prisma";
+import { logger } from "@/core/logger";
 
 /**
  * @swagger
@@ -343,7 +344,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("Home API error:", error);
+    logger.error({ err: error }, "Home API error:", error);
     return NextResponse.json(
       {
         status: "error",

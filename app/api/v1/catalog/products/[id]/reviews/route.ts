@@ -3,6 +3,7 @@ import { verifyAuth } from "@/features/auth";
 import prisma from "@/core/database/prisma";
 import { GetProductReviewsUseCase } from "@/features/catalog/application/usecases/products/get-product-reviews.usecase";
 import { productRepository } from "@/features/catalog/infrastructure/repositories/prisma-product.repository";
+import { logger } from "@/core/logger";
 
 /**
  * @swagger
@@ -89,7 +90,7 @@ export async function GET(
       },
     });
   } catch (error) {
-    console.error("Get reviews error:", error);
+    logger.error({ err: error }, "Get reviews error:", error);
     return NextResponse.json(
       { status: "error", message: "Failed to fetch reviews" },
       { status: 500 },
@@ -248,7 +249,7 @@ export async function POST(
       { status: 201 },
     );
   } catch (error) {
-    console.error("Create review error:", error);
+    logger.error({ err: error }, "Create review error:", error);
     return NextResponse.json(
       { status: "error", message: "Failed to create review" },
       { status: 500 },

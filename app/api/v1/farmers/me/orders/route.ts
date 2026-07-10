@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/core/database/prisma";
 import { verifyToken, extractBearerToken } from "@/features/auth";
+import { logger } from "@/core/logger";
 
 /**
  * @swagger
@@ -213,7 +214,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error: any) {
-    console.error("Error fetching farmer orders:", error);
+    logger.error({ err: error }, "Error fetching farmer orders:", error);
     return NextResponse.json(
       {
         status: "error",

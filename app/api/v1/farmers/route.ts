@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/core/database/prisma";
+import { logger } from "@/core/logger";
 
 /**
  * @swagger
@@ -140,7 +141,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error: any) {
-    console.error("Error fetching farmers:", error);
+    logger.error({ err: error }, "Error fetching farmers:", error);
     return NextResponse.json(
       {
         status: "error",

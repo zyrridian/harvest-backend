@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { masterDataRepository } from "@/features/catalog/infrastructure/repositories/prisma-master-data.repository";
 import { GetProvincesUseCase } from "@/features/catalog/application/usecases/master-data/get-master-data.usecases";
+import { logger } from "@/core/logger";
 
 /**
  * @swagger
@@ -42,7 +43,7 @@ export async function GET() {
       data: provinces,
     });
   } catch (error) {
-    console.error("Error fetching provinces:", error);
+    logger.error({ err: error }, "Error fetching provinces:", error);
     return NextResponse.json(
       { status: "error", message: "Failed to fetch provinces" },
       { status: 500 }

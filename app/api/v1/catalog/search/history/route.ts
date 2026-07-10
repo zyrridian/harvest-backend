@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { verifyAuth } from "@/features/auth";
 import { searchRepository } from "@/features/catalog/infrastructure/repositories/prisma-search.repository";
 import { GetSearchHistoryUseCase, ClearSearchHistoryUseCase } from "@/features/catalog/application/usecases/search/search-history.usecases";
+import { logger } from "@/core/logger";
 
 /**
  * @swagger
@@ -39,7 +40,7 @@ export async function GET(request: NextRequest) {
       data,
     });
   } catch (error: any) {
-    console.error("Get search history error:", error);
+    logger.error({ err: error }, "Get search history error:", error);
     if (error.name === "AppError") {
       return NextResponse.json(
         { status: "error", message: error.message },
@@ -79,7 +80,7 @@ export async function DELETE(request: NextRequest) {
       message: "Search history cleared",
     });
   } catch (error: any) {
-    console.error("Clear search history error:", error);
+    logger.error({ err: error }, "Clear search history error:", error);
     if (error.name === "AppError") {
       return NextResponse.json(
         { status: "error", message: error.message },

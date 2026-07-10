@@ -5,10 +5,24 @@ import next from "next";
 import { Server as SocketIOServer, Socket } from "socket.io";
 import { verifyToken } from "./app/features/auth/application/services/token.service";
 import prisma from "./app/core/database/prisma";
+import { logger } from "./app/core/logger";
+import { activeSocketConnections } from "./app/core/metrics";
+import { createAdapter } from "@socket.io/redis-adapter";
+import { RateLimiterRedis } from "rate-limiter-flexible";
+import redisClient from "./app/core/database/redis";
 
 const dev = process.env.NODE_ENV !== "production";
 const hostname = "localhost";
 const port = parseInt(process.env.PORT || "3000", 10);
+
+const subClient = redisClient.duplicate();
+
+const rateLimiter = new RateLimiterRedis({
+  storeClient: redisClient,
+  keyPrefix: 'ratelimit',
+  points: 100,
+  duration: 60,
+});
 
 const app = next({ dev, hostname, port });
 const handle = app.getRequestHandler();
@@ -37,7 +51,7 @@ async function getUserConversationStats(userId: string) {
       total_unread_messages: Number(rawStats?.[0]?.total_unread_messages || 0)
     };
   } catch (error) {
-    console.error("[Socket] Failed to get stats:", error);
+    logger.error({ err: error }, "[Socket] Failed to get stats");
     return null;
   }
 }
@@ -69,10 +83,27 @@ async function getConversationParticipants(conversationId: string) {
 app.prepare().then(() => {
   const httpServer = createServer(async (req, res) => {
     try {
+      const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown';
+      try {
+        await rateLimiter.consume(ip as string);
+      } catch (rateLimitErr) {
+        res.statusCode = 429;
+        res.setHeader('Content-Type', 'application/json');
+        res.end(JSON.stringify({ error: "Too Many Requests" }));
+        return;
+      }
+
+      res.setHeader("X-DNS-Prefetch-Control", "off");
+      res.setHeader("X-Frame-Options", "SAMEORIGIN");
+      res.setHeader("Strict-Transport-Security", "max-age=15552000; includeSubDomains");
+      res.setHeader("X-Download-Options", "noopen");
+      res.setHeader("X-Content-Type-Options", "nosniff");
+      res.setHeader("X-XSS-Protection", "1; mode=block");
+
       const parsedUrl = parse(req.url!, true);
       await handle(req, res, parsedUrl);
     } catch (err) {
-      console.error("Error occurred handling", req.url, err);
+      logger.error({ err, url: req.url }, "Error occurred handling");
       res.statusCode = 500;
       res.end("Internal server error");
     }
@@ -85,6 +116,7 @@ app.prepare().then(() => {
       credentials: true,
     },
     path: "/api/socket",
+    adapter: createAdapter(redisClient, subClient),
   });
 
   // Middleware: authenticate socket connection
@@ -113,7 +145,8 @@ app.prepare().then(() => {
 
   io.on("connection", async (socket: Socket) => {
     const userId = (socket as any).userId as string;
-    console.log(`[Socket] User ${userId} connected — socket ${socket.id}`);
+    logger.info(`[Socket] User ${userId} connected — socket ${socket.id}`);
+    activeSocketConnections.inc();
 
     // Track online status
     if (!onlineUsers.has(userId)) {
@@ -123,9 +156,9 @@ app.prepare().then(() => {
 
     // Generic listener for debugging incoming events
     socket.onAny((eventName, ...args) => {
-      console.log(
-        `[Socket event from ${userId}]: ${eventName}`,
-        JSON.stringify(args).slice(0, 300),
+      logger.debug(
+        { userId, eventName, args: JSON.stringify(args).slice(0, 300) },
+        `[Socket event from ${userId}]: ${eventName}`
       );
     });
 
@@ -156,7 +189,7 @@ app.prepare().then(() => {
         const { conversation_id, content, type = "text", temp_id } = data || {};
 
         if (!content?.trim()) {
-          console.log(`[Socket warning] message:send got empty content:`, data);
+          logger.warn({ data }, `[Socket warning] message:send got empty content`);
           return;
         }
 
@@ -234,7 +267,7 @@ app.prepare().then(() => {
           }
         }
       } catch (err) {
-        console.error("[Socket] message:send error:", err);
+        logger.error({ err }, "[Socket] message:send error");
         socket.emit("error", { message: "Failed to send message" });
       }
     });
@@ -282,7 +315,7 @@ app.prepare().then(() => {
           }
         }
       } catch (err) {
-        console.error("[Socket] message:read error:", err);
+        logger.error({ err }, "[Socket] message:read error");
       }
     });
 
@@ -329,7 +362,8 @@ app.prepare().then(() => {
     // DISCONNECT
     // ─────────────────────────────────────────────
     socket.on("disconnect", async () => {
-      console.log(`[Socket] User ${userId} disconnected — socket ${socket.id}`);
+      logger.info(`[Socket] User ${userId} disconnected — socket ${socket.id}`);
+      activeSocketConnections.dec();
 
       const userSockets = onlineUsers.get(userId);
       if (userSockets) {
@@ -356,10 +390,10 @@ app.prepare().then(() => {
 
   httpServer
     .once("error", (err) => {
-      console.error(err);
+      logger.error({ err }, "Server failed to start");
       process.exit(1);
     })
     .listen(port, () => {
-      console.log(`> Ready on http://${hostname}:${port}`);
+      logger.info(`> Ready on http://${hostname}:${port}`);
     });
 });

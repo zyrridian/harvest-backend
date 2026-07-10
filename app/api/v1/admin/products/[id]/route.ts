@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/core/database/prisma";
 import { verifyAdmin } from "@/features/auth";
+import { logger } from "@/core/logger";
 
 /**
  * @swagger
@@ -80,7 +81,7 @@ export async function PUT(
       data: updated,
     });
   } catch (error: any) {
-    console.error("Update product error:", error);
+    logger.error({ err: error }, "Update product error:", error);
     return NextResponse.json(
       {
         status: "error",
@@ -146,7 +147,7 @@ export async function DELETE(
       message: "Product deleted successfully",
     });
   } catch (error: any) {
-    console.error("Delete product error:", error);
+    logger.error({ err: error }, "Delete product error:", error);
     return NextResponse.json(
       {
         status: "error",

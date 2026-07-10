@@ -3,6 +3,7 @@ import { verifyAuth } from "@/features/auth";
 import { productRepository } from "@/features/catalog/infrastructure/repositories/prisma-product.repository";
 import { GetProductsUseCase } from "@/features/catalog/application/usecases/products/get-products.usecase";
 import { searchRepository } from "@/features/catalog/infrastructure/repositories/prisma-search.repository";
+import { logger } from "@/core/logger";
 
 /**
  * @swagger
@@ -146,7 +147,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("Search products error:", error);
+    logger.error({ err: error }, "Search products error:", error);
     return NextResponse.json(
       { status: "error", message: "Failed to search products" },
       { status: 500 },

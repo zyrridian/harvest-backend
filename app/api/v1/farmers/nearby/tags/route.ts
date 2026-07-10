@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/core/database/prisma";
+import { logger } from "@/core/logger";
+import redis from "@/core/database/redis";
 
 /**
  * @swagger
@@ -13,10 +15,20 @@ import prisma from "@/core/database/prisma";
  */
 export async function GET() {
   try {
-    // Get all unique tags from active DropPoints
-    // Since Prisma doesn't have a distinct query for array elements directly in findMany,
-    // we fetch them and extract unique tags. For huge datasets, raw SQL is better.
-    
+    const cacheKey = "farmers:nearby:tags";
+    const cachedData = await redis.get(cacheKey);
+
+    if (cachedData) {
+      logger.info({ cacheKey }, "⚡ Cache hit! Returning nearby tags from Redis.");
+      return NextResponse.json({
+        status: "success",
+        data: JSON.parse(cachedData),
+        source: "cache",
+      });
+    }
+
+    logger.info({ cacheKey }, "🐢 Cache miss. Fetching nearby tags from Postgres...");
+
     // Using raw SQL for efficiency to unnest the array and get distinct values
     const tagsResult = await prisma.$queryRaw<{tag: string}[]>`
       SELECT DISTINCT unnest(tags) as tag
@@ -35,15 +47,21 @@ export async function GET() {
     
     const uniqueCategories = categoriesResult.map(row => row.category).filter(Boolean);
 
+    const data = {
+      tags: uniqueTags,
+      categories: uniqueCategories
+    };
+
+    // Cache the result for 1 hour (3600 seconds)
+    await redis.setex(cacheKey, 3600, JSON.stringify(data));
+    logger.info({ cacheKey, tagsCount: uniqueTags.length }, "💾 Saved nearby tags to Redis cache!");
+
     return NextResponse.json({
       status: "success",
-      data: {
-        tags: uniqueTags,
-        categories: uniqueCategories
-      },
+      data,
     });
   } catch (error: any) {
-    console.error("Error fetching nearby tags:", error);
+    logger.error({ err: error }, "Error fetching nearby tags");
     return NextResponse.json(
       {
         status: "error",

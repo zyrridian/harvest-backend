@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/core/database/prisma";
 import { verifyToken, extractBearerToken } from "@/features/auth";
+import { logger } from "@/core/logger";
 
 /**
  * @swagger
@@ -140,7 +141,7 @@ export async function GET(
       },
     });
   } catch (error: any) {
-    console.error("Error fetching product:", error);
+    logger.error({ err: error }, "Error fetching product:", error);
     return NextResponse.json(
       {
         status: "error",
@@ -374,7 +375,7 @@ export async function PUT(
       },
     });
   } catch (error: any) {
-    console.error("Error updating product:", error);
+    logger.error({ err: error }, "Error updating product:", error);
     return NextResponse.json(
       {
         status: "error",
@@ -470,7 +471,7 @@ export async function DELETE(
       message: "Product deleted successfully",
     });
   } catch (error: any) {
-    console.error("Error deleting product:", error);
+    logger.error({ err: error }, "Error deleting product:", error);
     return NextResponse.json(
       {
         status: "error",

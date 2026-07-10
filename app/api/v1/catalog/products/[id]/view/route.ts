@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { verifyToken, extractBearerToken } from "@/features/auth";
 import { RecordProductViewUseCase } from "@/features/catalog/application/usecases/products/record-product-view.usecase";
 import { productRepository } from "@/features/catalog/infrastructure/repositories/prisma-product.repository";
+import { logger } from "@/core/logger";
 
 /**
  * @swagger
@@ -50,7 +51,7 @@ export async function POST(
       message: "View tracked",
     });
   } catch (error: any) {
-    console.error("Error tracking view:", error);
+    logger.error({ err: error }, "Error tracking view:", error);
     return NextResponse.json(
       {
         status: "error",
