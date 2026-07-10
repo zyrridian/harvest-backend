@@ -21,7 +21,7 @@
     "paths": {
       "@/*": ["./app/*"],
       "@/generated/*": ["./app/generated/*"],
-      "@/utils/*": ["./utils/*"]
+      "@/utils/*": ["./utils/*"],
     }
   },
   "include": [

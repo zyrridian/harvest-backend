@@ -36,14 +36,20 @@ import { logger } from "@/core/logger";
 export async function GET(request: NextRequest) {
   try {
     // 1. Auth check
-    const token = extractBearerToken(request);
+    const token = extractBearerToken(request.headers.get("authorization"));
     if (!token) {
       return NextResponse.json(
         { success: false, message: "Unauthorized", data: null },
         { status: 401 }
       );
     }
-    const decoded = verifyToken(token, "access");
+    const decoded = await verifyToken(token);
+    if (!decoded || decoded.type !== "access") {
+      return NextResponse.json(
+        { success: false, message: "Invalid token", data: null },
+        { status: 401 }
+      );
+    }
     const userId = decoded.userId;
 
     const { searchParams } = new URL(request.url);
