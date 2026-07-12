@@ -15,7 +15,9 @@ export interface AvailableHarvestDTO {
 }
 
 export interface ActiveReservationDTO {
-  id: string;
+  id: string; // Reservation ID
+  campaign_id: string; // Preorder Campaign ID
+  product_id: string; // Associated Product ID (empty if none)
   title: string;
   quantity_str: string;
   farmer_name: string;

@@ -65,14 +65,6 @@ import prisma from "@/core/database/prisma";
  *     responses:
  *       200:
  *         description: Campaign created successfully
- *   get:
- *     summary: List active preorder campaigns
- *     description: Consumers can fetch a list of active preorder campaigns
- *     tags:
- *       - Preorders
- *     responses:
- *       200:
- *         description: Active campaigns retrieved
  */
 export async function POST(request: NextRequest) {
   try {
@@ -107,6 +99,29 @@ export async function POST(request: NextRequest) {
   }
 }
 
+/**
+ * @swagger
+ * /api/v1/preorders/campaigns:
+ *   get:
+ *     summary: List active preorder campaigns
+ *     description: Consumers can fetch a list of active preorder campaigns. Optional latitude and longitude can be provided to calculate distance from the farmer.
+ *     tags:
+ *       - Preorders
+ *     parameters:
+ *       - in: query
+ *         name: latitude
+ *         schema:
+ *           type: number
+ *         description: User's current latitude for distance calculation
+ *       - in: query
+ *         name: longitude
+ *         schema:
+ *           type: number
+ *         description: User's current longitude for distance calculation
+ *     responses:
+ *       200:
+ *         description: Active campaigns retrieved
+ */
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);

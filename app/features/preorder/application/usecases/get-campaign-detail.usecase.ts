@@ -28,7 +28,7 @@ export class GetCampaignDetailUseCase {
       productId: "", // Keeping empty if not directly linked to a marketplace product right now
       title: campaign.title,
       farmerName: (campaign as any).farmer?.name || "Unknown Farmer",
-      productImage: "https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=500&q=80",
+      productImage: (campaign as any).farmer?.coverImage || (campaign as any).farmer?.profileImage || "",
       targetQuantity: campaign.targetQuantity,
       currentReservations: campaign.currentBookedQuantity,
       deadline: campaign.estimatedHarvestDate,

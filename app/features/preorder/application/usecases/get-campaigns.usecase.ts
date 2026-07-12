@@ -11,7 +11,7 @@ export class GetCampaignsUseCase {
       productId: "", // keeping empty as model might not have direct product link yet
       title: campaign.title,
       farmerName: campaign.farmer?.name || "Unknown Farmer",
-      productImage: "https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=300&q=80", // mockup image for now if empty
+      productImage: campaign.farmer?.coverImage || campaign.farmer?.profileImage || "",
       targetQuantity: campaign.targetQuantity,
       currentReservations: campaign.currentBookedQuantity,
       deadline: campaign.estimatedHarvestDate,
