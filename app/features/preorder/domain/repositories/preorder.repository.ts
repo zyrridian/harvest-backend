@@ -22,4 +22,6 @@ export interface IPreOrderRepository {
   createCampaign(farmerId: string, data: Partial<PreorderCampaign>): Promise<PreorderCampaign>;
   updateCampaignStatus(campaignId: string, status: string): Promise<PreorderCampaign>;
   getFarmerCampaigns(farmerId: string): Promise<PreorderCampaign[]>;
+
+  hasUserReserved(userId: string, campaignId: string): Promise<boolean>;
 }

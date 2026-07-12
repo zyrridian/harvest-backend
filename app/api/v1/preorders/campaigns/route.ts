@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { GetCampaignsUseCase } from "@/features/preorder/application/usecases/get-campaigns.usecase";
 import { verifyAuth } from "@/features/auth";
 import { handleRouteError } from "@/core/errors";
 import { successResponse } from "@/core/helpers/response";
@@ -108,9 +109,14 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    // This would fetch ALL active campaigns for consumers.
-    // Assuming a repository method exists, if not we will return empty list or add it later.
-    return successResponse({ message: "Active campaigns list endpoint" });
+    const { searchParams } = new URL(request.url);
+    const latitude = searchParams.get("latitude") ? parseFloat(searchParams.get("latitude") as string) : undefined;
+    const longitude = searchParams.get("longitude") ? parseFloat(searchParams.get("longitude") as string) : undefined;
+
+    const useCase = new GetCampaignsUseCase(preOrderRepository);
+    const campaigns = await useCase.execute(latitude, longitude);
+
+    return successResponse(campaigns, { message: "Active campaigns list retrieved" });
   } catch (error) {
     return handleRouteError(error, "GetAllCampaigns");
   }

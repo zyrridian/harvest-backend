@@ -204,6 +204,19 @@ export class PrismaPreOrderRepository implements IPreOrderRepository {
   private toRad(value: number): number {
     return (value * Math.PI) / 180;
   }
+
+  async hasUserReserved(userId: string, campaignId: string): Promise<boolean> {
+    const count = await prisma.preorderReservation.count({
+      where: {
+        userId,
+        campaignId,
+        status: {
+          not: "CANCELLED"
+        }
+      }
+    });
+    return count > 0;
+  }
 }
 
 export const preOrderRepository = new PrismaPreOrderRepository();
