@@ -74,7 +74,7 @@ async function main() {
 
   // Create farmer profiles
   console.log("🏡 Creating farmer profiles...");
-  await prisma.farmer.upsert({
+  const farmerProfile1 = await prisma.farmer.upsert({
     where: { userId: farmer1.id },
     update: {},
     create: {
@@ -91,7 +91,7 @@ async function main() {
     },
   });
 
-  await prisma.farmer.upsert({
+  const farmerProfile2 = await prisma.farmer.upsert({
     where: { userId: farmer2.id },
     update: {},
     create: {
@@ -108,7 +108,7 @@ async function main() {
     },
   });
 
-  await prisma.farmer.upsert({
+  const farmerProfile3 = await prisma.farmer.upsert({
     where: { userId: farmer3.id },
     update: {},
     create: {
@@ -291,7 +291,8 @@ async function main() {
         stockQuantity: 22,
         isOrganic: true,
         isAvailable: true,
-        harvestDate: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000), // Tomorrow
+        isHarvest: true,
+        harvestDate: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), // Yesterday
       },
       image:
         "https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=800&h=800&fit=crop",
@@ -310,7 +311,8 @@ async function main() {
         stockQuantity: 12,
         isOrganic: true,
         isAvailable: true,
-        harvestDate: new Date(Date.now() + 4 * 24 * 60 * 60 * 1000), // 4 days
+        isHarvest: true,
+        harvestDate: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000), // 4 days ago
       },
       image:
         "https://images.unsplash.com/photo-1464965911861-746a04b4bca6?w=800&h=800&fit=crop",
@@ -430,6 +432,7 @@ async function main() {
         stockQuantity: 15,
         isOrganic: true,
         isAvailable: true,
+        isHarvest: true,
         harvestDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000), // 2 days
       },
       image:
@@ -488,7 +491,7 @@ async function main() {
   // Create a consumer user for testing
   console.log("👥 Creating consumer user...");
   const consumerPassword = await bcrypt.hash("consumer123", 12);
-  await prisma.user.upsert({
+  const consumer = await prisma.user.upsert({
     where: { email: "consumer@harvest.com" },
     update: {},
     create: {
@@ -502,6 +505,153 @@ async function main() {
   });
 
   console.log("✅ Consumer created");
+
+  console.log("🌟 Creating Explore & Home feature data...");
+  
+  // 1. Farmer Specialties (Nearby Farmers)
+  await prisma.farmerSpecialty.createMany({
+    data: [
+      { farmerId: farmerProfile1.id, specialty: "Organic Vegetables" },
+      { farmerId: farmerProfile1.id, specialty: "Hydroponics" },
+      { farmerId: farmerProfile2.id, specialty: "Fresh Fruits" },
+      { farmerId: farmerProfile3.id, specialty: "Root Vegetables" },
+    ],
+    skipDuplicates: true,
+  });
+
+  // 2. Live Streams (Explore)
+  await prisma.liveStream.createMany({
+    data: [
+      {
+        farmerId: farmerProfile1.id,
+        title: "Morning Harvest Walkthrough!",
+        streamUrl: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8",
+        viewers: 156,
+        isLive: true,
+      },
+      {
+        farmerId: farmerProfile2.id,
+        title: "Fruit Picking & Q&A",
+        streamUrl: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8",
+        viewers: 89,
+        isLive: true,
+      },
+    ],
+  });
+
+  // 3. Group Buys (Explore)
+  const productForGroupBuy = await prisma.product.findFirst({
+    where: { sellerId: farmer2.id },
+  });
+  if (productForGroupBuy) {
+    await prisma.groupBuy.create({
+      data: {
+        farmerId: farmerProfile2.id,
+        productId: productForGroupBuy.id,
+        title: "Bulk Strawberry Purchase",
+        price: 65000,
+        originalPrice: 85000,
+        targetCount: 50,
+        joinedCount: 32,
+        expiresAt: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000), // 5 days from now
+        status: "ACTIVE",
+      },
+    });
+  }
+
+  // 4. Preorder Campaigns (Explore)
+  await prisma.preorderCampaign.create({
+    data: {
+      farmerId: farmerProfile3.id,
+      title: "Premium Grade A Carrots",
+      description: "Preorder our upcoming harvest of premium carrots.",
+      unit: "kg",
+      pricePerUnit: 20000,
+      targetQuantity: 100,
+      currentBookedQuantity: 65,
+      estimatedHarvestDate: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000),
+      status: "ACTIVE",
+    },
+  });
+
+  // 5. Farm Experiences (Explore)
+  await prisma.farmExperience.create({
+    data: {
+      farmerId: farmerProfile1.id,
+      title: "Weekend Farm Tour & Tasting",
+      description: "Join us for a lovely weekend tour.",
+      location: "Green Valley Main Farm",
+      eventDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
+      price: 150000,
+      maxCapacity: 20,
+      bookedCount: 12,
+    },
+  });
+
+  // 6. Orders & Order Items (Home - Active Order & Staples)
+  const consumerOrderProduct = await prisma.product.findFirst({
+    where: { sellerId: farmer1.id },
+  });
+  if (consumerOrderProduct) {
+    // Active order
+    await prisma.order.create({
+      data: {
+        orderNumber: "ORD-TEST-001",
+        buyerId: consumer.id,
+        sellerId: farmer1.id,
+        status: "processing",
+        subtotal: consumerOrderProduct.price * 2,
+        totalAmount: consumerOrderProduct.price * 2 + 10000,
+        items: {
+          create: {
+            productId: consumerOrderProduct.id,
+            productName: consumerOrderProduct.name,
+            quantity: 2,
+            unitPrice: consumerOrderProduct.price,
+            subtotal: consumerOrderProduct.price * 2,
+          },
+        },
+      },
+    });
+    // Past order to count as frequent staple
+    await prisma.order.create({
+      data: {
+        orderNumber: "ORD-TEST-002",
+        buyerId: consumer.id,
+        sellerId: farmer1.id,
+        status: "delivered",
+        subtotal: consumerOrderProduct.price * 3,
+        totalAmount: consumerOrderProduct.price * 3 + 10000,
+        items: {
+          create: {
+            productId: consumerOrderProduct.id,
+            productName: consumerOrderProduct.name,
+            quantity: 3,
+            unitPrice: consumerOrderProduct.price,
+            subtotal: consumerOrderProduct.price * 3,
+          },
+        },
+      },
+    });
+  }
+
+  // 7. Community Posts (Home - Farmer Updates)
+  await prisma.communityPost.createMany({
+    data: [
+      {
+        userId: farmer1.id,
+        farmerId: farmerProfile1.id,
+        title: "Harvest time!",
+        content: "Just started harvesting our tomatoes. They look amazing this season!",
+      },
+      {
+        userId: farmer2.id,
+        farmerId: farmerProfile2.id,
+        title: "New fruits coming soon",
+        content: "We're preparing the fields for the next batch of strawberries.",
+      },
+    ],
+  });
 
   console.log("\n✨ Seed completed successfully!");
   console.log("\n📝 Test Accounts:");

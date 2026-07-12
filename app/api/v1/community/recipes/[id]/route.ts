@@ -6,6 +6,36 @@ import {
   communityRepository,
 } from "@/features/community";
 
+/**
+ * @swagger
+ * /api/v1/community/recipes/{id}:
+ *   get:
+ *     summary: Get a recipe by ID
+ *     description: Retrieve detailed information about a specific recipe
+ *     tags:
+ *       - Community
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The recipe ID
+ *     responses:
+ *       200:
+ *         description: Recipe retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *       404:
+ *         description: Recipe not found
+ */
 export async function GET(
   request: NextRequest,
   props: { params: Promise<{ id: string }> }
