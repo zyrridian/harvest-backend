@@ -52,16 +52,20 @@ import prisma from "@/core/database/prisma";
  *               status:
  *                 type: string
  *                 default: ACTIVE
+ *               images:
+ *                 type: array
+ *                 items:
+ *                   type: string
  *             example:
  *               title: "Fresh Organic Tomatoes"
  *               description: "Sweet and juicy tomatoes from our next harvest."
  *               unit: "kg"
  *               pricePerUnit: 25000
  *               targetQuantity: 100
- *               estimatedHarvestDate: "2026-08-15T00:00:00Z"
  *               minimumOrderQuantity: 1
  *               depositPercentage: 50
  *               status: "ACTIVE"
+ *               images: ["https://example.com/image1.jpg", "https://example.com/image2.jpg"]
  *     responses:
  *       200:
  *         description: Campaign created successfully
@@ -90,7 +94,8 @@ export async function POST(request: NextRequest) {
       targetQuantity: Number(body.targetQuantity),
       depositPercentage: Number(body.depositPercentage || 0),
       estimatedHarvestDate: new Date(body.estimatedHarvestDate),
-      status: body.status || "ACTIVE"
+      status: body.status || "ACTIVE",
+      images: Array.isArray(body.images) ? body.images : []
     });
 
     return successResponse(campaign);

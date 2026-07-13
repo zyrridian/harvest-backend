@@ -2,8 +2,10 @@ import { NextRequest } from "next/server";
 import { verifyAuth } from "@/features/auth";
 import { handleRouteError } from "@/core/errors";
 import { successResponse } from "@/core/helpers/response";
+import { parseBody } from "@/core/helpers/parseBody";
 import { preOrderRepository } from "@/features/preorder/infrastructure/repositories/prisma-preorder.repository";
 import { GetCampaignDetailUseCase } from "@/features/preorder/application/usecases/get-campaign-detail.usecase";
+import prisma from "@/core/database/prisma";
 
 /**
  * @swagger
@@ -56,5 +58,100 @@ export async function GET(
     return successResponse(campaignDetail);
   } catch (error) {
     return handleRouteError(error, "GetCampaignDetail");
+  }
+}
+
+/**
+ * @swagger
+ * /api/v1/preorders/campaigns/{id}:
+ *   put:
+ *     summary: Update a preorder campaign
+ *     description: Update the details of an existing preorder campaign
+ *     tags:
+ *       - Preorders
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Campaign ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               title:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               unit:
+ *                 type: string
+ *               pricePerUnit:
+ *                 type: number
+ *               minimumOrderQuantity:
+ *                 type: number
+ *               targetQuantity:
+ *                 type: number
+ *               depositPercentage:
+ *                 type: number
+ *               estimatedHarvestDate:
+ *                 type: string
+ *                 format: date-time
+ *               status:
+ *                 type: string
+ *               images:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *     responses:
+ *       200:
+ *         description: Campaign updated successfully
+ *       404:
+ *         description: Campaign not found
+ */
+export async function PUT(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> },
+) {
+  try {
+    const payload = await verifyAuth(request);
+    const { id: campaignId } = await context.params;
+    const body = await parseBody<any>(request);
+
+    // Verify ownership
+    const farmer = await prisma.farmer.findUnique({ where: { userId: payload.userId } });
+    if (!farmer) throw new Error("User is not a registered farmer");
+
+    const existingCampaign = await preOrderRepository.findCampaignById(campaignId);
+    if (!existingCampaign) {
+      throw new Error("Campaign not found");
+    }
+
+    if (existingCampaign.farmerId !== farmer.id) {
+      throw new Error("Unauthorized to update this campaign");
+    }
+
+    const updateData: any = {};
+    if (body.title !== undefined) updateData.title = body.title;
+    if (body.description !== undefined) updateData.description = body.description;
+    if (body.unit !== undefined) updateData.unit = body.unit;
+    if (body.pricePerUnit !== undefined) updateData.pricePerUnit = Number(body.pricePerUnit);
+    if (body.minimumOrderQuantity !== undefined) updateData.minimumOrderQuantity = Number(body.minimumOrderQuantity);
+    if (body.targetQuantity !== undefined) updateData.targetQuantity = Number(body.targetQuantity);
+    if (body.depositPercentage !== undefined) updateData.depositPercentage = Number(body.depositPercentage);
+    if (body.estimatedHarvestDate !== undefined) updateData.estimatedHarvestDate = new Date(body.estimatedHarvestDate);
+    if (body.status !== undefined) updateData.status = body.status;
+    if (body.images !== undefined) updateData.images = Array.isArray(body.images) ? body.images : [];
+
+    const updatedCampaign = await preOrderRepository.updateCampaign(campaignId, updateData);
+
+    return successResponse(updatedCampaign);
+  } catch (error) {
+    return handleRouteError(error, "UpdatePreorderCampaign");
   }
 }

@@ -1167,6 +1167,7 @@ model PreorderCampaign {
   depositPercentage     Float    @default(0) @map("deposit_percentage") // 0 to 100
   estimatedHarvestDate  DateTime @map("estimated_harvest_date")
   status                String   @default("DRAFT") // DRAFT, ACTIVE, FULLY_BOOKED, HARVESTING, COMPLETED, CANCELLED
+  images                String[] @default([]) @map("images")
   createdAt             DateTime @default(now()) @map("created_at")
   updatedAt             DateTime @updatedAt @map("updated_at")
 

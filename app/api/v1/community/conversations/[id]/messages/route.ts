@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyAuth } from "@/features/auth";
 import prisma from "@/core/database/prisma";
+import { parseBody } from "@/core/helpers/parseBody";
 
 /**
  * @swagger
@@ -52,9 +53,11 @@ export async function POST(
   try {
     const payload = await verifyAuth(request);
     const { id: conversationId } = await context.params;
-    const body = await request.json();
+    const body = await parseBody<any>(request);
 
-    const { type = "text", content, reply_to_message_id } = body;
+    const type = body.type || "text";
+    const content = body.content;
+    const reply_to_message_id = body.reply_to_message_id;
 
     // Verify conversation exists and user is a participant
     const conversation = await prisma.conversation.findUnique({

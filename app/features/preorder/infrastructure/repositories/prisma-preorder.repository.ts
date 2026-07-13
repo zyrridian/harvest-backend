@@ -171,6 +171,13 @@ export class PrismaPreOrderRepository implements IPreOrderRepository {
     });
   }
 
+  async updateCampaign(campaignId: string, data: Partial<PreorderCampaign>): Promise<PreorderCampaign> {
+    return prisma.preorderCampaign.update({
+      where: { id: campaignId },
+      data: data as any
+    });
+  }
+
   async updateCampaignStatus(campaignId: string, status: string): Promise<PreorderCampaign> {
     return prisma.preorderCampaign.update({
       where: { id: campaignId },
