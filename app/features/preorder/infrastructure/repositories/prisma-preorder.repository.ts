@@ -220,6 +220,82 @@ export class PrismaPreOrderRepository implements IPreOrderRepository {
     return campaigns;
   }
 
+  async fulfillCampaign(campaignId: string): Promise<{ createdOrders: number }> {
+    return prisma.$transaction(async (tx) => {
+      const campaign = await tx.preorderCampaign.findUnique({
+        where: { id: campaignId },
+        include: {
+          reservations: {
+            where: { status: { in: ['FULLY_PAID', 'READY_FOR_PICKUP'] } }
+          },
+          farmer: {
+            select: { userId: true }
+          }
+        }
+      });
+
+      if (!campaign) throw new Error("Campaign not found");
+      if (campaign.reservations.length === 0) return { createdOrders: 0 };
+
+      // Create a dummy product for order item constraints
+      const dummyProduct = await tx.product.create({
+        data: {
+          name: `Preorder: ${campaign.title}`,
+          description: campaign.description,
+          sellerId: campaign.farmer.userId,
+          price: campaign.pricePerUnit,
+          unit: campaign.unit,
+          isAvailable: false,
+          isHarvest: true,
+        }
+      });
+
+      let createdOrders = 0;
+      for (const res of campaign.reservations) {
+        const orderNumber = `PO-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+        
+        await tx.order.create({
+          data: {
+            orderNumber,
+            buyerId: res.userId,
+            sellerId: campaign.farmer.userId,
+            status: 'processing',
+            subtotal: res.totalPrice,
+            totalAmount: res.totalPrice,
+            isDeposit: true,
+            depositAmount: res.depositAmount,
+            deliveryMethod: res.deliveryMethod || 'harvest_schedule',
+            deliveryAddressId: res.addressId,
+            paymentMethod: res.paymentMethod,
+            paymentStatus: 'paid',
+            items: {
+              create: {
+                productId: dummyProduct.id,
+                productName: dummyProduct.name,
+                quantity: Math.max(1, Math.round(res.quantity)), // Prisma int requirement if quantity is Float
+                unitPrice: dummyProduct.price,
+                subtotal: res.totalPrice,
+              }
+            }
+          }
+        });
+        
+        await tx.preorderReservation.update({
+          where: { id: res.id },
+          data: { status: 'COMPLETED' }
+        });
+        createdOrders++;
+      }
+      
+      await tx.preorderCampaign.update({
+        where: { id: campaignId },
+        data: { status: 'COMPLETED' }
+      });
+
+      return { createdOrders };
+    });
+  }
+
   private calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
     const R = 6371;
     const dLat = this.toRad(lat2 - lat1);
