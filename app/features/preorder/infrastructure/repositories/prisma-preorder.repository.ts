@@ -190,7 +190,17 @@ export class PrismaPreOrderRepository implements IPreOrderRepository {
       where: { farmerId },
       orderBy: { createdAt: 'desc' },
       include: {
-        reservations: true
+        reservations: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              }
+            }
+          }
+        }
       }
     });
   }
