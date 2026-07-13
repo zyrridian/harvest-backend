@@ -186,7 +186,7 @@ export class PrismaPreOrderRepository implements IPreOrderRepository {
   }
 
   async getFarmerCampaigns(farmerId: string): Promise<PreorderCampaign[]> {
-    return prisma.preorderCampaign.findMany({
+    const campaigns = await prisma.preorderCampaign.findMany({
       where: { farmerId },
       orderBy: { createdAt: 'desc' },
       include: {
@@ -203,6 +203,21 @@ export class PrismaPreOrderRepository implements IPreOrderRepository {
         }
       }
     });
+
+    // Manually attach addresses to reservations
+    for (const campaign of campaigns) {
+      for (const res of campaign.reservations) {
+        if (res.addressId) {
+          const address = await prisma.address.findUnique({
+            where: { id: res.addressId }
+          });
+          // Attach it dynamically (it will be serialized in JSON response)
+          (res as any).address = address;
+        }
+      }
+    }
+
+    return campaigns;
   }
 
   private calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
