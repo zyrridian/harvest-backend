@@ -20,6 +20,12 @@ export class ArrangePickupUseCase {
       throw AppError.badRequest("Cannot arrange pickup before paying deposit");
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const campaign = (reservation as any).campaign;
+    if (campaign && campaign.status !== "READY_FOR_PICKUP") {
+      throw AppError.badRequest("Cannot arrange pickup until the farmer marks the harvest as READY_FOR_PICKUP");
+    }
+
     // In a real system, you might add a pickup_time field to the schema.
     // For now, we just change the status if we don't have that field.
     const updatedReservation = await this.harvestRepo.updateReservationStatus(reservation.id, "PICKUP_ARRANGED");
