@@ -85,6 +85,11 @@ export async function GET(request: NextRequest) {
                   responseTime: true,
                 },
               },
+              farmer: {
+                select: {
+                  profileImage: true,
+                },
+              },
             },
           },
           participant2: {
@@ -99,6 +104,11 @@ export async function GET(request: NextRequest) {
                 select: {
                   responseRate: true,
                   responseTime: true,
+                },
+              },
+              farmer: {
+                select: {
+                  profileImage: true,
                 },
               },
             },
@@ -186,11 +196,11 @@ export async function GET(request: NextRequest) {
           participant: {
             user_id: otherParticipant.id,
             name: otherParticipant.name,
-            profile_picture: otherParticipant.avatarUrl,
+            profile_picture: otherParticipant.farmer?.profileImage || otherParticipant.avatarUrl,
             user_type: otherParticipant.userType.toLowerCase(),
             is_online: otherParticipant.isOnline,
             last_seen: otherParticipant.lastSeen?.toISOString() || null,
-            verified: true, // Could add verification field
+            verified: false,
             response_rate: otherParticipant.profile?.responseRate || 0,
             response_time: otherParticipant.profile?.responseTime || null,
           },
