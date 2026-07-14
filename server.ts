@@ -90,6 +90,12 @@ app.prepare().then(() => {
   // Middleware: authenticate socket connection
   io.use(async (socket: Socket, next) => {
     try {
+      // Check if this is the godeye background push service
+      if (socket.handshake.query.appId === "harvest-mobile") {
+        (socket as any).isPushService = true;
+        return next();
+      }
+
       const token =
         socket.handshake.auth.token ||
         (socket.handshake.query.token as string) ||
@@ -112,6 +118,15 @@ app.prepare().then(() => {
   });
 
   io.on("connection", async (socket: Socket) => {
+    const isPushService = (socket as any).isPushService === true;
+    
+    if (isPushService) {
+      console.log(`[Socket] Push Service connected — socket ${socket.id}`);
+      // Join a generic room for push services, or we just let it connect anonymously.
+      // We will emit to this socket directly when a push notification is needed.
+      return;
+    }
+
     const userId = (socket as any).userId as string;
     console.log(`[Socket] User ${userId} connected — socket ${socket.id}`);
 
@@ -216,6 +231,26 @@ app.prepare().then(() => {
           conversation.participant1Id === userId
             ? conversation.participant2Id
             : conversation.participant1Id;
+
+        // --- PUSH NOTIFICATION ---
+        const recipientUser = await prisma.user.findUnique({
+          where: { id: recipientId },
+          select: { pushSocketId: true },
+        });
+
+        if (recipientUser?.pushSocketId) {
+          io.to(recipientUser.pushSocketId).emit("push-notification", {
+            notification: {
+              title: message.sender.name,
+              body: message.content,
+            },
+            data: {
+              click_action: "FLUTTER_NOTIFICATION_CLICK",
+              conversation_id: conversation_id,
+            },
+          });
+        }
+        // --------------------------
 
         if (onlineUsers.has(recipientId)) {
           io.to(`user_${recipientId}`).emit("conversation:update", {

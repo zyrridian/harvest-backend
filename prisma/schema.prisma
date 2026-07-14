@@ -30,6 +30,7 @@ model User {
   wholesaleLimit Float?    @map("wholesale_limit")
   isOnline       Boolean   @default(false) @map("is_online")
   lastSeen       DateTime? @map("last_seen")
+  pushSocketId   String?   @map("push_socket_id")
   createdAt      DateTime  @default(now()) @map("created_at")
   updatedAt      DateTime  @updatedAt @map("updated_at")
 
