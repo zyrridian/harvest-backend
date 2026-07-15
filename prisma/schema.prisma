@@ -60,6 +60,7 @@ model User {
   commentReplyTo       PostComment[]         @relation("CommentReplyTo")
   recipes              Recipe[]
   preorderReservations PreorderReservation[]
+  followingFarmers     FarmerFollower[]
 
   @@index([email])
   @@index([userType])
@@ -369,6 +370,8 @@ model Farmer {
   liveStreams       LiveStream[]
   experiences       FarmExperience[]
   groupBuys         GroupBuy[]
+  galleries         FarmerGallery[]
+  followers         FarmerFollower[]
 
   @@index([userId])
   @@index([latitude, longitude])
@@ -402,6 +405,36 @@ model FarmerDeliverySettings {
   farmer Farmer @relation(fields: [farmerId], references: [id], onDelete: Cascade)
 
   @@map("farmer_delivery_settings")
+}
+
+model FarmerGallery {
+  id        String   @id @default(uuid())
+  farmerId  String   @map("farmer_id")
+  imageUrl  String   @map("image_url") @db.Text
+  caption   String?  @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  farmer    Farmer   @relation(fields: [farmerId], references: [id], onDelete: Cascade)
+
+  @@index([farmerId])
+  @@map("farmer_galleries")
+}
+
+model FarmerFollower {
+  id        String   @id @default(uuid())
+  farmerId  String   @map("farmer_id")
+  userId    String   @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  farmer    Farmer   @relation(fields: [farmerId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([farmerId, userId])
+  @@index([farmerId])
+  @@index([userId])
+  @@map("farmer_followers")
 }
 
 // ============================================

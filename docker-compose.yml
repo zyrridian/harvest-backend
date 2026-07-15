@@ -2,7 +2,6 @@ version: '3.8'
 
 services:
   harvest-web:
-    # Instead of 'build: .', we now pull the pre-built image directly from GitHub!
     image: ghcr.io/zyrridian/harvest-web:latest
     container_name: harvest-web
     ports:
