@@ -1,7 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/core/database/prisma";
 import { verifyAuth } from "@/features/auth";
-
+/**
+ * @swagger
+ * /api/v1/farmers/me/gallery:
+ *   get:
+ *     summary: Get farmer's own gallery
+ *     tags: [Farmers]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of gallery images
+ *       403:
+ *         description: Forbidden (Not a farmer)
+ */
 export async function GET(request: NextRequest) {
   try {
     const user = await verifyAuth(request);
@@ -47,6 +60,35 @@ export async function GET(request: NextRequest) {
   }
 }
 
+/**
+ * @swagger
+ * /api/v1/farmers/me/gallery:
+ *   post:
+ *     summary: Add an image to the farmer's gallery
+ *     tags: [Farmers]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - image_url
+ *             properties:
+ *               image_url:
+ *                 type: string
+ *               caption:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Gallery image added successfully
+ *       400:
+ *         description: Invalid input
+ *       403:
+ *         description: Forbidden (Not a farmer)
+ */
 export async function POST(request: NextRequest) {
   try {
     const user = await verifyAuth(request);

@@ -61,6 +61,7 @@ model User {
   recipes              Recipe[]
   preorderReservations PreorderReservation[]
   followingFarmers     FarmerFollower[]
+  sourcingRequests     SourcingRequest[]     @relation("BuyerSourcingRequests")
 
   @@index([email])
   @@index([userType])
@@ -372,6 +373,7 @@ model Farmer {
   groupBuys         GroupBuy[]
   galleries         FarmerGallery[]
   followers         FarmerFollower[]
+  sourcingOffers    SourcingOffer[]
 
   @@index([userId])
   @@index([latitude, longitude])
@@ -615,15 +617,15 @@ model RouteStop {
 }
 
 model DeliveryLocationPing {
-  id        String   @id @default(uuid())
-  routeId   String   @map("route_id")
-  latitude  Float
-  longitude Float
-  accuracy  Float?   // GPS accuracy in meters
-  createdAt DateTime @default(now()) @map("created_at")
+  id          String   @id @default(uuid())
+  routeId     String   @map("route_id")
+  latitude    Float
+  longitude   Float
+  accuracy    Float?   // GPS accuracy in meters
+  createdAt   DateTime @default(now()) @map("created_at")
 
   // Relations
-  route DeliveryRoute @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  route     DeliveryRoute @relation(fields: [routeId], references: [id], onDelete: Cascade)
 
   @@index([routeId])
   @@index([createdAt])
@@ -1305,3 +1307,45 @@ model GroupBuy {
   @@map("group_buys")
 }
 
+// ============================================
+// SOURCING REQUESTS (Buyer to Farmers)
+// ============================================
+
+model SourcingRequest {
+  id          String   @id @default(uuid())
+  buyerId     String   @map("buyer_id")
+  title       String
+  description String?  @db.Text
+  status      String   @default("open") // open, fulfilled, cancelled
+  budget      Float?
+  requiredBy  DateTime? @map("required_by")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  buyer       User     @relation("BuyerSourcingRequests", fields: [buyerId], references: [id], onDelete: Cascade)
+  offers      SourcingOffer[]
+
+  @@index([buyerId])
+  @@index([status])
+  @@map("sourcing_requests")
+}
+
+model SourcingOffer {
+  id          String   @id @default(uuid())
+  requestId   String   @map("request_id")
+  farmerId    String   @map("farmer_id")
+  price       Float
+  notes       String?  @db.Text
+  status      String   @default("pending") // pending, accepted, rejected
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  request     SourcingRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  farmer      Farmer          @relation(fields: [farmerId], references: [id], onDelete: Cascade)
+
+  @@index([requestId])
+  @@index([farmerId])
+  @@map("sourcing_offers")
+}
