@@ -2,6 +2,51 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/core/database/prisma";
 import { verifyAuth } from "@/features/auth";
 
+export async function GET(request: NextRequest) {
+  try {
+    const user = await verifyAuth(request);
+
+    const farmer = await prisma.farmer.findUnique({
+      where: { userId: user.userId },
+    });
+
+    if (!farmer) {
+      return NextResponse.json(
+        {
+          status: "error",
+          message: "Only farmers can view their own gallery this way",
+        },
+        { status: 403 }
+      );
+    }
+
+    const gallery = await prisma.farmerGallery.findMany({
+      where: { farmerId: farmer.id },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return NextResponse.json({
+      status: "success",
+      data: gallery.map((g) => ({
+        id: g.id,
+        image_url: g.imageUrl,
+        caption: g.caption,
+        created_at: g.createdAt,
+      })),
+    });
+  } catch (error: any) {
+    console.error("Error fetching farmer gallery:", error);
+    return NextResponse.json(
+      {
+        status: "error",
+        message: "Failed to fetch gallery",
+        error: error.message,
+      },
+      { status: 500 }
+    );
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const user = await verifyAuth(request);
