@@ -60,6 +60,7 @@ model User {
   commentReplyTo       PostComment[]         @relation("CommentReplyTo")
   recipes              Recipe[]
   preorderReservations PreorderReservation[]
+  campaignSchedules    UserCampaignSchedule[]
   followingFarmers     FarmerFollower[]
   sourcingRequests     SourcingRequest[]     @relation("BuyerSourcingRequests")
 
@@ -1205,8 +1206,9 @@ model PreorderCampaign {
   updatedAt             DateTime @updatedAt @map("updated_at")
 
   // Relations
-  farmer       Farmer                @relation(fields: [farmerId], references: [id], onDelete: Cascade)
+  farmer       Farmer                 @relation(fields: [farmerId], references: [id], onDelete: Cascade)
   reservations PreorderReservation[]
+  schedules    UserCampaignSchedule[]
   
   @@index([farmerId])
   @@index([status])
@@ -1234,6 +1236,21 @@ model PreorderReservation {
   @@index([campaignId])
   @@index([userId])
   @@map("preorder_reservations")
+}
+
+model UserCampaignSchedule {
+  userId             String           @map("user_id")
+  campaignId         String           @map("campaign_id")
+  remindersEnabled   Boolean          @default(true) @map("reminders_enabled")
+  createdAt          DateTime         @default(now()) @map("created_at")
+
+  user               User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  campaign           PreorderCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@id([userId, campaignId])
+  @@index([userId])
+  @@index([campaignId])
+  @@map("user_campaign_schedules")
 }
 
 // ============================================

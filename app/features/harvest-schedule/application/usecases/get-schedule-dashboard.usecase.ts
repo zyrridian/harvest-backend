@@ -8,15 +8,14 @@ export class GetHarvestScheduleDashboardUseCase {
     const [year, month] = targetMonth.split("-").map(Number);
     const dateObj = new Date(year, month - 1, 1);
     
-    const reservations = await this.harvestRepo.getUserHarvestSchedule(userId, dateObj, latitude, longitude);
+    const campaigns = await this.harvestRepo.getUserScheduledCampaigns(userId, dateObj, latitude, longitude);
 
     const now = new Date();
     let thisWeekCount = 0;
     let readyTodayCount = 0;
 
-    const items: HarvestScheduleItemDTO[] = reservations.map(res => {
-      const campaign = res.campaign;
-      const harvestDate = campaign?.estimatedHarvestDate || new Date();
+    const items: HarvestScheduleItemDTO[] = campaigns.map(campaign => {
+      const harvestDate = campaign.estimatedHarvestDate || new Date();
       
       const isToday = this.isSameDay(now, harvestDate);
       if (isToday) readyTodayCount++;
@@ -26,47 +25,35 @@ export class GetHarvestScheduleDashboardUseCase {
       }
 
       let statusText = "Upcoming";
-      if (res.status === "COMPLETED") statusText = "Completed";
+      if (campaign.status === "COMPLETED") statusText = "Completed";
       else if (isToday) statusText = "Now";
       else if (harvestDate < now) statusText = "Ready";
 
       const badges = [];
-      if (res.status === "COMPLETED") badges.push("Completed");
-      else if (res.status === "DEPOSIT_PAID" || res.status === "FULLY_PAID") badges.push("Pre-ordered");
-      
-      if (isToday && res.status !== "COMPLETED") badges.push("Ready today");
-      else if (harvestDate <= now && res.status !== "COMPLETED") badges.push("Ready to pick");
-      
-      if (res.status === "PENDING_DEPOSIT") badges.push("Pending confirmation");
-      
-      const oneDay = 24 * 60 * 60 * 1000;
-      if (res.createdAt && (now.getTime() - res.createdAt.getTime()) < oneDay && res.status !== "COMPLETED") {
-        badges.push("Just reserved");
+      if (campaign.isReservedByMe) {
+        badges.push("Reserved");
+      } else {
+        badges.push("Following");
       }
+      
+      if (isToday && campaign.status !== "COMPLETED") badges.push("Harvesting today");
+      else if (harvestDate <= now && campaign.status !== "COMPLETED") badges.push("Harvested");
+      
+      const action1 = "View\\ndetails";
+      const action2 = ""; // Removed pay deposit and arrange pickup
 
-      let action1 = "Chat\\nfarmer";
-      let action2 = "Pay\\ndeposit";
-      if (res.status === "DEPOSIT_PAID" || res.status === "FULLY_PAID") {
-        action2 = "Arrange\\npickup";
-      }
-      if (res.status === "COMPLETED") {
-        action1 = "";
-        action2 = "Completed";
-      }
-
-      const descText = `${res.quantity || 0} ${campaign?.unit || ""} reserved · ` + 
-        (res.status === "DEPOSIT_PAID" || res.status === "FULLY_PAID" ? `paid Rp ${res.depositAmount} deposit` : `Rp ${res.depositAmount} deposit to pay`);
+      const descText = campaign.description || `${campaign.farmer.name} harvest`;
 
       const dateGroup = isToday ? `TODAY — ${this.formatShortDate(harvestDate)}` : this.formatShortDate(harvestDate);
 
       return {
-        id: res.id,
-        title: campaign?.title || "Unknown Campaign",
-        farmer_name: campaign?.farmer?.name || "Unknown Farmer",
-        distance: (res as any).distance || 0,
-        image_url: "🍅", // Could add to campaign later
+        id: campaign.id,
+        title: campaign.title || "Unknown Campaign",
+        farmer_name: campaign.farmer?.name || "Unknown Farmer",
+        distance: campaign.distance || 0,
+        image_url: campaign.images?.[0] || campaign.farmer?.profileImage || "https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=200&q=80",
         status_text: statusText,
-        price: campaign?.pricePerUnit || 0,
+        price: campaign.pricePerUnit || 0,
         badges,
         description_text: descText,
         action_button_1: action1,
@@ -80,7 +67,7 @@ export class GetHarvestScheduleDashboardUseCase {
     return {
       this_week_count: thisWeekCount,
       ready_today_count: readyTodayCount,
-      this_month_count: reservations.length,
+      this_month_count: campaigns.length,
       items
     };
   }

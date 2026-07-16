@@ -1,13 +1,13 @@
-import { IHarvestScheduleRepository, ScheduleReservation } from "../../domain/repositories/harvest-schedule.repository";
+import { IHarvestScheduleRepository, ScheduledCampaign } from "../../domain/repositories/harvest-schedule.repository";
 import prisma from "@/core/database/prisma";
-import { PreorderReservation } from "@/generated/prisma/client";
 
 export class PrismaHarvestScheduleRepository implements IHarvestScheduleRepository {
-  async getUserHarvestSchedule(userId: string, targetMonth: Date, latitude?: number, longitude?: number): Promise<ScheduleReservation[]> {
+  async getUserScheduledCampaigns(userId: string, targetMonth: Date, latitude?: number, longitude?: number): Promise<ScheduledCampaign[]> {
     const startOfMonth = new Date(targetMonth.getFullYear(), targetMonth.getMonth(), 1);
     const endOfMonth = new Date(targetMonth.getFullYear(), targetMonth.getMonth() + 1, 0, 23, 59, 59);
 
-    let reservations = await prisma.preorderReservation.findMany({
+    // Get manually scheduled campaigns
+    const scheduled = await prisma.userCampaignSchedule.findMany({
       where: {
         userId,
         campaign: {
@@ -17,46 +17,90 @@ export class PrismaHarvestScheduleRepository implements IHarvestScheduleReposito
           }
         }
       },
+      select: { campaignId: true }
+    });
+
+    // Get farmer followed campaigns
+    const followedFarmers = await prisma.farmerFollower.findMany({
+      where: { userId },
+      select: { farmerId: true }
+    });
+    
+    // Get campaigns actually reserved by the user
+    const reserved = await prisma.preorderReservation.findMany({
+      where: { userId, status: { not: "CANCELLED" } },
+      select: { campaignId: true }
+    });
+
+    const scheduledIds = scheduled.map(s => s.campaignId);
+    const reservedIds = reserved.map(r => r.campaignId);
+    const farmerIds = followedFarmers.map(f => f.farmerId);
+
+    let campaigns = await prisma.preorderCampaign.findMany({
+      where: {
+        estimatedHarvestDate: {
+          gte: startOfMonth,
+          lte: endOfMonth
+        },
+        OR: [
+          { id: { in: scheduledIds } },
+          { id: { in: reservedIds } },
+          { farmerId: { in: farmerIds } }
+        ]
+      },
       include: {
-        campaign: {
-          include: { farmer: true }
-        }
+        farmer: true
       },
       orderBy: {
-        campaign: {
-          estimatedHarvestDate: 'asc'
-        }
+        estimatedHarvestDate: 'asc'
       }
     });
 
     if (latitude && longitude) {
-      reservations = reservations.map((r) => {
-        if (r.campaign.farmer?.latitude && r.campaign.farmer?.longitude) {
-          (r as any).distance = this.calculateDistance(
+      campaigns = campaigns.map((c) => {
+        if (c.farmer?.latitude && c.farmer?.longitude) {
+          (c as any).distance = this.calculateDistance(
             latitude,
             longitude,
-            r.campaign.farmer.latitude,
-            r.campaign.farmer.longitude
+            c.farmer.latitude,
+            c.farmer.longitude
           );
         }
-        return r;
+        return c;
       });
     }
 
-    return reservations as ScheduleReservation[];
+    return campaigns.map(c => ({
+      ...c,
+      isReservedByMe: reservedIds.includes(c.id)
+    })) as ScheduledCampaign[];
   }
 
-  async updateReservationStatus(reservationId: string, status: string): Promise<PreorderReservation> {
-    return prisma.preorderReservation.update({
-      where: { id: reservationId },
-      data: { status }
+  async addCampaignToSchedule(userId: string, campaignId: string, remindersEnabled: boolean = true): Promise<void> {
+    await prisma.userCampaignSchedule.upsert({
+      where: {
+        userId_campaignId: {
+          userId,
+          campaignId
+        }
+      },
+      update: {
+        remindersEnabled
+      },
+      create: {
+        userId,
+        campaignId,
+        remindersEnabled
+      }
     });
   }
 
-  async findReservationById(reservationId: string): Promise<PreorderReservation | null> {
-    return prisma.preorderReservation.findUnique({
-      where: { id: reservationId },
-      include: { campaign: true }
+  async removeCampaignFromSchedule(userId: string, campaignId: string): Promise<void> {
+    await prisma.userCampaignSchedule.deleteMany({
+      where: {
+        userId,
+        campaignId
+      }
     });
   }
 

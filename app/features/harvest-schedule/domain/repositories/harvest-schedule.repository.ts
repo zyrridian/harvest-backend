@@ -1,14 +1,13 @@
-import { PreorderReservation, PreorderCampaign, Farmer } from "@/generated/prisma/client";
+import { PreorderCampaign, Farmer, UserCampaignSchedule, PreorderReservation } from "@/generated/prisma/client";
 
-export type ScheduleReservation = PreorderReservation & {
-  campaign: PreorderCampaign & {
-    farmer: Farmer;
-  };
+export type ScheduledCampaign = PreorderCampaign & {
+  farmer: Farmer;
   distance?: number;
+  isReservedByMe?: boolean;
 };
 
 export interface IHarvestScheduleRepository {
-  getUserHarvestSchedule(userId: string, targetMonth: Date, latitude?: number, longitude?: number): Promise<ScheduleReservation[]>;
-  updateReservationStatus(reservationId: string, status: string): Promise<PreorderReservation>;
-  findReservationById(reservationId: string): Promise<PreorderReservation | null>;
+  getUserScheduledCampaigns(userId: string, targetMonth: Date, latitude?: number, longitude?: number): Promise<ScheduledCampaign[]>;
+  addCampaignToSchedule(userId: string, campaignId: string, remindersEnabled?: boolean): Promise<void>;
+  removeCampaignFromSchedule(userId: string, campaignId: string): Promise<void>;
 }
