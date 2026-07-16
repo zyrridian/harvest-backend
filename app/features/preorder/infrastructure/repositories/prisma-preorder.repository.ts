@@ -17,17 +17,22 @@ export class PrismaPreOrderRepository implements IPreOrderRepository {
         }
       },
       include: {
-        farmer: true
+        farmer: true,
+        _count: {
+          select: {
+            reservations: true
+          }
+        }
       },
       orderBy: {
         estimatedHarvestDate: 'asc'
       }
-    });
+    }) as CampaignWithFarmer[];
 
     if (latitude && longitude) {
       campaigns = campaigns.map((c) => {
         if (c.farmer?.latitude && c.farmer?.longitude) {
-          (c as any).distance = this.calculateDistance(
+          c.distance = this.calculateDistance(
             latitude,
             longitude,
             c.farmer.latitude,
@@ -36,7 +41,7 @@ export class PrismaPreOrderRepository implements IPreOrderRepository {
         }
         return c;
       });
-      campaigns.sort((a: any, b: any) => (a.distance ?? 9999) - (b.distance ?? 9999));
+      campaigns.sort((a, b) => (a.distance ?? 9999) - (b.distance ?? 9999));
     }
 
     return campaigns as CampaignWithFarmer[];
@@ -182,6 +187,12 @@ export class PrismaPreOrderRepository implements IPreOrderRepository {
     return prisma.preorderCampaign.update({
       where: { id: campaignId },
       data: { status }
+    });
+  }
+
+  async deleteCampaign(campaignId: string): Promise<void> {
+    await prisma.preorderCampaign.delete({
+      where: { id: campaignId }
     });
   }
 

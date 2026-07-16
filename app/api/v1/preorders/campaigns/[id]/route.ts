@@ -155,3 +155,56 @@ export async function PUT(
     return handleRouteError(error, "UpdatePreorderCampaign");
   }
 }
+
+/**
+ * @swagger
+ * /api/v1/preorders/campaigns/{id}:
+ *   delete:
+ *     summary: Delete a preorder campaign
+ *     description: Permanently delete a specific preorder campaign and its associated reservations.
+ *     tags:
+ *       - Preorders
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Campaign ID
+ *     responses:
+ *       200:
+ *         description: Campaign deleted successfully
+ *       403:
+ *         description: Unauthorized to delete this campaign
+ *       404:
+ *         description: Campaign not found
+ */
+export async function DELETE(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> },
+) {
+  try {
+    const payload = await verifyAuth(request);
+    const { id: campaignId } = await context.params;
+
+    const farmer = await prisma.farmer.findUnique({ where: { userId: payload.userId } });
+    if (!farmer) throw new Error("User is not a registered farmer");
+
+    const existingCampaign = await preOrderRepository.findCampaignById(campaignId);
+    if (!existingCampaign) {
+      throw new Error("Campaign not found");
+    }
+
+    if (existingCampaign.farmerId !== farmer.id) {
+      throw new Error("Unauthorized to delete this campaign");
+    }
+
+    await preOrderRepository.deleteCampaign(campaignId);
+
+    return successResponse({ message: "Campaign deleted successfully" });
+  } catch (error) {
+    return handleRouteError(error, "DeletePreorderCampaign");
+  }
+}

@@ -14,11 +14,12 @@ export class GetCampaignsUseCase {
       productImage: campaign.farmer?.coverImage || campaign.farmer?.profileImage || "",
       targetQuantity: campaign.targetQuantity,
       currentReservations: campaign.currentBookedQuantity,
+      totalPeopleReserved: campaign._count?.reservations || 0,
       deadline: campaign.estimatedHarvestDate,
       estimatedHarvestDate: campaign.estimatedHarvestDate,
       price: campaign.pricePerUnit,
       unit: campaign.unit,
-      distance: (campaign as any).distance, // injected by repository
+      distance: campaign.distance ?? null, // injected by repository, default to null if not calculated
     }));
   }
 }

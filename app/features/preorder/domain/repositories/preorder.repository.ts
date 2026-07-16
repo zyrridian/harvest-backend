@@ -2,6 +2,10 @@ import { PreorderCampaign, PreorderReservation, Farmer } from "@/generated/prism
 
 export type CampaignWithFarmer = PreorderCampaign & {
   farmer: Farmer;
+  _count?: {
+    reservations: number;
+  };
+  distance?: number;
 };
 
 export type ReservationWithCampaign = PreorderReservation & {
@@ -22,6 +26,7 @@ export interface IPreOrderRepository {
   createCampaign(farmerId: string, data: Partial<PreorderCampaign>): Promise<PreorderCampaign>;
   updateCampaign(campaignId: string, data: Partial<PreorderCampaign>): Promise<PreorderCampaign>;
   updateCampaignStatus(campaignId: string, status: string): Promise<PreorderCampaign>;
+  deleteCampaign(campaignId: string): Promise<void>;
   getFarmerCampaigns(farmerId: string): Promise<PreorderCampaign[]>;
   fulfillCampaign(campaignId: string): Promise<{ createdOrders: number }>;
 
