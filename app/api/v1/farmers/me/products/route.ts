@@ -104,16 +104,12 @@ export async function GET(request: NextRequest) {
       unit: product.unit,
       stock: product.stockQuantity,
       is_organic: product.isOrganic,
-      is_harvest: product.isHarvest,
       is_available: product.isAvailable,
       image_url: product.images[0]?.url || null,
       rating: product.rating,
       review_count: product.reviewCount,
       view_count: product.viewCount,
       orders_count: product._count.orderItems,
-      harvest_date: product.harvestDate,
-      target_amount: product.targetAmount,
-      current_booked: product.currentBooked,
       created_at: product.createdAt,
       updated_at: product.updatedAt,
     }));
@@ -182,9 +178,6 @@ export async function GET(request: NextRequest) {
  *                 type: integer
  *               is_organic:
  *                 type: boolean
- *               harvest_date:
- *                 type: string
- *                 format: date-time
  *               images:
  *                 type: array
  *                 items:
@@ -265,9 +258,6 @@ export async function POST(request: NextRequest) {
       minimum_order = 1,
       maximum_order = 999,
       is_organic = false,
-      is_harvest = false,
-      target_amount = null,
-      harvest_date,
       images = [],
       tags = [],
       specifications = [],
@@ -304,9 +294,6 @@ export async function POST(request: NextRequest) {
         minimumOrder: parseInt(minimum_order),
         maximumOrder: parseInt(maximum_order),
         isOrganic: is_organic,
-        isHarvest: is_harvest,
-        targetAmount: target_amount ? parseFloat(target_amount) : null,
-        harvestDate: harvest_date ? new Date(harvest_date) : null,
         images: {
           create: images.map((img: any, index: number) => ({
             url: img.url,
@@ -365,11 +352,7 @@ export async function POST(request: NextRequest) {
           minimum_order: product.minimumOrder,
           maximum_order: product.maximumOrder,
           is_organic: product.isOrganic,
-          is_harvest: product.isHarvest,
           is_available: product.isAvailable,
-          harvest_date: product.harvestDate,
-          target_amount: product.targetAmount,
-          current_booked: product.currentBooked,
           images: product.images.map((img) => ({
             id: img.id,
             url: img.url,

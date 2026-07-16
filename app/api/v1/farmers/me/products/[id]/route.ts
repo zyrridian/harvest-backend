@@ -107,7 +107,6 @@ export async function GET(
         rating: product.rating,
         review_count: product.reviewCount,
         view_count: product.viewCount,
-        harvest_date: product.harvestDate,
         images: product.images.map((img) => ({
           id: img.id,
           url: img.url,
@@ -239,7 +238,6 @@ export async function PUT(
       maximum_order,
       is_organic,
       is_available,
-      harvest_date,
       images,
       tags,
       specifications,
@@ -261,9 +259,6 @@ export async function PUT(
       updateData.maximumOrder = parseInt(maximum_order);
     if (is_organic !== undefined) updateData.isOrganic = is_organic;
     if (is_available !== undefined) updateData.isAvailable = is_available;
-    if (harvest_date !== undefined) {
-      updateData.harvestDate = harvest_date ? new Date(harvest_date) : null;
-    }
 
     // Update product
     const product = await prisma.product.update({
