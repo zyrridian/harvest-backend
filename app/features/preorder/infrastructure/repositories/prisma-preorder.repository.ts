@@ -8,13 +8,16 @@ export class PrismaPreOrderRepository implements IPreOrderRepository {
   // CONSUMER SIDE
   // ============================================
 
-  async getAvailableCampaigns(latitude?: number, longitude?: number): Promise<CampaignWithFarmer[]> {
+  async getAvailableCampaigns(latitude?: number, longitude?: number, filter?: string): Promise<CampaignWithFarmer[]> {
+    const isCategoryFilter = filter && !['near_you', 'near you', 'closing_soon', 'closing soon', 'all'].includes(filter.toLowerCase());
+
     let campaigns = await prisma.preorderCampaign.findMany({
       where: {
         status: "ACTIVE",
         estimatedHarvestDate: {
           gt: new Date()
-        }
+        },
+        ...(isCategoryFilter ? { category: { equals: filter, mode: 'insensitive' } } : {})
       },
       include: {
         farmer: true,
@@ -23,9 +26,6 @@ export class PrismaPreOrderRepository implements IPreOrderRepository {
             reservations: true
           }
         }
-      },
-      orderBy: {
-        estimatedHarvestDate: 'asc'
       }
     }) as CampaignWithFarmer[];
 
@@ -41,10 +41,21 @@ export class PrismaPreOrderRepository implements IPreOrderRepository {
         }
         return c;
       });
-      campaigns.sort((a, b) => (a.distance ?? 9999) - (b.distance ?? 9999));
     }
 
-    return campaigns as CampaignWithFarmer[];
+    if (filter === 'near_you' || filter === 'near you') {
+      campaigns.sort((a, b) => (a.distance ?? 9999) - (b.distance ?? 9999));
+    } else if (filter === 'closing_soon' || filter === 'closing soon') {
+      campaigns.sort((a, b) => a.estimatedHarvestDate.getTime() - b.estimatedHarvestDate.getTime());
+    } else {
+      if (latitude && longitude) {
+        campaigns.sort((a, b) => (a.distance ?? 9999) - (b.distance ?? 9999));
+      } else {
+        campaigns.sort((a, b) => a.estimatedHarvestDate.getTime() - b.estimatedHarvestDate.getTime());
+      }
+    }
+
+    return campaigns;
   }
 
   async getUserReservations(userId: string): Promise<ReservationWithCampaign[]> {

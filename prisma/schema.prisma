@@ -1195,6 +1195,7 @@ model PreorderCampaign {
   farmerId              String   @map("farmer_id")
   title                 String
   description           String?  @db.Text
+  category              String?
   unit                  String   // e.g., "kg", "box"
   pricePerUnit          Float    @map("price_per_unit")
   minimumOrderQuantity  Int      @default(1) @map("min_order_qty")

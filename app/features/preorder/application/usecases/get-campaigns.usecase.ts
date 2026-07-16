@@ -3,8 +3,8 @@ import { IPreOrderRepository } from "../../domain/repositories/preorder.reposito
 export class GetCampaignsUseCase {
   constructor(private readonly preorderRepo: IPreOrderRepository) {}
 
-  async execute(latitude?: number, longitude?: number): Promise<any[]> {
-    const campaigns = await this.preorderRepo.getAvailableCampaigns(latitude, longitude);
+  async execute(latitude?: number, longitude?: number, filter?: string): Promise<any[]> {
+    const campaigns = await this.preorderRepo.getAvailableCampaigns(latitude, longitude, filter);
 
     return campaigns.map((campaign) => ({
       id: campaign.id,

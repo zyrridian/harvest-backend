@@ -89,6 +89,8 @@ export async function GET(
  *                 type: string
  *               description:
  *                 type: string
+ *               category:
+ *                 type: string
  *               unit:
  *                 type: string
  *               pricePerUnit:
@@ -139,6 +141,7 @@ export async function PUT(
     const updateData: any = {};
     if (body.title !== undefined) updateData.title = body.title;
     if (body.description !== undefined) updateData.description = body.description;
+    if (body.category !== undefined) updateData.category = body.category;
     if (body.unit !== undefined) updateData.unit = body.unit;
     if (body.pricePerUnit !== undefined) updateData.pricePerUnit = Number(body.pricePerUnit);
     if (body.minimumOrderQuantity !== undefined) updateData.minimumOrderQuantity = Number(body.minimumOrderQuantity);

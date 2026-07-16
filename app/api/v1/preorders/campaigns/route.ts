@@ -34,6 +34,8 @@ import prisma from "@/core/database/prisma";
  *                 type: string
  *               description:
  *                 type: string
+ *               category:
+ *                 type: string
  *               unit:
  *                 type: string
  *               pricePerUnit:
@@ -59,6 +61,7 @@ import prisma from "@/core/database/prisma";
  *             example:
  *               title: "Fresh Organic Tomatoes"
  *               description: "Sweet and juicy tomatoes from our next harvest."
+ *               category: "Vegetables"
  *               unit: "kg"
  *               pricePerUnit: 25000
  *               targetQuantity: 100
@@ -88,6 +91,7 @@ export async function POST(request: NextRequest) {
     const campaign = await preOrderRepository.createCampaign(farmer.id, {
       title: body.title,
       description: body.description,
+      category: body.category,
       unit: body.unit,
       pricePerUnit: Number(body.pricePerUnit),
       minimumOrderQuantity: Number(body.minimumOrderQuantity || 1),
@@ -123,6 +127,11 @@ export async function POST(request: NextRequest) {
  *         schema:
  *           type: number
  *         description: User's current longitude for distance calculation
+ *       - in: query
+ *         name: filter
+ *         schema:
+ *           type: string
+ *         description: Optional filter (e.g., "all", "near you", "closing soon")
  *     responses:
  *       200:
  *         description: Active campaigns retrieved
@@ -132,9 +141,10 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const latitude = searchParams.get("latitude") ? parseFloat(searchParams.get("latitude") as string) : undefined;
     const longitude = searchParams.get("longitude") ? parseFloat(searchParams.get("longitude") as string) : undefined;
+    const filter = searchParams.get("filter") || undefined;
 
     const useCase = new GetCampaignsUseCase(preOrderRepository);
-    const campaigns = await useCase.execute(latitude, longitude);
+    const campaigns = await useCase.execute(latitude, longitude, filter);
 
     return successResponse(campaigns, { message: "Active campaigns list retrieved" });
   } catch (error) {
