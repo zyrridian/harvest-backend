@@ -268,7 +268,6 @@ export class PrismaPreOrderRepository implements IPreOrderRepository {
           price: campaign.pricePerUnit,
           unit: campaign.unit,
           isAvailable: false,
-          isHarvest: true,
         }
       });
 

@@ -16,10 +16,6 @@ export interface ProductEntity {
   stockQuantity: number;
   rating: number;
   reviewCount: number;
-  isHarvest: boolean;
-  targetAmount: number | null;
-  currentBooked: number;
-  harvestDate: Date | null;
   createdAt: Date;
   
   // Relations mapped

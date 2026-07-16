@@ -102,9 +102,7 @@ export async function GET(request: NextRequest) {
     const now = new Date();
     const inSeasonProducts = await prisma.product.findMany({
       where: {
-        isHarvest: true,
         isAvailable: true,
-        harvestDate: { lte: now },
       },
       take: 5,
       include: {

@@ -167,15 +167,7 @@ export class PrismaOrderRepository implements IOrderRepository {
         );
         const totalAmount = subtotal + deliveryFee + serviceFee;
 
-        const hasHarvestItems = items.some((item) => item.product.isHarvest);
-
-        if (hasHarvestItems) {
-          for (const item of items) {
-            if (item.product.isHarvest && item.quantity > orderLimit) {
-              throw AppError.badRequest(`Harvest limit exceeded for ${item.product.name}. Limit is ${orderLimit}.`);
-            }
-          }
-        }
+        const hasHarvestItems = false; // Harvest items are now handled via PreorderCampaigns
 
         const isDeposit = hasHarvestItems;
         const depositAmount = isDeposit ? totalAmount * 0.2 : null;
@@ -228,16 +220,7 @@ export class PrismaOrderRepository implements IOrderRepository {
           where: { id: { in: items.map((item) => item.id) } },
         });
 
-        if (hasHarvestItems) {
-          for (const item of items) {
-            if (item.product.isHarvest) {
-              await tx.product.update({
-                where: { id: item.productId },
-                data: { currentBooked: { increment: item.quantity } },
-              });
-            }
-          }
-        }
+        // Harvest items logic removed
       }
 
       return orders;

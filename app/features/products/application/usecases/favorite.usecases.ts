@@ -74,7 +74,7 @@ export class GetUserFavoritesUseCase {
         unit: product.unit,
         image_url: product.images?.[0]?.url || "",
         farmer_name: product.seller?.farmer?.name || product.seller?.name || "Unknown Farmer",
-        is_fresh: product.isHarvest,
+        is_fresh: false,
         rating: product.rating,
         created_at: fav.createdAt,
       };
