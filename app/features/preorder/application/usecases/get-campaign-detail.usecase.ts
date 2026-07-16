@@ -23,12 +23,14 @@ export class GetCampaignDetailUseCase {
       );
     }
 
+    const extraDetails = await this.preorderRepo.getCampaignExtraDetails(campaignId, userId, campaign.farmerId);
+
     return {
       id: campaign.id,
       productId: "", // Keeping empty if not directly linked to a marketplace product right now
       title: campaign.title,
       farmerName: (campaign as any).farmer?.name || "Unknown Farmer",
-      productImage: (campaign as any).farmer?.coverImage || (campaign as any).farmer?.profileImage || "",
+      productImage: (campaign.images && campaign.images.length > 0) ? campaign.images[0] : ((campaign as any).farmer?.coverImage || (campaign as any).farmer?.profileImage || ""),
       targetQuantity: campaign.targetQuantity,
       currentReservations: campaign.currentBookedQuantity,
       deadline: campaign.estimatedHarvestDate,
@@ -42,6 +44,12 @@ export class GetCampaignDetailUseCase {
       hasReserved,
       distance,
       location: (campaign as any).farmer?.city || "Unknown Location",
+      minimumOrder: campaign.minimumOrderQuantity,
+      userReservedQuantity: extraDetails.userReservedQuantity,
+      successfulHarvests: extraDetails.successfulHarvests,
+      totalPeopleReserved: extraDetails.totalPeopleReserved,
+      communityReservations: extraDetails.communityReservations,
+      profileImage: (campaign as any).farmer?.profileImage || (campaign as any).farmer?.coverImage || "",
     };
   }
 

@@ -11,7 +11,7 @@ export class GetCampaignsUseCase {
       productId: "", // keeping empty as model might not have direct product link yet
       title: campaign.title,
       farmerName: campaign.farmer?.name || "Unknown Farmer",
-      productImage: campaign.farmer?.coverImage || campaign.farmer?.profileImage || "",
+      productImage: (campaign.images && campaign.images.length > 0) ? campaign.images[0] : (campaign.farmer?.coverImage || campaign.farmer?.profileImage || ""),
       targetQuantity: campaign.targetQuantity,
       currentReservations: campaign.currentBookedQuantity,
       totalPeopleReserved: campaign._count?.reservations || 0,
@@ -20,6 +20,7 @@ export class GetCampaignsUseCase {
       price: campaign.pricePerUnit,
       unit: campaign.unit,
       distance: campaign.distance ?? null, // injected by repository, default to null if not calculated
+      profileImage: campaign.farmer?.profileImage || campaign.farmer?.coverImage || "",
     }));
   }
 }

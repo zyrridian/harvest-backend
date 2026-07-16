@@ -1,6 +1,7 @@
 import { IPreOrderRepository, CampaignWithFarmer, ReservationWithCampaign } from "../../domain/repositories/preorder.repository";
 import prisma from "@/core/database/prisma";
 import { PreorderCampaign, PreorderReservation } from "@/generated/prisma/client";
+import { AppError } from "@/core/errors";
 
 export class PrismaPreOrderRepository implements IPreOrderRepository {
   
@@ -13,10 +14,6 @@ export class PrismaPreOrderRepository implements IPreOrderRepository {
 
     let campaigns = await prisma.preorderCampaign.findMany({
       where: {
-        status: "ACTIVE",
-        estimatedHarvestDate: {
-          gt: new Date()
-        },
         ...(isCategoryFilter ? { category: { equals: filter, mode: 'insensitive' } } : {})
       },
       include: {
@@ -78,12 +75,17 @@ export class PrismaPreOrderRepository implements IPreOrderRepository {
         where: { id: campaignId }
       });
 
-      if (!campaign || campaign.status !== "ACTIVE") {
-        throw new Error("Campaign is not available for reservation");
+      const allowedStatuses = ["ACTIVE", "PLANTED", "GROWING", "HARVESTING", "READY"];
+      if (!campaign || !allowedStatuses.includes(campaign.status)) {
+        throw AppError.badRequest("Campaign is not available for reservation");
+      }
+
+      if (quantity < campaign.minimumOrderQuantity) {
+        throw AppError.badRequest(`Minimum preorder is ${campaign.minimumOrderQuantity} ${campaign.unit}`);
       }
 
       if (campaign.currentBookedQuantity + quantity > campaign.targetQuantity) {
-        throw new Error("Not enough target quantity remaining");
+        throw AppError.badRequest("Not enough target quantity remaining");
       }
 
       // Update booked quantity
@@ -345,6 +347,43 @@ export class PrismaPreOrderRepository implements IPreOrderRepository {
       }
     });
     return count > 0;
+  }
+
+  async getCampaignExtraDetails(campaignId: string, userId: string, farmerId: string): Promise<any> {
+    const userReservedQuantityAggr = await prisma.preorderReservation.aggregate({
+      where: { userId, campaignId, status: { not: "CANCELLED" } },
+      _sum: { quantity: true }
+    });
+    const userReservedQuantity = userReservedQuantityAggr._sum.quantity || 0;
+
+    const successfulHarvests = await prisma.preorderCampaign.count({
+      where: { farmerId, status: "COMPLETED" }
+    });
+
+    const totalPeopleReservedGroup = await prisma.preorderReservation.groupBy({
+      by: ['userId'],
+      where: { campaignId, status: { not: "CANCELLED" } }
+    });
+
+    const recentReservations = await prisma.preorderReservation.findMany({
+      where: { campaignId, status: { not: "CANCELLED" } },
+      orderBy: { createdAt: "desc" },
+      take: 3,
+      include: {
+        user: { select: { id: true, name: true, avatarUrl: true } }
+      }
+    });
+
+    return {
+      userReservedQuantity,
+      successfulHarvests,
+      totalPeopleReserved: totalPeopleReservedGroup.length,
+      communityReservations: recentReservations.map(r => ({
+        id: r.user.id,
+        name: r.user.name,
+        profileImage: r.user.avatarUrl
+      }))
+    };
   }
 }
 

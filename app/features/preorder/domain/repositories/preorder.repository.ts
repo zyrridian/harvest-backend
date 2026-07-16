@@ -31,4 +31,5 @@ export interface IPreOrderRepository {
   fulfillCampaign(campaignId: string): Promise<{ createdOrders: number }>;
 
   hasUserReserved(userId: string, campaignId: string): Promise<boolean>;
+  getCampaignExtraDetails(campaignId: string, userId: string, farmerId: string): Promise<any>;
 }
