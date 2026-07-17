@@ -9,7 +9,7 @@ export class PrismaPreOrderRepository implements IPreOrderRepository {
   // CONSUMER SIDE
   // ============================================
 
-  async getAvailableCampaigns(latitude?: number, longitude?: number, filter?: string): Promise<CampaignWithFarmer[]> {
+  async getAvailableCampaigns(latitude?: number, longitude?: number, filter?: string, userId?: string): Promise<CampaignWithFarmer[]> {
     const isCategoryFilter = filter && !['near_you', 'near you', 'closing_soon', 'closing soon', 'all'].includes(filter.toLowerCase());
 
     let campaigns = await prisma.preorderCampaign.findMany({
@@ -22,9 +22,15 @@ export class PrismaPreOrderRepository implements IPreOrderRepository {
           select: {
             reservations: true
           }
-        }
+        },
+        ...(userId ? { schedules: { where: { userId } } } : {})
       }
-    }) as CampaignWithFarmer[];
+    }) as any[];
+
+    campaigns = campaigns.map(c => {
+      c.isScheduled = c.schedules && c.schedules.length > 0;
+      return c;
+    });
 
     if (latitude && longitude) {
       campaigns = campaigns.map((c) => {
@@ -374,6 +380,15 @@ export class PrismaPreOrderRepository implements IPreOrderRepository {
       }
     });
 
+    const userSchedule = await prisma.userCampaignSchedule.findUnique({
+      where: {
+        userId_campaignId: {
+          userId,
+          campaignId
+        }
+      }
+    });
+
     return {
       userReservedQuantity,
       successfulHarvests,
@@ -382,7 +397,8 @@ export class PrismaPreOrderRepository implements IPreOrderRepository {
         id: r.user.id,
         name: r.user.name,
         profileImage: r.user.avatarUrl
-      }))
+      })),
+      isScheduled: !!userSchedule
     };
   }
 }

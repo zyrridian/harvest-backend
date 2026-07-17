@@ -51,7 +51,7 @@ export class GetHarvestScheduleDashboardUseCase {
         title: campaign.title || "Unknown Campaign",
         farmer_name: campaign.farmer?.name || "Unknown Farmer",
         distance: campaign.distance || 0,
-        image_url: campaign.images?.[0] || campaign.farmer?.profileImage || "https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=200&q=80",
+        image_url: campaign.images?.[0] || campaign.farmer?.profileImage || "",
         status_text: statusText,
         price: campaign.pricePerUnit || 0,
         badges,

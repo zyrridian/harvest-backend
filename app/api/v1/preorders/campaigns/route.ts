@@ -143,8 +143,16 @@ export async function GET(request: NextRequest) {
     const longitude = searchParams.get("longitude") ? parseFloat(searchParams.get("longitude") as string) : undefined;
     const filter = searchParams.get("filter") || undefined;
 
+    let userId: string | undefined;
+    try {
+      const payload = await verifyAuth(request);
+      userId = payload.userId;
+    } catch (e) {
+      // User is not authenticated, ignore
+    }
+
     const useCase = new GetCampaignsUseCase(preOrderRepository);
-    const campaigns = await useCase.execute(latitude, longitude, filter);
+    const campaigns = await useCase.execute(latitude, longitude, filter, userId);
 
     return successResponse(campaigns, { message: "Active campaigns list retrieved" });
   } catch (error) {

@@ -3,8 +3,8 @@ import { IPreOrderRepository } from "../../domain/repositories/preorder.reposito
 export class GetCampaignsUseCase {
   constructor(private readonly preorderRepo: IPreOrderRepository) {}
 
-  async execute(latitude?: number, longitude?: number, filter?: string): Promise<any[]> {
-    const campaigns = await this.preorderRepo.getAvailableCampaigns(latitude, longitude, filter);
+  async execute(latitude?: number, longitude?: number, filter?: string, userId?: string): Promise<any[]> {
+    const campaigns = await this.preorderRepo.getAvailableCampaigns(latitude, longitude, filter, userId);
 
     return campaigns.map((campaign) => ({
       id: campaign.id,
@@ -21,6 +21,7 @@ export class GetCampaignsUseCase {
       unit: campaign.unit,
       distance: campaign.distance ?? null, // injected by repository, default to null if not calculated
       profileImage: campaign.farmer?.profileImage || campaign.farmer?.coverImage || "",
+      isScheduled: campaign?.isScheduled,
     }));
   }
 }

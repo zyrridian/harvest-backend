@@ -6,6 +6,7 @@ export type CampaignWithFarmer = PreorderCampaign & {
     reservations: number;
   };
   distance?: number;
+  isScheduled?: boolean;
 };
 
 export type ReservationWithCampaign = PreorderReservation & {
@@ -14,7 +15,7 @@ export type ReservationWithCampaign = PreorderReservation & {
 
 export interface IPreOrderRepository {
   // Consumer Side
-  getAvailableCampaigns(latitude?: number, longitude?: number, filter?: string): Promise<CampaignWithFarmer[]>;
+  getAvailableCampaigns(latitude?: number, longitude?: number, filter?: string, userId?: string): Promise<CampaignWithFarmer[]>;
   getUserReservations(userId: string): Promise<ReservationWithCampaign[]>;
   createReservation(userId: string, campaignId: string, quantity: number, deliveryMethod: string, addressId?: string): Promise<PreorderReservation>;
   findCampaignById(campaignId: string): Promise<PreorderCampaign | null>;

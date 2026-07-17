@@ -92,7 +92,7 @@ export class GetNearbyFarmersUseCase {
         isOpen,
         latitude: farmer.latitude || 0.0,
         longitude: farmer.longitude || 0.0,
-        iconPath: farmer.profileImage || "🧑‍🌾",
+        iconPath: farmer.profileImage || farmer.user?.avatarUrl || "",
         mainLocation: {
           latitude: farmer.latitude || 0.0,
           longitude: farmer.longitude || 0.0,

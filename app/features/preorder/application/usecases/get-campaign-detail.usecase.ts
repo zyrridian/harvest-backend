@@ -50,6 +50,7 @@ export class GetCampaignDetailUseCase {
       totalPeopleReserved: extraDetails.totalPeopleReserved,
       communityReservations: extraDetails.communityReservations,
       profileImage: (campaign as any).farmer?.profileImage || (campaign as any).farmer?.coverImage || "",
+      isScheduled: extraDetails.isScheduled,
     };
   }
 

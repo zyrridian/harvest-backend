@@ -1202,6 +1202,7 @@ model PreorderCampaign {
   estimatedHarvestDate  DateTime @map("estimated_harvest_date")
   status                String   @default("DRAFT") // DRAFT, ACTIVE, FULLY_BOOKED, PLANTED, GROWING, HARVESTING, READY, COMPLETED, CANCELLED
   images                String[] @default([]) @map("images")
+  isScheduled           Boolean  @default(false) @map("is_scheduled")
   createdAt             DateTime @default(now()) @map("created_at")
   updatedAt             DateTime @updatedAt @map("updated_at")
 
