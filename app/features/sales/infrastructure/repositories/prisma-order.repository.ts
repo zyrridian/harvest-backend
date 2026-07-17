@@ -21,7 +21,7 @@ export class PrismaOrderRepository implements IOrderRepository {
       orderBy: { createdAt: "desc" },
       include: {
         seller: {
-          select: { id: true, name: true, avatarUrl: true },
+          select: { id: true, name: true, avatarUrl: true, farmer: { select: { profileImage: true } } },
         },
         items: {
           take: 3,
@@ -48,6 +48,7 @@ export class PrismaOrderRepository implements IOrderRepository {
             id: true,
             name: true,
             avatarUrl: true,
+            farmer: { select: { profileImage: true } },
           },
         },
         deliveryAddress: true,

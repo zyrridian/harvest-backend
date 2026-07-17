@@ -21,7 +21,7 @@ export class GetOrdersUseCase {
             seller: {
                 user_id: order.seller.id,
                 name: order.seller.name,
-                profile_picture: order.seller.avatarUrl,
+                profile_picture: order.seller.farmer?.profileImage || order.seller.avatarUrl,
             },
             items: order.items.map((item: any) => ({
                 product_id: item.productId,
@@ -186,7 +186,7 @@ export class GetOrderByIdUseCase {
             seller: {
                 user_id: order.seller.id,
                 name: order.seller.name,
-                profile_picture: order.seller.avatarUrl,
+                profile_picture: order.seller.farmer?.profileImage || order.seller.avatarUrl,
             },
             items: order.items.map((item: any) => ({
                 order_item_id: item.id,
@@ -200,15 +200,15 @@ export class GetOrderByIdUseCase {
                 discount: item.discount,
                 subtotal: item.subtotal,
             })),
-            delivery: order.deliveryAddress
+            delivery: (order.deliveryMethod || order.deliveryAddress)
                 ? {
                     method: order.deliveryMethod,
-                    address: {
+                    address: order.deliveryAddress ? {
                         address_id: order.deliveryAddress.id,
                         full_address: order.deliveryAddress.fullAddress,
                         recipient_name: order.deliveryAddress.recipientName,
                         phone: order.deliveryAddress.phone,
-                    },
+                    } : null,
                     date: order.deliveryDate,
                     time_slot: order.deliveryTimeSlot,
                     fee: order.deliveryFee,
