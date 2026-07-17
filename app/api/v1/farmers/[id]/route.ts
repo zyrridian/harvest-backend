@@ -34,6 +34,10 @@ export async function GET(
           specialty: true,
         },
       },
+      dropPoints: {
+        where: { isActive: true },
+        orderBy: { createdAt: "desc" as const },
+      },
       user: {
         select: {
           id: true,
@@ -221,6 +225,22 @@ export async function GET(
       },
     }));
 
+    const formattedCabang = (farmer.dropPoints || []).map((dp: any) => ({
+      id: dp.id,
+      name: dp.name,
+      description: dp.description,
+      what_we_sell: dp.whatWeSell,
+      latitude: dp.latitude,
+      longitude: dp.longitude,
+      address: dp.address,
+      image_url: dp.imageUrl,
+      is_active: dp.isActive,
+      tags: dp.tags || [],
+      operating_hours: dp.operatingHours,
+      created_at: dp.createdAt,
+      updated_at: dp.updatedAt,
+    }));
+
     return NextResponse.json({
       status: "success",
       data: {
@@ -251,6 +271,15 @@ export async function GET(
         response_time: farmer.user.profile?.responseTime,
         followers_count: followersCount,
         is_followed: !!isFollowed,
+        main_location: {
+          latitude: farmer.latitude,
+          longitude: farmer.longitude,
+          address: farmer.address,
+          city: farmer.city,
+          state: farmer.state,
+        },
+        cabang: formattedCabang,
+        drop_points: formattedCabang,
         gallery: gallery.map(g => ({
           id: g.id,
           image_url: g.imageUrl,

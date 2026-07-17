@@ -42,6 +42,9 @@ export async function GET(request: NextRequest) {
         specialties: {
           select: { specialty: true },
         },
+        dropPoints: {
+          orderBy: { createdAt: "desc" },
+        },
         user: {
           select: {
             email: true,
@@ -60,6 +63,22 @@ export async function GET(request: NextRequest) {
         { status: 404 },
       );
     }
+
+    const formattedCabang = (farmer.dropPoints || []).map((dp) => ({
+      id: dp.id,
+      name: dp.name,
+      description: dp.description,
+      what_we_sell: dp.whatWeSell,
+      latitude: dp.latitude,
+      longitude: dp.longitude,
+      address: dp.address,
+      image_url: dp.imageUrl,
+      is_active: dp.isActive,
+      tags: dp.tags || [],
+      operating_hours: dp.operatingHours,
+      created_at: dp.createdAt,
+      updated_at: dp.updatedAt,
+    }));
 
     return NextResponse.json({
       status: "success",
@@ -86,6 +105,15 @@ export async function GET(request: NextRequest) {
         email: farmer.email || farmer.user.email,
         joined_date: farmer.joinedDate,
         followers_count: farmer.followersCount,
+        main_location: {
+          latitude: farmer.latitude,
+          longitude: farmer.longitude,
+          address: farmer.address,
+          city: farmer.city,
+          state: farmer.state,
+        },
+        cabang: formattedCabang,
+        drop_points: formattedCabang,
       },
     });
   } catch (error: any) {
