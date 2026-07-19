@@ -112,12 +112,24 @@ export class PrismaProductRepository implements IProductRepository {
 
     if (!product) return null;
 
-    const farmer = await prisma.farmer.findUnique({
-      where: { userId: product.sellerId },
-      select: { userId: true, name: true, profileImage: true, isVerified: true },
-    });
+    const [farmer, reviewAgg] = await Promise.all([
+      prisma.farmer.findUnique({
+        where: { userId: product.sellerId },
+        select: { userId: true, name: true, profileImage: true, isVerified: true },
+      }),
+      prisma.review.aggregate({
+        where: { productId: product.id },
+        _avg: { rating: true },
+        _count: { _all: true },
+      }),
+    ]);
 
-    return this.mapToEntity(product, farmer);
+    // Ensure the product entity receives the most accurate dynamic rating/count
+    const entity = this.mapToEntity(product, farmer);
+    entity.rating = reviewAgg._avg.rating || 0;
+    entity.reviewCount = reviewAgg._count._all || 0;
+
+    return entity;
   }
 
   async toggleFavorite(userId: string, productId: string): Promise<{ added: boolean }> {

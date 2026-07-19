@@ -35,8 +35,6 @@ export class GetCampaignDetailUseCase {
       currentReservations: campaign.currentBookedQuantity,
       deadline: campaign.estimatedHarvestDate,
       estimatedHarvestDate: campaign.estimatedHarvestDate,
-      depositRequired: campaign.depositPercentage > 0,
-      depositAmount: campaign.depositPercentage, // Usually percentage, or maybe calculate exact amount based on some price. For now, we return the percentage.
       status: campaign.status,
       price: campaign.pricePerUnit,
       unit: campaign.unit,

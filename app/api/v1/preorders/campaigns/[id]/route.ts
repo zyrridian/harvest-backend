@@ -99,8 +99,6 @@ export async function GET(
  *                 type: number
  *               targetQuantity:
  *                 type: number
- *               depositPercentage:
- *                 type: number
  *               estimatedHarvestDate:
  *                 type: string
  *                 format: date-time
@@ -146,7 +144,6 @@ export async function PUT(
     if (body.pricePerUnit !== undefined) updateData.pricePerUnit = Number(body.pricePerUnit);
     if (body.minimumOrderQuantity !== undefined) updateData.minimumOrderQuantity = Number(body.minimumOrderQuantity);
     if (body.targetQuantity !== undefined) updateData.targetQuantity = Number(body.targetQuantity);
-    if (body.depositPercentage !== undefined) updateData.depositPercentage = Number(body.depositPercentage);
     if (body.estimatedHarvestDate !== undefined) updateData.estimatedHarvestDate = new Date(body.estimatedHarvestDate);
     if (body.status !== undefined) updateData.status = body.status;
     if (body.images !== undefined) updateData.images = Array.isArray(body.images) ? body.images : [];

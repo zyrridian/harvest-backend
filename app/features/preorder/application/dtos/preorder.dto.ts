@@ -46,6 +46,5 @@ export type ReservePreOrderInputDTO = z.infer<typeof ReservePreOrderSchema>;
 export interface ReservePreOrderResponseDTO {
   reservation_id: string;
   status: string;
-  deposit_amount: number;
   total_price: number;
 }

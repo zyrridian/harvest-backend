@@ -45,9 +45,6 @@ import prisma from "@/core/database/prisma";
  *                 default: 1
  *               targetQuantity:
  *                 type: number
- *               depositPercentage:
- *                 type: number
- *                 default: 0
  *               estimatedHarvestDate:
  *                 type: string
  *                 format: date-time
@@ -66,7 +63,6 @@ import prisma from "@/core/database/prisma";
  *               pricePerUnit: 25000
  *               targetQuantity: 100
  *               minimumOrderQuantity: 1
- *               depositPercentage: 50
  *               status: "ACTIVE"
  *               images: ["https://example.com/image1.jpg", "https://example.com/image2.jpg"]
  *     responses:
@@ -96,7 +92,6 @@ export async function POST(request: NextRequest) {
       pricePerUnit: Number(body.pricePerUnit),
       minimumOrderQuantity: Number(body.minimumOrderQuantity || 1),
       targetQuantity: Number(body.targetQuantity),
-      depositPercentage: Number(body.depositPercentage || 0),
       estimatedHarvestDate: new Date(body.estimatedHarvestDate),
       status: body.status || "ACTIVE",
       images: Array.isArray(body.images) ? body.images : []

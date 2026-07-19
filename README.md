@@ -188,7 +188,6 @@ UPDATE "User" SET "userType" = 'ADMIN' WHERE email = 'your@email.com';
 ## Harvest Schedule & Preorders
 
 The Harvest Schedule system allows users to reserve upcoming harvests. It is decoupled from the standard marketplace cart to support its unique payment flow:
-- **Deposit Policy:** Preorders require a 20% deposit. The remaining balance is paid on delivery/pickup.
 - **Cancellation Policy:** Users can cancel a preorder for a full refund up to 7 days before the harvest date.
 
 ### Cron Job Setup for VPS (Ubuntu / Digital Ocean)

@@ -76,14 +76,35 @@ export async function GET(
     const useCase = new GetProductReviewsUseCase(productRepository);
     const result = await useCase.execute(productId, page, limit);
 
+    // Compute the summary rating from database
+    const aggregations = await prisma.review.groupBy({
+      by: ['rating'],
+      where: { productId },
+      _count: true,
+    });
+
+    let totalRating = 0;
+    let totalReviews = 0;
+    const distribution = { "1": 0, "2": 0, "3": 0, "4": 0, "5": 0 };
+
+    for (const agg of aggregations) {
+      const rating = Math.floor(agg.rating);
+      if (rating >= 1 && rating <= 5) {
+        distribution[rating.toString() as keyof typeof distribution] += agg._count;
+      }
+      totalRating += agg.rating * agg._count;
+      totalReviews += agg._count;
+    }
+    const averageRating = totalReviews > 0 ? (totalRating / totalReviews) : 0;
+
     return NextResponse.json({
       status: "success",
       data: {
         reviews: result.reviews,
         summary: {
-          average_rating: 0, // Placeholder
-          total_reviews: result.pagination.total_items,
-          distribution: { "5_star": 0, "4_star": 0, "3_star": 0, "2_star": 0, "1_star": 0 },
+          average_rating: averageRating,
+          total_reviews: totalReviews,
+          rating_distribution: distribution,
         },
         pagination: result.pagination,
       },
@@ -176,42 +197,55 @@ export async function POST(
       );
     }
 
-    // If order_id provided, verify it's a valid purchase
-    let isVerifiedPurchase = false;
-    if (order_id) {
-      const order = await prisma.order.findFirst({
-        where: {
-          id: order_id,
-          buyerId: payload.userId,
-          items: {
-            some: { productId },
-          },
-        },
-      });
-
-      if (order) {
-        isVerifiedPurchase = true;
-
-        // Check if already reviewed this product from this order
-        const existingReview = await prisma.review.findFirst({
-          where: {
-            productId,
-            userId: payload.userId,
-            orderId: order_id,
-          },
-        });
-
-        if (existingReview) {
-          return NextResponse.json(
-            {
-              status: "error",
-              message: "You have already reviewed this product from this order",
-            },
-            { status: 400 },
-          );
-        }
-      }
+    // Verify it's a valid purchase and the order is completed or delivered
+    if (!order_id) {
+      return NextResponse.json(
+        { status: "error", message: "order_id is required to submit a review" },
+        { status: 400 },
+      );
     }
+
+    const order = await prisma.order.findFirst({
+      where: {
+        id: order_id,
+        buyerId: payload.userId,
+        status: { in: ["completed", "delivered"] },
+        items: {
+          some: { productId },
+        },
+      },
+    });
+
+    if (!order) {
+      return NextResponse.json(
+        {
+          status: "error",
+          message: "You can only review products from a completed or delivered order that you purchased",
+        },
+        { status: 400 },
+      );
+    }
+
+    // Check if already reviewed this product from this order
+    const existingReview = await prisma.review.findFirst({
+      where: {
+        productId,
+        userId: payload.userId,
+        orderId: order_id,
+      },
+    });
+
+    if (existingReview) {
+      return NextResponse.json(
+        {
+          status: "error",
+          message: "You have already reviewed this product from this order",
+        },
+        { status: 400 },
+      );
+    }
+
+    const isVerifiedPurchase = true;
 
     // Create review
     const review = await prisma.review.create({
@@ -232,6 +266,24 @@ export async function POST(
               })),
             }
           : undefined,
+      },
+    });
+
+    // Update product rating and review count
+    const aggregations = await prisma.review.aggregate({
+      where: { productId },
+      _avg: { rating: true },
+      _count: { rating: true },
+    });
+
+    const newRating = aggregations._avg.rating || 0;
+    const newReviewCount = aggregations._count.rating || 0;
+
+    await prisma.product.update({
+      where: { id: productId },
+      data: {
+        rating: newRating,
+        reviewCount: newReviewCount,
       },
     });
 

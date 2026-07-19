@@ -16,7 +16,6 @@ export class ReservePreOrderUseCase {
     return {
       reservation_id: reservation.id,
       status: reservation.status,
-      deposit_amount: reservation.depositAmount,
       total_price: reservation.totalPrice
     };
   }
