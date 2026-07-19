@@ -525,8 +525,6 @@ model Order {
   paymentStatus     String?   @map("payment_status")
   paymentUrl        String?   @map("payment_url")
   snapToken         String?   @map("snap_token")
-  isDeposit         Boolean   @default(false) @map("is_deposit")
-  depositAmount     Float?    @map("deposit_amount")
   deliveryMethod    String?   @map("delivery_method")
   deliveryAddressId String?   @map("delivery_address_id")
   deliveryDate      DateTime? @map("delivery_date")
@@ -1198,9 +1196,8 @@ model PreorderCampaign {
   minimumOrderQuantity  Int      @default(1) @map("min_order_qty")
   targetQuantity        Float    @map("target_quantity")
   currentBookedQuantity Float    @default(0) @map("current_booked_qty")
-  depositPercentage     Float    @default(0) @map("deposit_percentage") // 0 to 100
   estimatedHarvestDate  DateTime @map("estimated_harvest_date")
-  status                String   @default("DRAFT") // DRAFT, ACTIVE, FULLY_BOOKED, PLANTED, GROWING, HARVESTING, READY, COMPLETED, CANCELLED
+  status                String   @default("DRAFT") // DRAFT, ACTIVE, FULLY_BOOKED, READY, COMPLETED, CANCELLED
   images                String[] @default([]) @map("images")
   isScheduled           Boolean  @default(false) @map("is_scheduled")
   createdAt             DateTime @default(now()) @map("created_at")
@@ -1222,8 +1219,7 @@ model PreorderReservation {
   userId          String   @map("user_id")
   quantity        Float
   totalPrice      Float    @map("total_price")
-  depositAmount   Float    @map("deposit_amount")
-  status          String   @default("PENDING_DEPOSIT") // PENDING_DEPOSIT, DEPOSIT_PAID, FULLY_PAID, COMPLETED, CANCELLED
+  status          String   @default("PENDING_PAYMENT") // PENDING_PAYMENT, PAID, COMPLETED, CANCELLED
   paymentMethod   String?  @map("payment_method")
   deliveryMethod  String?  @map("delivery_method") // PICKUP, DELIVERY
   addressId       String?  @map("address_id")

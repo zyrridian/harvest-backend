@@ -4,7 +4,7 @@ import { PreorderCampaign, PreorderReservation } from "@/generated/prisma/client
 import { AppError } from "@/core/errors";
 
 export class PrismaPreOrderRepository implements IPreOrderRepository {
-  
+
   // ============================================
   // CONSUMER SIDE
   // ============================================
@@ -81,7 +81,7 @@ export class PrismaPreOrderRepository implements IPreOrderRepository {
         where: { id: campaignId }
       });
 
-      const allowedStatuses = ["ACTIVE", "PLANTED", "GROWING", "HARVESTING", "READY"];
+      const allowedStatuses = ["ACTIVE"];
       if (!campaign || !allowedStatuses.includes(campaign.status)) {
         throw AppError.badRequest("Campaign is not available for reservation");
       }
@@ -100,17 +100,16 @@ export class PrismaPreOrderRepository implements IPreOrderRepository {
       if (newBooked >= campaign.targetQuantity) {
         newStatus = "FULLY_BOOKED";
       }
-      
+
       await tx.preorderCampaign.update({
         where: { id: campaignId },
-        data: { 
+        data: {
           currentBookedQuantity: newBooked,
           status: newStatus
         }
       });
 
       const totalPrice = campaign.pricePerUnit * quantity;
-      const depositAmount = (totalPrice * campaign.depositPercentage) / 100;
 
       // Create reservation
       return tx.preorderReservation.create({
@@ -119,8 +118,7 @@ export class PrismaPreOrderRepository implements IPreOrderRepository {
           userId,
           quantity,
           totalPrice,
-          depositAmount,
-          status: depositAmount > 0 ? "PENDING_DEPOSIT" : "FULLY_PAID", // simple logic
+          status: "PENDING_PAYMENT",
           deliveryMethod,
           addressId
         }
@@ -219,33 +217,7 @@ export class PrismaPreOrderRepository implements IPreOrderRepository {
     const campaigns = await prisma.preorderCampaign.findMany({
       where: { farmerId },
       orderBy: { createdAt: 'desc' },
-      include: {
-        reservations: {
-          include: {
-            user: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-              }
-            }
-          }
-        }
-      }
     });
-
-    // Manually attach addresses to reservations
-    for (const campaign of campaigns) {
-      for (const res of campaign.reservations) {
-        if (res.addressId) {
-          const address = await prisma.address.findUnique({
-            where: { id: res.addressId }
-          });
-          // Attach it dynamically (it will be serialized in JSON response)
-          (res as any).address = address;
-        }
-      }
-    }
 
     return campaigns;
   }
@@ -256,72 +228,29 @@ export class PrismaPreOrderRepository implements IPreOrderRepository {
         where: { id: campaignId },
         include: {
           reservations: {
-            where: { status: { in: ['FULLY_PAID', 'READY_FOR_PICKUP'] } }
-          },
-          farmer: {
-            select: { userId: true }
+            where: { status: { in: ['PAID'] } }
           }
         }
       });
 
       if (!campaign) throw new Error("Campaign not found");
-      if (campaign.reservations.length === 0) return { createdOrders: 0 };
 
-      // Create a dummy product for order item constraints
-      const dummyProduct = await tx.product.create({
-        data: {
-          name: `Preorder: ${campaign.title}`,
-          description: campaign.description,
-          sellerId: campaign.farmer.userId,
-          price: campaign.pricePerUnit,
-          unit: campaign.unit,
-          isAvailable: false,
-        }
-      });
-
-      let createdOrders = 0;
-      for (const res of campaign.reservations) {
-        const orderNumber = `PO-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
-        
-        await tx.order.create({
-          data: {
-            orderNumber,
-            buyerId: res.userId,
-            sellerId: campaign.farmer.userId,
-            status: 'processing',
-            subtotal: res.totalPrice,
-            totalAmount: res.totalPrice,
-            isDeposit: true,
-            depositAmount: res.depositAmount,
-            deliveryMethod: res.deliveryMethod || 'harvest_schedule',
-            deliveryAddressId: res.addressId,
-            paymentMethod: res.paymentMethod,
-            paymentStatus: 'paid',
-            items: {
-              create: {
-                productId: dummyProduct.id,
-                productName: dummyProduct.name,
-                quantity: Math.max(1, Math.round(res.quantity)), // Prisma int requirement if quantity is Float
-                unitPrice: dummyProduct.price,
-                subtotal: res.totalPrice,
-              }
-            }
-          }
-        });
-        
-        await tx.preorderReservation.update({
-          where: { id: res.id },
+      // Update reservation statuses to COMPLETED
+      if (campaign.reservations.length > 0) {
+        const reservationIds = campaign.reservations.map(r => r.id);
+        await tx.preorderReservation.updateMany({
+          where: { id: { in: reservationIds } },
           data: { status: 'COMPLETED' }
         });
-        createdOrders++;
       }
-      
+
+      // Update campaign status to COMPLETED
       await tx.preorderCampaign.update({
         where: { id: campaignId },
         data: { status: 'COMPLETED' }
       });
 
-      return { createdOrders };
+      return { createdOrders: 0 };
     });
   }
 
@@ -399,6 +328,124 @@ export class PrismaPreOrderRepository implements IPreOrderRepository {
         profileImage: r.user.avatarUrl
       })),
       isScheduled: !!userSchedule
+    };
+  }
+
+  async getFarmerCampaignDetail(campaignId: string, farmerId: string): Promise<any> {
+    const campaign = await prisma.preorderCampaign.findUnique({
+      where: { id: campaignId },
+      include: {
+        reservations: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                avatarUrl: true
+              }
+            }
+          }
+        },
+        farmer: {
+          select: {
+            userId: true
+          }
+        }
+      }
+    });
+
+    if (!campaign) {
+      throw new Error("Campaign not found");
+    }
+
+    if (campaign.farmerId !== farmerId) {
+      throw new Error("Unauthorized: This campaign does not belong to you");
+    }
+
+    // Get all unique address ids from reservations
+    const addressIds = campaign.reservations
+      .map(r => r.addressId)
+      .filter((id): id is string => !!id);
+
+    const addresses = addressIds.length > 0
+      ? await prisma.address.findMany({
+          where: { id: { in: addressIds } }
+        })
+      : [];
+
+    const addressMap = new Map(addresses.map(a => [a.id, a]));
+
+    // Find existing conversations between the farmer (farmer.userId) and all unique buyer userIds
+    const buyerIds = campaign.reservations.map(r => r.userId);
+    const farmerUserId = campaign.farmer.userId;
+
+    const conversations = buyerIds.length > 0
+      ? await prisma.conversation.findMany({
+          where: {
+            OR: [
+              { participant1Id: farmerUserId, participant2Id: { in: buyerIds } },
+              { participant1Id: { in: buyerIds }, participant2Id: farmerUserId }
+            ]
+          },
+          select: {
+            id: true,
+            participant1Id: true,
+            participant2Id: true
+          }
+        })
+      : [];
+
+    // Map buyer userId to conversation ID
+    const conversationMap = new Map<string, string>();
+    for (const conv of conversations) {
+      const buyerId = conv.participant1Id === farmerUserId ? conv.participant2Id : conv.participant1Id;
+      conversationMap.set(buyerId, conv.id);
+    }
+
+    // Format reservations
+    const formattedReservations = campaign.reservations.map(res => {
+      const addr = res.addressId ? addressMap.get(res.addressId) : null;
+      return {
+        id: res.id,
+        quantity: res.quantity,
+        totalPrice: res.totalPrice,
+        status: res.status,
+        paymentMethod: res.paymentMethod,
+        deliveryMethod: res.deliveryMethod,
+        addressId: res.addressId,
+        createdAt: res.createdAt,
+        updatedAt: res.updatedAt,
+        // Address details
+        fullAddress: addr ? addr.fullAddress : null,
+        latitude: addr ? addr.latitude : null,
+        longitude: addr ? addr.longitude : null,
+        // Buyer details
+        buyerId: res.user.id,
+        buyerName: res.user.name,
+        buyerAvatarUrl: res.user.avatarUrl,
+        // Chat conversation id
+        conversationId: conversationMap.get(res.userId) || null
+      };
+    });
+
+    return {
+      id: campaign.id,
+      title: campaign.title,
+      description: campaign.description,
+      category: campaign.category,
+      unit: campaign.unit,
+      pricePerUnit: campaign.pricePerUnit,
+      minimumOrderQuantity: campaign.minimumOrderQuantity,
+      targetQuantity: campaign.targetQuantity,
+      currentBookedQuantity: campaign.currentBookedQuantity,
+      estimatedHarvestDate: campaign.estimatedHarvestDate,
+      status: campaign.status,
+      images: campaign.images,
+      isScheduled: campaign.isScheduled,
+      createdAt: campaign.createdAt,
+      updatedAt: campaign.updatedAt,
+      totalPeopleReserved: formattedReservations.length,
+      reservations: formattedReservations
     };
   }
 }

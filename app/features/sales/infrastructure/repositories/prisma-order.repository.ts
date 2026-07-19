@@ -170,8 +170,6 @@ export class PrismaOrderRepository implements IOrderRepository {
 
         const hasHarvestItems = false; // Harvest items are now handled via PreorderCampaigns
 
-        const isDeposit = hasHarvestItems;
-        const depositAmount = isDeposit ? totalAmount * 0.2 : null;
         const isCOD = payment_method === "cod";
         const orderStatus = isCOD ? "confirmed" : "pending_payment";
 
@@ -188,8 +186,6 @@ export class PrismaOrderRepository implements IOrderRepository {
             totalAmount,
             paymentMethod: payment_method,
             paymentStatus: "pending",
-            isDeposit,
-            depositAmount,
             deliveryMethod: delivery_method,
             deliveryAddressId: delivery_address_id,
             deliveryDate: delivery_date ? new Date(delivery_date) : null,

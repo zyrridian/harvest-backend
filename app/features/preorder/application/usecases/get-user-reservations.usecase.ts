@@ -15,7 +15,7 @@ export class GetUserReservationsUseCase {
       if (r.status === "DEPOSIT_PAID" || r.status === "FULLY_PAID") {
           statusStr = "Processing"; // Fallback
           const campStatus = c?.status?.toUpperCase();
-          if (campStatus && ["PLANTED", "GROWING", "HARVESTING", "READY", "COMPLETED"].includes(campStatus)) {
+          if (campStatus && ["READY", "COMPLETED"].includes(campStatus)) {
               statusStr = campStatus.charAt(0) + campStatus.slice(1).toLowerCase();
           } else if (r.status === "DEPOSIT_PAID") {
               statusStr = "Confirmed";

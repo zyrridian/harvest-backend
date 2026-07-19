@@ -54,7 +54,7 @@ export async function POST(
     const result = await preOrderRepository.fulfillCampaign(campaignId);
 
     return successResponse({
-      message: `Successfully fulfilled campaign. Created ${result.createdOrders} orders.`,
+      message: "Successfully completed the preorder campaign. All paid reservations marked as completed.",
       ...result
     });
   } catch (error) {

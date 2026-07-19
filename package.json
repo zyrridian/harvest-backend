@@ -10,6 +10,7 @@
     "test": "vitest",
     "postinstall": "prisma generate",
     "db:seed": "tsx prisma/seed.ts",
+    "db:clean-seed": "tsx prisma/seed.ts",
     "db:seed:locations": "tsx prisma/seed-locations.ts",
     "db:reset": "prisma migrate reset && npm run db:seed",
     "db:migrate": "prisma migrate dev",
