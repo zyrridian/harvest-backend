@@ -219,10 +219,17 @@ export class PrismaOrderRepository implements IOrderRepository {
 
         // Update product stock
         for (const item of items) {
-          await tx.product.update({
+          const updatedProduct = await tx.product.update({
             where: { id: item.productId },
             data: { stockQuantity: { decrement: item.quantity } },
           });
+          
+          if (updatedProduct.stockQuantity <= 0) {
+            await tx.product.update({
+              where: { id: item.productId },
+              data: { isAvailable: false },
+            });
+          }
         }
 
         // Harvest items logic removed
