@@ -78,6 +78,7 @@ export class GetNearbyFarmersUseCase {
 
       return {
         id: farmer.id,
+        userId: farmer.user?.id,
         name: farmer.name,
         distance: farmer.distance !== undefined && farmer.distance !== null ? parseFloat(Number(farmer.distance).toFixed(1)) : 0.0,
         category: primaryCategory,
