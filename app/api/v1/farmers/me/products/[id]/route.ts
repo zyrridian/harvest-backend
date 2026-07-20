@@ -260,6 +260,14 @@ export async function PUT(
     if (is_organic !== undefined) updateData.isOrganic = is_organic;
     if (is_available !== undefined) updateData.isAvailable = is_available;
 
+    // Auto-activate when restocking from 0
+    if (stock !== undefined) {
+      const newStock = parseInt(stock);
+      if (existingProduct.stockQuantity <= 0 && newStock > 0) {
+        updateData.isAvailable = true;
+      }
+    }
+
     // Update product
     const product = await prisma.product.update({
       where: { id },
