@@ -217,6 +217,14 @@ export class PrismaOrderRepository implements IOrderRepository {
           where: { id: { in: items.map((item) => item.id) } },
         });
 
+        // Update product stock
+        for (const item of items) {
+          await tx.product.update({
+            where: { id: item.productId },
+            data: { stockQuantity: { decrement: item.quantity } },
+          });
+        }
+
         // Harvest items logic removed
       }
 
