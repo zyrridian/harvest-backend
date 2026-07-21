@@ -465,6 +465,62 @@ export class PrismaCommunityRepository implements ICommunityRepository {
 
     return recipe as unknown as RecipeEntity;
   }
+
+  async updateRecipe(id: string, data: Partial<{
+    title: string;
+    description: string | null;
+    imageUrl: string | null;
+    prepTimeMinutes: number | null;
+    cookTimeMinutes: number | null;
+    servings: number | null;
+    difficulty: string;
+    isFeatured: boolean;
+    instructions: string[];
+    ingredients: Array<{
+      name: string;
+      quantity?: number;
+      unit?: string;
+      productId?: string;
+    }>;
+  }>): Promise<RecipeEntity> {
+    const updateData: any = { ...data };
+    
+    // If ingredients are provided, we replace the existing ones completely
+    // since Prisma doesn't have a simple way to sync nested arrays without delete/create
+    if (data.ingredients) {
+      updateData.ingredients = {
+        deleteMany: {},
+        create: data.ingredients.map((ing) => ({
+          name: ing.name,
+          quantity: ing.quantity,
+          unit: ing.unit,
+          productId: ing.productId,
+        })),
+      };
+    }
+
+    const updated = await prisma.recipe.update({
+      where: { id },
+      data: updateData,
+      include: {
+        author: {
+          select: { id: true, name: true, avatarUrl: true },
+        },
+        ingredients: true,
+      },
+    });
+
+    return updated as unknown as RecipeEntity;
+  }
+
+  async deleteRecipe(id: string): Promise<void> {
+    // Ingredients will be cascade-deleted if configured in Prisma schema, 
+    // otherwise we might need to delete them first. Let's assume cascade is set up or we delete manually.
+    await prisma.$transaction([
+      prisma.recipeIngredient.deleteMany({ where: { recipeId: id } }),
+      prisma.recipe.delete({ where: { id } }),
+    ]);
+  }
 }
 
 export const communityRepository = new PrismaCommunityRepository();

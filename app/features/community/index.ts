@@ -25,6 +25,8 @@ export * from "./application/usecases/get-trending-tags.usecase";
 export * from "./application/usecases/get-recipes.usecase";
 export * from "./application/usecases/get-recipe-by-id.usecase";
 export * from "./application/usecases/create-recipe.usecase";
+export * from "./application/usecases/update-recipe.usecase";
+export * from "./application/usecases/delete-recipe.usecase";
 
 export * from "./infrastructure/repositories/prisma-community.repository";
 

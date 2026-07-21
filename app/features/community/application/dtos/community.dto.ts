@@ -132,3 +132,23 @@ export interface CreateRecipeInputDTO {
     productId?: string;
   }>;
 }
+
+export interface UpdateRecipeInputDTO {
+  id: string;
+  authorId: string;
+  title?: string;
+  description?: string;
+  imageUrl?: string;
+  prepTimeMinutes?: number;
+  cookTimeMinutes?: number;
+  servings?: number;
+  difficulty?: string;
+  isFeatured?: boolean;
+  instructions?: string[];
+  ingredients?: Array<{
+    name: string;
+    quantity?: number;
+    unit?: string;
+    productId?: string;
+  }>;
+}

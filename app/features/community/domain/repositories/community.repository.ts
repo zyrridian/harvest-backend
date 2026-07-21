@@ -93,4 +93,22 @@ export interface ICommunityRepository {
       productId?: string;
     }>;
   }): Promise<RecipeEntity>;
+  updateRecipe(id: string, data: Partial<{
+    title: string;
+    description: string | null;
+    imageUrl: string | null;
+    prepTimeMinutes: number | null;
+    cookTimeMinutes: number | null;
+    servings: number | null;
+    difficulty: string;
+    isFeatured: boolean;
+    instructions: string[];
+    ingredients: Array<{
+      name: string;
+      quantity?: number;
+      unit?: string;
+      productId?: string;
+    }>;
+  }>): Promise<RecipeEntity>;
+  deleteRecipe(id: string): Promise<void>;
 }

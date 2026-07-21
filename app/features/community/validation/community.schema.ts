@@ -64,3 +64,22 @@ export const CreateRecipeSchema = z.object({
     product_id: z.string().optional(),
   })).optional(),
 });
+
+export const UpdateRecipeSchema = z.object({
+  title: z.string().min(1, "Title cannot be empty").optional(),
+  description: z.string().optional(),
+  image_url: z.string().url().optional(),
+  prep_time_minutes: z.coerce.number().int().positive().optional(),
+  cook_time_minutes: z.coerce.number().int().positive().optional(),
+  servings: z.coerce.number().int().positive().optional(),
+  difficulty: z.enum(["easy", "medium", "hard"]).optional(),
+  is_featured: z.boolean().optional(),
+  instructions: z.array(z.string().min(1, "Instruction step cannot be empty")).min(1, "At least one instruction step is required").optional(),
+  ingredients: z.array(z.object({
+    name: z.string().min(1, "Ingredient name is required"),
+    quantity: z.coerce.number().positive().optional(),
+    unit: z.string().optional(),
+    product_id: z.string().optional(),
+  })).optional(),
+});
+
