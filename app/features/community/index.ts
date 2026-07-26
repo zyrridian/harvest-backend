@@ -2,11 +2,7 @@ export * from "./domain/entities/community.entity";
 export * from "./domain/repositories/community.repository";
 
 export * from "./application/dtos/community.dto";
-// Admin usecases
-export * from "./application/usecases/get-admin-posts.usecase";
-export * from "./application/usecases/delete-admin-post.usecase";
-export * from "./application/usecases/get-admin-comments.usecase";
-export * from "./application/usecases/delete-admin-comment.usecase";
+
 
 // Core usecases
 export * from "./application/usecases/get-posts.usecase";

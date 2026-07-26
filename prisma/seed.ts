@@ -46,10 +46,6 @@ async function main() {
     prisma.userCampaignSchedule.deleteMany(),
     prisma.preorderCampaign.deleteMany(),
 
-    // Sourcing
-    prisma.sourcingOffer.deleteMany(),
-    prisma.sourcingRequest.deleteMany(),
-
     // Other Explore features
     prisma.liveStream.deleteMany(),
     prisma.groupBuy.deleteMany(),
@@ -82,22 +78,6 @@ async function main() {
   ]);
   
   console.log("✅ Database wiped cleanly.");
-
-  // Create admin user
-  console.log("👤 Creating admin user...");
-  const adminPassword = await bcrypt.hash("admin123", 12);
-  const admin = await prisma.user.upsert({
-    where: { email: "admin@harvest.com" },
-    update: {},
-    create: {
-      email: "admin@harvest.com",
-      password: adminPassword,
-      name: "Admin User",
-      userType: "ADMIN",
-      isVerified: true,
-    },
-  });
-  console.log("✅ Admin created:", admin.email);
 
   // Create producer users (farmers)
   console.log("👨‍🌾 Creating farmers...");
@@ -1054,7 +1034,6 @@ async function main() {
 
   console.log("\n✨ Seed completed successfully!");
   console.log("\n📝 Test Accounts:");
-  console.log("Admin: admin@harvest.com / admin123");
   console.log("Farmer 1: greenvalley@harvest.com / farmer123");
   console.log("Farmer 2: sunrise@harvest.com / farmer123");
   console.log("Farmer 3: freshfields@harvest.com / farmer123");

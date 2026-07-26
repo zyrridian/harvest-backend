@@ -28,20 +28,6 @@ export async function verifyAuth(request: NextRequest): Promise<TokenPayload> {
   return payload;
 }
 
-/**
- * Verify admin authentication from a NextRequest.
- * Ensures the user is authenticated AND has ADMIN role.
- * Throws AppError(401) if not authenticated, AppError(403) if not admin.
- */
-export async function verifyAdmin(request: NextRequest): Promise<TokenPayload> {
-  const payload = await verifyAuth(request);
-
-  if (payload.user_type !== "ADMIN") {
-    throw AppError.forbidden("Admin access required");
-  }
-
-  return payload;
-}
 
 /**
  * Optionally verify authentication from a NextRequest.

@@ -1,36 +1,6 @@
 import { CommunityPostEntity, PostCommentEntity, RecipeEntity } from "../../domain/entities/community.entity";
 
-export interface GetAdminPostsInputDTO {
-  search?: string;
-  page: number;
-  limit: number;
-}
 
-export interface PaginatedAdminPostsDTO {
-  posts: CommunityPostEntity[];
-  pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    total_pages: number;
-  };
-}
-
-export interface GetAdminCommentsInputDTO {
-  search?: string;
-  page: number;
-  limit: number;
-}
-
-export interface PaginatedAdminCommentsDTO {
-  comments: PostCommentEntity[];
-  pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    total_pages: number;
-  };
-}
 
 // --- Core DTOs ---
 

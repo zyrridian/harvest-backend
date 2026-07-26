@@ -144,12 +144,9 @@ export class PrismaOrderRepository implements IOrderRepository {
       for (const [sellerId, items] of Object.entries(itemsBySeller)) {
         const farmer = await tx.farmer.findUnique({
           where: { userId: sellerId },
-          include: { deliverySettings: true },
         });
 
-        if (payment_method === "cod" && !farmer?.deliverySettings?.cashOnDeliveryEnabled) {
-          throw AppError.badRequest(`Cash on Delivery is not available for ${farmer?.name || "this farmer"}`);
-        }
+
 
         const subtotal = items.reduce((sum, item) => sum + item.subtotal, 0);
         let deliveryFee: number;

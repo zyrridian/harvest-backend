@@ -42,14 +42,14 @@ model User {
   favorites            Favorite[]
   productViews         ProductView[]
   cart                 Cart?
-  buyerOrders          Order[]               @relation("BuyerOrders")
-  sellerOrders         Order[]               @relation("SellerOrders")
+  buyerOrders          Order[]                @relation("BuyerOrders")
+  sellerOrders         Order[]                @relation("SellerOrders")
   addresses            Address[]
   reviews              Review[]
   reviewHelpful        ReviewHelpful[]
   searchHistory        SearchHistory[]
-  conversationsAsP1    Conversation[]        @relation("Participant1")
-  conversationsAsP2    Conversation[]        @relation("Participant2")
+  conversationsAsP1    Conversation[]         @relation("Participant1")
+  conversationsAsP2    Conversation[]         @relation("Participant2")
   sentMessages         Message[]
   notifications        Notification[]
   notificationSettings NotificationSettings?
@@ -57,12 +57,11 @@ model User {
   postLikes            PostLike[]
   postComments         PostComment[]
   commentLikes         CommentLike[]
-  commentReplyTo       PostComment[]         @relation("CommentReplyTo")
+  commentReplyTo       PostComment[]          @relation("CommentReplyTo")
   recipes              Recipe[]
   preorderReservations PreorderReservation[]
   campaignSchedules    UserCampaignSchedule[]
   followingFarmers     FarmerFollower[]
-  sourcingRequests     SourcingRequest[]     @relation("BuyerSourcingRequests")
 
   @@index([email])
   @@index([userType])
@@ -72,7 +71,6 @@ model User {
 enum UserType {
   CONSUMER
   PRODUCER
-  ADMIN
 }
 
 model RefreshToken {
@@ -152,47 +150,47 @@ model Subcategory {
 // ============================================
 
 model Product {
-  id              String    @id @default(uuid())
+  id              String   @id @default(uuid())
   name            String
-  slug            String?   @unique
+  slug            String?  @unique
   description     String?
-  longDescription String?   @map("long_description")
-  categoryId      String?   @map("category_id")
-  subcategoryId   String?   @map("subcategory_id")
-  sellerId        String    @map("seller_id")
+  longDescription String?  @map("long_description")
+  categoryId      String?  @map("category_id")
+  subcategoryId   String?  @map("subcategory_id")
+  sellerId        String   @map("seller_id")
   price           Float
-  currency        String    @default("IDR")
+  currency        String   @default("IDR")
   unit            String
-  unitWeight      Float     @default(1.0) @map("unit_weight")
-  stockQuantity   Int       @default(0) @map("stock_quantity")
-  minimumOrder    Int       @default(1) @map("minimum_order")
-  maximumOrder    Int       @default(999) @map("maximum_order")
-  isOrganic       Boolean   @default(false) @map("is_organic")
-  isAvailable     Boolean   @default(true) @map("is_available")
-  rating          Float     @default(0)
-  reviewCount     Int       @default(0) @map("review_count")
-  viewCount       Int       @default(0) @map("view_count")
-  createdAt       DateTime  @default(now()) @map("created_at")
-  updatedAt       DateTime  @updatedAt @map("updated_at")
+  unitWeight      Float    @default(1.0) @map("unit_weight")
+  stockQuantity   Int      @default(0) @map("stock_quantity")
+  minimumOrder    Int      @default(1) @map("minimum_order")
+  maximumOrder    Int      @default(999) @map("maximum_order")
+  isOrganic       Boolean  @default(false) @map("is_organic")
+  isAvailable     Boolean  @default(true) @map("is_available")
+  rating          Float    @default(0)
+  reviewCount     Int      @default(0) @map("review_count")
+  viewCount       Int      @default(0) @map("view_count")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
 
   // Relations
-  seller         User                   @relation(fields: [sellerId], references: [id], onDelete: Cascade)
-  category       Category?              @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  subcategory    Subcategory?           @relation(fields: [subcategoryId], references: [id], onDelete: SetNull)
-  images         ProductImage[]
-  videos         ProductVideo[]
-  specifications ProductSpecification[]
-  tags           ProductTag[]
-  certifications ProductCertification[]
-  discounts      ProductDiscount[]
-  favorites      Favorite[]
-  views          ProductView[]
-  cartItems      CartItem[]
-  orderItems     OrderItem[]
-  reviews        Review[]
-  conversations  Conversation[]
+  seller            User                   @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  category          Category?              @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  subcategory       Subcategory?           @relation(fields: [subcategoryId], references: [id], onDelete: SetNull)
+  images            ProductImage[]
+  videos            ProductVideo[]
+  specifications    ProductSpecification[]
+  tags              ProductTag[]
+  certifications    ProductCertification[]
+  discounts         ProductDiscount[]
+  favorites         Favorite[]
+  views             ProductView[]
+  cartItems         CartItem[]
+  orderItems        OrderItem[]
+  reviews           Review[]
+  conversations     Conversation[]
   recipeIngredients RecipeIngredient[]
-  groupBuys      GroupBuy[]
+  groupBuys         GroupBuy[]
 
   @@index([sellerId])
   @@index([categoryId])
@@ -358,10 +356,9 @@ model Farmer {
   followersCount    Int      @default(0) @map("followers_count")
 
   // Relations
-  user              User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   specialties       FarmerSpecialty[]
   communityPosts    CommunityPost[]
-  deliverySettings  FarmerDeliverySettings?
   routes            DeliveryRoute[]
   dropPoints        DropPoint[]
   preorderCampaigns PreorderCampaign[]
@@ -370,7 +367,6 @@ model Farmer {
   groupBuys         GroupBuy[]
   galleries         FarmerGallery[]
   followers         FarmerFollower[]
-  sourcingOffers    SourcingOffer[]
 
   @@index([userId])
   @@index([latitude, longitude])
@@ -390,22 +386,6 @@ model FarmerSpecialty {
   @@map("farmer_specialties")
 }
 
-model FarmerDeliverySettings {
-  farmerId           String  @id @map("farmer_id")
-  farmerDeliveryEnabled Boolean @default(false) @map("farmer_delivery_enabled")
-  baseFee            Float   @default(10000) @map("base_fee")
-  perKmRate          Float   @default(2000) @map("per_km_rate")
-  maxRadiusKm        Float   @default(30) @map("max_radius_km")
-  minOrderForFree    Float?  @map("min_order_for_free")
-  cashOnDeliveryEnabled Boolean @default(false) @map("cash_on_delivery_enabled")
-  notes              String?
-
-  // Relations
-  farmer Farmer @relation(fields: [farmerId], references: [id], onDelete: Cascade)
-
-  @@map("farmer_delivery_settings")
-}
-
 model FarmerGallery {
   id        String   @id @default(uuid())
   farmerId  String   @map("farmer_id")
@@ -414,7 +394,7 @@ model FarmerGallery {
   createdAt DateTime @default(now()) @map("created_at")
 
   // Relations
-  farmer    Farmer   @relation(fields: [farmerId], references: [id], onDelete: Cascade)
+  farmer Farmer @relation(fields: [farmerId], references: [id], onDelete: Cascade)
 
   @@index([farmerId])
   @@map("farmer_galleries")
@@ -427,8 +407,8 @@ model FarmerFollower {
   createdAt DateTime @default(now()) @map("created_at")
 
   // Relations
-  farmer    Farmer   @relation(fields: [farmerId], references: [id], onDelete: Cascade)
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  farmer Farmer @relation(fields: [farmerId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([farmerId, userId])
   @@index([farmerId])
@@ -441,20 +421,20 @@ model FarmerFollower {
 // ============================================
 
 model DropPoint {
-  id          String   @id @default(uuid())
-  farmerId    String   @map("farmer_id")
-  name        String
-  description String?  @db.Text
-  whatWeSell  String?  @map("what_we_sell") @db.Text  // comma-sep or text description
-  latitude    Float
-  longitude   Float
-  address     String?
-  imageUrl    String?  @map("image_url") @db.Text
-  isActive    Boolean  @default(true) @map("is_active")
-  operatingHours Json?   @map("operating_hours")
-  tags        String[]
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  id             String   @id @default(uuid())
+  farmerId       String   @map("farmer_id")
+  name           String
+  description    String?  @db.Text
+  whatWeSell     String?  @map("what_we_sell") @db.Text // comma-sep or text description
+  latitude       Float
+  longitude      Float
+  address        String?
+  imageUrl       String?  @map("image_url") @db.Text
+  isActive       Boolean  @default(true) @map("is_active")
+  operatingHours Json?    @map("operating_hours")
+  tags           String[]
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
 
   // Relations
   farmer Farmer @relation(fields: [farmerId], references: [id], onDelete: Cascade)
@@ -560,26 +540,26 @@ model Order {
 // ============================================
 
 model DeliveryRoute {
-  id               String    @id @default(uuid())
-  farmerId         String    @map("farmer_id")
-  deliveryDate     DateTime  @map("delivery_date") @db.Date
-  status           String    @default("draft")  // draft | active | completed | cancelled
-  trackingEnabled  Boolean   @default(false) @map("tracking_enabled")
+  id                String    @id @default(uuid())
+  farmerId          String    @map("farmer_id")
+  deliveryDate      DateTime  @map("delivery_date") @db.Date
+  status            String    @default("draft") // draft | active | completed | cancelled
+  trackingEnabled   Boolean   @default(false) @map("tracking_enabled")
   // Current farmer location (ephemeral, updated by farmer)
-  currentLat       Float?    @map("current_lat")
-  currentLng       Float?    @map("current_lng")
+  currentLat        Float?    @map("current_lat")
+  currentLng        Float?    @map("current_lng")
   locationUpdatedAt DateTime? @map("location_updated_at")
   // ORS-optimized waypoint order stored as JSON array of stop IDs
-  optimizedOrder   String?   @map("optimized_order") @db.Text
-  totalDistanceKm  Float?    @map("total_distance_km")
-  estimatedMinutes Int?      @map("estimated_minutes")
-  startedAt        DateTime? @map("started_at")
-  completedAt      DateTime? @map("completed_at")
-  createdAt        DateTime  @default(now()) @map("created_at")
-  updatedAt        DateTime  @updatedAt @map("updated_at")
+  optimizedOrder    String?   @map("optimized_order") @db.Text
+  totalDistanceKm   Float?    @map("total_distance_km")
+  estimatedMinutes  Int?      @map("estimated_minutes")
+  startedAt         DateTime? @map("started_at")
+  completedAt       DateTime? @map("completed_at")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
 
   // Relations
-  farmer Farmer       @relation(fields: [farmerId], references: [id], onDelete: Cascade)
+  farmer Farmer                 @relation(fields: [farmerId], references: [id], onDelete: Cascade)
   stops  RouteStop[]
   pings  DeliveryLocationPing[]
 
@@ -590,18 +570,18 @@ model DeliveryRoute {
 }
 
 model RouteStop {
-  id              String    @id @default(uuid())
-  routeId         String    @map("route_id")
-  orderId         String    @unique @map("order_id")
-  stopOrder       Int       @map("stop_order")  // position in route (1-indexed)
-  addressLat      Float?    @map("address_lat")
-  addressLng      Float?    @map("address_lng")
-  addressLabel    String?   @map("address_label")
-  recipientName   String?   @map("recipient_name")
-  status          String    @default("pending")  // pending | arrived | completed | skipped
+  id               String    @id @default(uuid())
+  routeId          String    @map("route_id")
+  orderId          String    @unique @map("order_id")
+  stopOrder        Int       @map("stop_order") // position in route (1-indexed)
+  addressLat       Float?    @map("address_lat")
+  addressLng       Float?    @map("address_lng")
+  addressLabel     String?   @map("address_label")
+  recipientName    String?   @map("recipient_name")
+  status           String    @default("pending") // pending | arrived | completed | skipped
   estimatedArrival DateTime? @map("estimated_arrival")
-  actualArrival   DateTime? @map("actual_arrival")
-  notes           String?
+  actualArrival    DateTime? @map("actual_arrival")
+  notes            String?
 
   // Relations
   route DeliveryRoute @relation(fields: [routeId], references: [id], onDelete: Cascade)
@@ -612,15 +592,15 @@ model RouteStop {
 }
 
 model DeliveryLocationPing {
-  id          String   @id @default(uuid())
-  routeId     String   @map("route_id")
-  latitude    Float
-  longitude   Float
-  accuracy    Float?   // GPS accuracy in meters
-  createdAt   DateTime @default(now()) @map("created_at")
+  id        String   @id @default(uuid())
+  routeId   String   @map("route_id")
+  latitude  Float
+  longitude Float
+  accuracy  Float? // GPS accuracy in meters
+  createdAt DateTime @default(now()) @map("created_at")
 
   // Relations
-  route     DeliveryRoute @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  route DeliveryRoute @relation(fields: [routeId], references: [id], onDelete: Cascade)
 
   @@index([routeId])
   @@index([createdAt])
@@ -1139,21 +1119,21 @@ model ShareLink {
 // ============================================
 
 model Recipe {
-  id               String   @id @default(uuid())
-  authorId         String   @map("author_id")
-  title            String
-  description      String?  @db.Text
-  imageUrl         String?  @map("image_url")
-  prepTimeMinutes  Int?     @map("prep_time_minutes")
-  cookTimeMinutes  Int?     @map("cook_time_minutes")
-  servings         Int?
-  difficulty       String?  // easy, medium, hard
-  isFeatured       Boolean  @default(false) @map("is_featured")
-  instructions     String[] // array of step descriptions
-  likesCount       Int      @default(0) @map("likes_count")
-  viewsCount       Int      @default(0) @map("views_count")
-  createdAt        DateTime @default(now()) @map("created_at")
-  updatedAt        DateTime @updatedAt @map("updated_at")
+  id              String   @id @default(uuid())
+  authorId        String   @map("author_id")
+  title           String
+  description     String?  @db.Text
+  imageUrl        String?  @map("image_url")
+  prepTimeMinutes Int?     @map("prep_time_minutes")
+  cookTimeMinutes Int?     @map("cook_time_minutes")
+  servings        Int?
+  difficulty      String? // easy, medium, hard
+  isFeatured      Boolean  @default(false) @map("is_featured")
+  instructions    String[] // array of step descriptions
+  likesCount      Int      @default(0) @map("likes_count")
+  viewsCount      Int      @default(0) @map("views_count")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
 
   // Relations
   author      User               @relation(fields: [authorId], references: [id], onDelete: Cascade)
@@ -1165,12 +1145,12 @@ model Recipe {
 }
 
 model RecipeIngredient {
-  id           String  @id @default(uuid())
-  recipeId     String  @map("recipe_id")
-  name         String  // The text name (e.g. "2 cups of flour")
-  quantity     Float?  
-  unit         String? 
-  productId    String? @map("product_id") // Optional link to a marketplace product
+  id        String  @id @default(uuid())
+  recipeId  String  @map("recipe_id")
+  name      String // The text name (e.g. "2 cups of flour")
+  quantity  Float?
+  unit      String?
+  productId String? @map("product_id") // Optional link to a marketplace product
 
   // Relations
   recipe  Recipe   @relation(fields: [recipeId], references: [id], onDelete: Cascade)
@@ -1191,7 +1171,7 @@ model PreorderCampaign {
   title                 String
   description           String?  @db.Text
   category              String?
-  unit                  String   // e.g., "kg", "box"
+  unit                  String // e.g., "kg", "box"
   pricePerUnit          Float    @map("price_per_unit")
   minimumOrderQuantity  Int      @default(1) @map("min_order_qty")
   targetQuantity        Float    @map("target_quantity")
@@ -1207,24 +1187,24 @@ model PreorderCampaign {
   farmer       Farmer                 @relation(fields: [farmerId], references: [id], onDelete: Cascade)
   reservations PreorderReservation[]
   schedules    UserCampaignSchedule[]
-  
+
   @@index([farmerId])
   @@index([status])
   @@map("preorder_campaigns")
 }
 
 model PreorderReservation {
-  id              String   @id @default(uuid())
-  campaignId      String   @map("campaign_id")
-  userId          String   @map("user_id")
-  quantity        Float
-  totalPrice      Float    @map("total_price")
-  status          String   @default("PENDING_PAYMENT") // PENDING_PAYMENT, PAID, COMPLETED, CANCELLED
-  paymentMethod   String?  @map("payment_method")
-  deliveryMethod  String?  @map("delivery_method") // PICKUP, DELIVERY
-  addressId       String?  @map("address_id")
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
+  id             String   @id @default(uuid())
+  campaignId     String   @map("campaign_id")
+  userId         String   @map("user_id")
+  quantity       Float
+  totalPrice     Float    @map("total_price")
+  status         String   @default("PENDING_PAYMENT") // PENDING_PAYMENT, PAID, COMPLETED, CANCELLED
+  paymentMethod  String?  @map("payment_method")
+  deliveryMethod String?  @map("delivery_method") // PICKUP, DELIVERY
+  addressId      String?  @map("address_id")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
 
   // Relations
   campaign PreorderCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
@@ -1236,13 +1216,13 @@ model PreorderReservation {
 }
 
 model UserCampaignSchedule {
-  userId             String           @map("user_id")
-  campaignId         String           @map("campaign_id")
-  remindersEnabled   Boolean          @default(true) @map("reminders_enabled")
-  createdAt          DateTime         @default(now()) @map("created_at")
+  userId           String   @map("user_id")
+  campaignId       String   @map("campaign_id")
+  remindersEnabled Boolean  @default(true) @map("reminders_enabled")
+  createdAt        DateTime @default(now()) @map("created_at")
 
-  user               User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  campaign           PreorderCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  user     User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  campaign PreorderCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
 
   @@id([userId, campaignId])
   @@index([userId])
@@ -1255,18 +1235,18 @@ model UserCampaignSchedule {
 // ============================================
 
 model LiveStream {
-  id          String    @id @default(uuid())
-  farmerId    String    @map("farmer_id")
-  title       String
-  thumbnail   String?
-  streamUrl   String    @map("stream_url") // HLS URL (.m3u8)
-  viewers     Int       @default(0)
-  isLive      Boolean   @default(false) @map("is_live")
-  startedAt   DateTime  @default(now()) @map("started_at")
-  endedAt     DateTime? @map("ended_at")
+  id        String    @id @default(uuid())
+  farmerId  String    @map("farmer_id")
+  title     String
+  thumbnail String?
+  streamUrl String    @map("stream_url") // HLS URL (.m3u8)
+  viewers   Int       @default(0)
+  isLive    Boolean   @default(false) @map("is_live")
+  startedAt DateTime  @default(now()) @map("started_at")
+  endedAt   DateTime? @map("ended_at")
 
   // Relations
-  farmer      Farmer    @relation(fields: [farmerId], references: [id], onDelete: Cascade)
+  farmer Farmer @relation(fields: [farmerId], references: [id], onDelete: Cascade)
 
   @@index([isLive])
   @@index([farmerId])
@@ -1287,7 +1267,7 @@ model FarmExperience {
   createdAt   DateTime @default(now()) @map("created_at")
 
   // Relations
-  farmer      Farmer   @relation(fields: [farmerId], references: [id], onDelete: Cascade)
+  farmer Farmer @relation(fields: [farmerId], references: [id], onDelete: Cascade)
 
   @@index([farmerId])
   @@map("farm_experiences")
@@ -1309,54 +1289,11 @@ model GroupBuy {
   updatedAt     DateTime @updatedAt @map("updated_at")
 
   // Relations
-  farmer        Farmer   @relation(fields: [farmerId], references: [id], onDelete: Cascade)
-  product       Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  farmer  Farmer  @relation(fields: [farmerId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@index([status])
   @@index([farmerId])
   @@index([productId])
   @@map("group_buys")
-}
-
-// ============================================
-// SOURCING REQUESTS (Buyer to Farmers)
-// ============================================
-
-model SourcingRequest {
-  id          String   @id @default(uuid())
-  buyerId     String   @map("buyer_id")
-  title       String
-  description String?  @db.Text
-  status      String   @default("open") // open, fulfilled, cancelled
-  budget      Float?
-  requiredBy  DateTime? @map("required_by")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
-  // Relations
-  buyer       User     @relation("BuyerSourcingRequests", fields: [buyerId], references: [id], onDelete: Cascade)
-  offers      SourcingOffer[]
-
-  @@index([buyerId])
-  @@index([status])
-  @@map("sourcing_requests")
-}
-
-model SourcingOffer {
-  id          String   @id @default(uuid())
-  requestId   String   @map("request_id")
-  farmerId    String   @map("farmer_id")
-  price       Float
-  notes       String?  @db.Text
-  status      String   @default("pending") // pending, accepted, rejected
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
-  // Relations
-  request     SourcingRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
-  farmer      Farmer          @relation(fields: [farmerId], references: [id], onDelete: Cascade)
-
-  @@index([requestId])
-  @@index([farmerId])
-  @@map("sourcing_offers")
 }
