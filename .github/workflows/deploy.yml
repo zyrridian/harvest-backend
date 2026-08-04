@@ -60,10 +60,10 @@ jobs:
             git pull origin main
             
             # Stop existing container to free up port/memory before pull
-            docker-compose down
+            docker compose down
             
             # Pull the completely compiled image
             docker pull ghcr.io/zyrridian/harvest-web:latest
             
             # Turn it on!
-            docker-compose up -d
+            docker compose up -d
