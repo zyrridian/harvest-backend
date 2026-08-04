@@ -18,7 +18,7 @@ export const getApiDocs = async () => {
       },
       servers: [
         {
-          url: "https://marketplace.zyrridian.dev",
+          url: "https://harvest.zyrridian.dev",
           description: "Production server",
         },
         {
