@@ -19,7 +19,7 @@ export class GetMarketplaceUseCase {
       flashHarvest = {
         id: flashHarvestData.id,
         title: flashHarvestData.name,
-        subtitle: flashHarvestData.isHarvest ? "Picked this morning" : "Limited Time Offer",
+        subtitle: "Picked this morning",
         distance: this.formatDistance((flashHarvestData as any).distance),
         image_url: flashHarvestData.images[0]?.url || "🍓",
         is_favorite: favoriteSet.has(flashHarvestData.id),
@@ -45,7 +45,7 @@ export class GetMarketplaceUseCase {
       image_url: p.images[0]?.url || "🥬",
       rating: p.rating,
       sold_count: p.viewCount, // Placeholder: Using viewCount as sold_count for demonstration
-      is_fresh: p.isHarvest,
+      is_fresh: true,
       is_favorite: favoriteSet.has(p.id),
     }));
 

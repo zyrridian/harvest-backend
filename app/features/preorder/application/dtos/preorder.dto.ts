@@ -15,7 +15,9 @@ export interface AvailableHarvestDTO {
 }
 
 export interface ActiveReservationDTO {
-  id: string;
+  id: string; // Reservation ID
+  campaign_id: string; // Preorder Campaign ID
+  product_id: string; // Associated Product ID (empty if none)
   title: string;
   quantity_str: string;
   farmer_name: string;
@@ -33,8 +35,10 @@ export interface PreOrderDashboardResponseDTO {
 }
 
 export const ReservePreOrderSchema = z.object({
-  harvest_id: z.string().uuid(),
+  campaign_id: z.string().uuid(),
   quantity: z.coerce.number().min(1),
+  delivery_method: z.string().default("PICKUP"),
+  address_id: z.string().uuid().optional()
 });
 
 export type ReservePreOrderInputDTO = z.infer<typeof ReservePreOrderSchema>;
@@ -42,4 +46,5 @@ export type ReservePreOrderInputDTO = z.infer<typeof ReservePreOrderSchema>;
 export interface ReservePreOrderResponseDTO {
   reservation_id: string;
   status: string;
+  total_price: number;
 }

@@ -11,15 +11,14 @@ export const getApiDocs = async () => {
         description:
           "REST API for the Harvest Mobile App - connecting farmers with consumers\n\n" +
           "## User Roles\n\n" +
-          "The API supports three user types:\n\n" +
-          "- **CONSUMER**: Regular buyers who can browse products, place orders, and interact with farmers\n" +
-          "- **PRODUCER**: Farmers/sellers who can list products, manage inventory, and fulfill orders\n" +
-          "- **ADMIN**: System administrators with full access to manage users, products, and platform operations\n\n" +
+          "The API supports two user types:\n\n" +
+          "- **CONSUMER**: Standard users buying products\n" +
+          "- **PRODUCER**: Farmers/Sellers managing products, preorders, and drop points\n\n" +
           "When registering, you can specify the `user_type` field. If not specified, it defaults to CONSUMER.",
       },
       servers: [
         {
-          url: "https://harvest-backend-amber.vercel.app",
+          url: "https://marketplace.zyrridian.dev",
           description: "Production server",
         },
         {
@@ -29,7 +28,7 @@ export const getApiDocs = async () => {
       ],
       components: {
         securitySchemes: {
-          BearerAuth: {
+          bearerAuth: {
             type: "http",
             scheme: "bearer",
             bearerFormat: "JWT",

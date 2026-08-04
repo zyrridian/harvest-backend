@@ -52,7 +52,9 @@ export async function GET(request: NextRequest) {
       lat: searchParams.get("lat") || undefined,
       lng: searchParams.get("lng") || undefined,
       radius: searchParams.get("radius") || undefined,
+      all_radius: searchParams.get("all_radius") === "true" || searchParams.get("radius") === "all" ? true : undefined,
       search: searchParams.get("search") || undefined,
+      category: searchParams.get("category") || undefined,
       is_organic: searchParams.get("is_organic") === "true" ? true : undefined,
       is_open_now: searchParams.get("is_open_now") === "true" ? true : undefined,
     };

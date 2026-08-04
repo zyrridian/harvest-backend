@@ -8,16 +8,14 @@ export class GetHarvestScheduleDashboardUseCase {
     const [year, month] = targetMonth.split("-").map(Number);
     const dateObj = new Date(year, month - 1, 1);
     
-    const orders = await this.harvestRepo.getUserHarvestSchedule(userId, dateObj, latitude, longitude);
+    const campaigns = await this.harvestRepo.getUserScheduledCampaigns(userId, dateObj, latitude, longitude);
 
     const now = new Date();
     let thisWeekCount = 0;
     let readyTodayCount = 0;
 
-    const items: HarvestScheduleItemDTO[] = orders.map(order => {
-      const item = order.items[0];
-      const product = item?.product;
-      const harvestDate = product?.harvestDate || new Date();
+    const items: HarvestScheduleItemDTO[] = campaigns.map(campaign => {
+      const harvestDate = campaign.estimatedHarvestDate || new Date();
       
       const isToday = this.isSameDay(now, harvestDate);
       if (isToday) readyTodayCount++;
@@ -27,51 +25,35 @@ export class GetHarvestScheduleDashboardUseCase {
       }
 
       let statusText = "Upcoming";
-      if (order.status === "completed") statusText = "Completed";
+      if (campaign.status === "COMPLETED") statusText = "Completed";
       else if (isToday) statusText = "Now";
       else if (harvestDate < now) statusText = "Ready";
 
       const badges = [];
-      if (order.status === "completed") badges.push("Completed");
-      else if (order.status === "confirmed" || order.paymentStatus === "paid") badges.push("Pre-ordered");
-      
-      if (isToday && order.status !== "completed") badges.push("Ready today");
-      else if (harvestDate <= now && order.status !== "completed") badges.push("Ready to pick");
-      
-      if (order.status === "pending_payment") badges.push("Pending confirmation");
-      
-      const oneDay = 24 * 60 * 60 * 1000;
-      if (order.createdAt && (now.getTime() - order.createdAt.getTime()) < oneDay && order.status !== "completed") {
-        badges.push("Just reserved");
+      if (campaign.isReservedByMe) {
+        badges.push("Reserved");
+      } else {
+        badges.push("Following");
       }
+      
+      if (isToday && campaign.status !== "COMPLETED") badges.push("Harvesting today");
+      else if (harvestDate <= now && campaign.status !== "COMPLETED") badges.push("Harvested");
+      
+      const action1 = "View\\ndetails";
+      const action2 = ""; // Removed pay deposit and arrange pickup
 
-      let action1 = "Chat\\nfarmer";
-      let action2 = "Pay\\ndeposit";
-      if (order.status === "confirmed" || order.paymentStatus === "paid") {
-        action2 = "Arrange\\npickup";
-      }
-      if (order.status === "pickup_arranged") {
-        action2 = "Pickup\\nArranged";
-      }
-      if (order.status === "completed") {
-        action1 = "";
-        action2 = "Completed";
-      }
-
-      const depositToPay = order.depositAmount || (order.totalAmount * 0.2);
-      const descText = `${item?.quantity || 0} ${product?.unit || ""} reserved · ` + 
-        (order.paymentStatus === "paid" ? `paid Rp ${depositToPay} deposit` : `Rp ${depositToPay} deposit to pay`);
+      const descText = campaign.description || `${campaign.farmer.name} harvest`;
 
       const dateGroup = isToday ? `TODAY — ${this.formatShortDate(harvestDate)}` : this.formatShortDate(harvestDate);
 
       return {
-        id: order.id,
-        title: product?.name || "Unknown Product",
-        farmer_name: product?.seller?.farmer?.name || product?.seller?.name || "Unknown Farmer",
-        distance: (order as any).distance || 0,
-        image_url: product?.images?.[0]?.url || "🍅",
+        id: campaign.id,
+        title: campaign.title || "Unknown Campaign",
+        farmer_name: campaign.farmer?.name || "Unknown Farmer",
+        distance: campaign.distance || 0,
+        image_url: campaign.images?.[0] || campaign.farmer?.profileImage || "",
         status_text: statusText,
-        price: product?.price || 0,
+        price: campaign.pricePerUnit || 0,
         badges,
         description_text: descText,
         action_button_1: action1,
@@ -85,7 +67,7 @@ export class GetHarvestScheduleDashboardUseCase {
     return {
       this_week_count: thisWeekCount,
       ready_today_count: readyTodayCount,
-      this_month_count: orders.length,
+      this_month_count: campaigns.length,
       items
     };
   }
