@@ -1,36 +1,6 @@
-import { CommunityPostEntity, PostCommentEntity } from "../../domain/entities/community.entity";
+import { CommunityPostEntity, PostCommentEntity, RecipeEntity } from "../../domain/entities/community.entity";
 
-export interface GetAdminPostsInputDTO {
-  search?: string;
-  page: number;
-  limit: number;
-}
 
-export interface PaginatedAdminPostsDTO {
-  posts: CommunityPostEntity[];
-  pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    total_pages: number;
-  };
-}
-
-export interface GetAdminCommentsInputDTO {
-  search?: string;
-  page: number;
-  limit: number;
-}
-
-export interface PaginatedAdminCommentsDTO {
-  comments: PostCommentEntity[];
-  pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    total_pages: number;
-  };
-}
 
 // --- Core DTOs ---
 
@@ -91,4 +61,64 @@ export interface AddCommentInputDTO {
   content: string;
   parentId?: string;
   replyToUserId?: string;
+}
+
+// --- Recipe DTOs ---
+
+export interface GetRecipesInputDTO {
+  search?: string;
+  authorId?: string;
+  difficulty?: string;
+  isFeatured?: boolean;
+  page: number;
+  limit: number;
+}
+
+export interface PaginatedRecipesDTO {
+  recipes: RecipeEntity[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    total_pages: number;
+  };
+}
+
+export interface CreateRecipeInputDTO {
+  authorId: string;
+  title: string;
+  description?: string;
+  imageUrl?: string;
+  prepTimeMinutes?: number;
+  cookTimeMinutes?: number;
+  servings?: number;
+  difficulty?: string;
+  isFeatured?: boolean;
+  instructions: string[];
+  ingredients?: Array<{
+    name: string;
+    quantity?: number;
+    unit?: string;
+    productId?: string;
+  }>;
+}
+
+export interface UpdateRecipeInputDTO {
+  id: string;
+  authorId: string;
+  title?: string;
+  description?: string;
+  imageUrl?: string;
+  prepTimeMinutes?: number;
+  cookTimeMinutes?: number;
+  servings?: number;
+  difficulty?: string;
+  isFeatured?: boolean;
+  instructions?: string[];
+  ingredients?: Array<{
+    name: string;
+    quantity?: number;
+    unit?: string;
+    productId?: string;
+  }>;
 }

@@ -13,7 +13,7 @@ export const RegisterSchema = z.object({
   user_type: z
     .enum(["CONSUMER", "PRODUCER"])
     .default("CONSUMER")
-    .describe("Account type (ADMIN cannot be registered publicly)"),
+    .describe("Account type"),
 });
 
 export type LoginInput = z.infer<typeof LoginSchema>;

@@ -3,14 +3,16 @@ import prisma from "@/core/database/prisma";
 
 export class PrismaFarmerRepository implements IFarmerRepository {
   async getNearbyFarmers(params: {
-    lat: number;
-    lng: number;
-    radius: number;
+    lat?: number;
+    lng?: number;
+    radius?: number | string;
     search?: string;
+    category?: string;
     isOrganic?: boolean;
     isOpenNow?: boolean;
+    allRadius?: boolean;
   }): Promise<FarmerWithRelations[]> {
-    const { lat, lng, radius, search, isOrganic, isOpenNow } = params;
+    const { lat, lng, radius = 3, search, category, isOrganic, isOpenNow, allRadius } = params;
 
     // Build the query
     let whereClause: any = {};
@@ -18,6 +20,7 @@ export class PrismaFarmerRepository implements IFarmerRepository {
     if (search) {
       whereClause.OR = [
         { name: { contains: search, mode: "insensitive" } },
+        { description: { contains: search, mode: "insensitive" } },
         {
           user: {
             products: {
@@ -27,26 +30,83 @@ export class PrismaFarmerRepository implements IFarmerRepository {
             },
           },
         },
+        {
+          dropPoints: {
+            some: {
+              OR: [
+                { name: { contains: search, mode: "insensitive" } },
+                { whatWeSell: { contains: search, mode: "insensitive" } },
+              ],
+            },
+          },
+        },
       ];
     }
 
     if (isOrganic) {
-      // Filter farmers who have at least one organic product
-      whereClause.user = {
-        ...whereClause.user,
-        products: {
-          ...(whereClause.user?.products || {}),
-          some: {
-            ...(whereClause.user?.products?.some || {}),
-            isOrganic: true,
+      const organicFilter = {
+        user: {
+          products: {
+            some: {
+              isOrganic: true,
+            },
           },
         },
       };
+      if (whereClause.AND) {
+        if (Array.isArray(whereClause.AND)) whereClause.AND.push(organicFilter);
+        else whereClause.AND = [whereClause.AND, organicFilter];
+      } else {
+        whereClause.AND = [organicFilter];
+      }
     }
 
-    // Since we don't have a reliable isOpenNow strictly on Farmer,
-    // we could filter farmers who have active drop points, or we handle it in memory
-    // For now, we will fetch farmers and filter them.
+    if (category && category.trim() !== "" && category.toLowerCase() !== "all") {
+      const catFilters = [
+        {
+          user: {
+            products: {
+              some: {
+                OR: [
+                  { category: { name: { equals: category, mode: "insensitive" } } },
+                  { category: { slug: { equals: category, mode: "insensitive" } } },
+                  { subcategory: { name: { equals: category, mode: "insensitive" } } },
+                  { subcategory: { slug: { equals: category, mode: "insensitive" } } },
+                ],
+              },
+            },
+          },
+        },
+        {
+          specialties: {
+            some: {
+              specialty: { equals: category, mode: "insensitive" },
+            },
+          },
+        },
+        {
+          dropPoints: {
+            some: {
+              OR: [
+                { whatWeSell: { contains: category, mode: "insensitive" } },
+                { tags: { has: category } },
+              ],
+            },
+          },
+        },
+      ];
+
+      if (whereClause.AND) {
+        if (Array.isArray(whereClause.AND)) whereClause.AND.push({ OR: catFilters });
+        else whereClause.AND = [whereClause.AND, { OR: catFilters }];
+      } else if (whereClause.OR) {
+        whereClause = {
+          AND: [{ OR: whereClause.OR }, { OR: catFilters }],
+        };
+      } else {
+        whereClause.OR = catFilters;
+      }
+    }
 
     const farmers = await prisma.farmer.findMany({
       where: whereClause,
@@ -61,39 +121,106 @@ export class PrismaFarmerRepository implements IFarmerRepository {
                 category: true,
                 subcategory: true,
               },
-              take: 5, // We only need a few to display in the UI (extraProductsCount handles the rest)
+              take: 5,
             },
           },
         },
-        dropPoints: true, // we can use this to determine if they are open
+        specialties: true,
+        dropPoints: {
+          orderBy: { createdAt: "desc" },
+        },
       },
     });
 
     let nearbyFarmers: FarmerWithRelations[] = [];
 
-    for (const farmer of farmers) {
-      // Determine if farmer is "open" based on dropPoints or just a mock if not specified
-      // For this implementation, let's say they are open if they have an active drop point or just default to true
-      const hasActiveDropPoint = farmer.dropPoints && farmer.dropPoints.length > 0 && farmer.dropPoints.some((dp) => dp.isActive);
-      const _isOpen = hasActiveDropPoint || true; // Mocking true for prototype if drop points don't exist
+    const isAllRadius =
+      allRadius ||
+      radius === "all" ||
+      radius === "All" ||
+      radius === "ALL" ||
+      radius === Infinity ||
+      (typeof radius === "number" && radius >= 99999);
 
-      if (isOpenNow && !_isOpen) {
-        continue; // Skip if looking for open now and they are not open
+    const numRadius = typeof radius === "number" ? radius : (radius === "all" || isAllRadius ? Infinity : parseFloat(String(radius)) || Infinity);
+
+    for (const farmer of farmers) {
+      let mainDistance: number | null = null;
+      if (farmer.latitude != null && farmer.longitude != null && lat != null && lng != null) {
+        mainDistance = this.calculateDistance(lat, lng, farmer.latitude, farmer.longitude);
       }
 
-      if (farmer.latitude != null && farmer.longitude != null) {
-        const distance = this.calculateDistance(lat, lng, farmer.latitude, farmer.longitude);
-        if (distance <= radius) {
-          (farmer as any).distance = distance;
-          nearbyFarmers.push(farmer as unknown as FarmerWithRelations);
+      const cabangDistances: number[] = [];
+      if (farmer.dropPoints && farmer.dropPoints.length > 0) {
+        for (const dp of farmer.dropPoints) {
+          if (dp.latitude != null && dp.longitude != null && lat != null && lng != null) {
+            const dpDist = this.calculateDistance(lat, lng, dp.latitude, dp.longitude);
+            (dp as any).distance = dpDist;
+            if (dp.isActive) {
+              cabangDistances.push(dpDist);
+            }
+          } else {
+            (dp as any).distance = 0;
+          }
         }
       }
+
+      const allValidDistances: number[] = [];
+      if (mainDistance != null) allValidDistances.push(mainDistance);
+      allValidDistances.push(...cabangDistances);
+
+      const minDistance = allValidDistances.length > 0 ? Math.min(...allValidDistances) : (mainDistance ?? 0);
+      (farmer as any).distance = minDistance;
+
+      let isOpen = true;
+      if (farmer.dropPoints && farmer.dropPoints.length > 0) {
+        const activeDropPoints = farmer.dropPoints.filter((dp) => dp.isActive);
+        if (activeDropPoints.length > 0) {
+          isOpen = activeDropPoints.some((dp) => this.isDropPointOpen(dp.operatingHours));
+        }
+      }
+      (farmer as any).isOpen = isOpen;
+
+      if (isOpenNow && !isOpen) {
+        continue;
+      }
+
+      if (!isAllRadius && minDistance > numRadius) {
+        continue;
+      }
+
+      nearbyFarmers.push(farmer as unknown as FarmerWithRelations);
     }
 
-    // Sort by distance
     nearbyFarmers.sort((a, b) => (a.distance ?? 9999) - (b.distance ?? 9999));
 
     return nearbyFarmers;
+  }
+
+  private isDropPointOpen(operatingHours: any): boolean {
+    if (!operatingHours) return true;
+    try {
+      let schedule = operatingHours;
+      if (typeof schedule === "string") {
+        schedule = JSON.parse(schedule);
+      }
+      if (typeof schedule !== "object" || schedule === null) return true;
+
+      const days = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+      const now = new Date();
+      const currentDay = days[now.getDay()];
+      
+      const daySchedule = schedule[currentDay] || schedule[currentDay.substring(0, 3)] || schedule[String(now.getDay())];
+      if (!daySchedule) return true;
+
+      const currentTime = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+      if (daySchedule.open && daySchedule.close) {
+        return currentTime >= daySchedule.open && currentTime <= daySchedule.close;
+      }
+      return true;
+    } catch {
+      return true;
+    }
   }
 
   private calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
@@ -116,3 +243,4 @@ export class PrismaFarmerRepository implements IFarmerRepository {
 }
 
 export const farmerRepository = new PrismaFarmerRepository();
+

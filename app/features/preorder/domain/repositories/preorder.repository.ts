@@ -1,31 +1,37 @@
-import { Product, Order, OrderItem, User } from "@/generated/prisma/client";
+import { PreorderCampaign, PreorderReservation, Farmer } from "@/generated/prisma/client";
 
-export type HarvestProduct = Product & {
-  seller: User & {
-    farmer?: any;
+export type CampaignWithFarmer = PreorderCampaign & {
+  farmer: Farmer;
+  _count?: {
+    reservations: number;
   };
-  images: any[];
   distance?: number;
+  isScheduled?: boolean;
 };
 
-export type ReservationOrder = Order & {
-  items: (OrderItem & {
-    product: Product & {
-      seller: User & {
-        farmer?: any;
-      };
-      images: any[];
-    };
-  })[];
+export type ReservationWithCampaign = PreorderReservation & {
+  campaign: CampaignWithFarmer;
 };
 
 export interface IPreOrderRepository {
-  getAvailableHarvests(latitude?: number, longitude?: number): Promise<HarvestProduct[]>;
-  getUserReservations(userId: string): Promise<ReservationOrder[]>;
-  getActiveHarvestsCount(): Promise<number>;
-  createReservation(userId: string, harvestId: string, quantity: number): Promise<Order>;
-  findHarvestById(harvestId: string): Promise<Product | null>;
-  findOrderById(orderId: string): Promise<Order | null>;
-  cancelReservation(orderId: string, reason: string): Promise<Order>;
-  getUnpaidReservations(beforeDate: Date): Promise<Order[]>;
+  // Consumer Side
+  getAvailableCampaigns(latitude?: number, longitude?: number, filter?: string, userId?: string): Promise<CampaignWithFarmer[]>;
+  getUserReservations(userId: string): Promise<ReservationWithCampaign[]>;
+  createReservation(userId: string, campaignId: string, quantity: number, deliveryMethod: string, addressId?: string): Promise<PreorderReservation>;
+  findCampaignById(campaignId: string): Promise<PreorderCampaign | null>;
+  findReservationById(reservationId: string): Promise<PreorderReservation | null>;
+  cancelReservation(reservationId: string, reason?: string): Promise<PreorderReservation>;
+  updateReservationStatus(reservationId: string, status: string, paymentMethod?: string): Promise<PreorderReservation>;
+
+  // Farmer Side
+  createCampaign(farmerId: string, data: Partial<PreorderCampaign>): Promise<PreorderCampaign>;
+  updateCampaign(campaignId: string, data: Partial<PreorderCampaign>): Promise<PreorderCampaign>;
+  updateCampaignStatus(campaignId: string, status: string): Promise<PreorderCampaign>;
+  deleteCampaign(campaignId: string): Promise<void>;
+  getFarmerCampaigns(farmerId: string): Promise<PreorderCampaign[]>;
+  getFarmerCampaignDetail(campaignId: string, farmerId: string): Promise<any>;
+  fulfillCampaign(campaignId: string): Promise<{ createdOrders: number }>;
+
+  hasUserReserved(userId: string, campaignId: string): Promise<boolean>;
+  getCampaignExtraDetails(campaignId: string, userId: string, farmerId: string): Promise<any>;
 }

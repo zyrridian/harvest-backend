@@ -30,6 +30,13 @@ export class PrismaAuthRepository implements IAuthRepository {
         name: data.name,
         phoneNumber: data.phoneNumber ?? null,
         userType: data.userType as UserType,
+        ...(data.userType === "PRODUCER" && {
+          farmer: {
+            create: {
+              name: data.name,
+            },
+          },
+        }),
       },
     });
   }

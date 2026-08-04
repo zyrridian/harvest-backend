@@ -4,7 +4,7 @@ import prisma from "@/core/database/prisma";
 /**
  * GET /api/v1/drop-points
  * Public — returns all active drop points for map display
- * Query: lat, lng, radius_km (optional bbox), farmer_id
+ * Query: lat, lng, radius_km (optional), farmer_id, category
  */
 export async function GET(request: NextRequest) {
   try {
@@ -12,9 +12,17 @@ export async function GET(request: NextRequest) {
     const farmerId = searchParams.get("farmer_id");
     const lat = searchParams.get("lat");
     const lng = searchParams.get("lng");
+    const category = searchParams.get("category");
 
     const where: any = { isActive: true };
     if (farmerId) where.farmerId = farmerId;
+
+    if (category && category.trim() !== "" && category.toLowerCase() !== "all") {
+      where.OR = [
+        { whatWeSell: { contains: category, mode: "insensitive" } },
+        { tags: { has: category } },
+      ];
+    }
 
     const dropPoints = await prisma.dropPoint.findMany({
       where,
@@ -27,13 +35,16 @@ export async function GET(request: NextRequest) {
             isVerified: true,
             rating: true,
             city: true,
+            latitude: true,
+            longitude: true,
+            address: true,
+            state: true,
           },
         },
       },
       orderBy: { createdAt: "desc" },
     });
 
-    // Optional: filter by distance if lat/lng provided (simple haversine-ish)
     let results = dropPoints.map((dp) => ({
       id: dp.id,
       farmer_id: dp.farmerId,
@@ -44,6 +55,13 @@ export async function GET(request: NextRequest) {
         is_verified: dp.farmer.isVerified,
         rating: dp.farmer.rating,
         city: dp.farmer.city,
+        main_location: {
+          latitude: dp.farmer.latitude,
+          longitude: dp.farmer.longitude,
+          address: dp.farmer.address,
+          city: dp.farmer.city,
+          state: dp.farmer.state,
+        },
       },
       name: dp.name,
       description: dp.description,
@@ -53,6 +71,8 @@ export async function GET(request: NextRequest) {
       address: dp.address,
       image_url: dp.imageUrl,
       is_active: dp.isActive,
+      tags: dp.tags || [],
+      operating_hours: dp.operatingHours,
       created_at: dp.createdAt,
     }));
 
@@ -60,7 +80,7 @@ export async function GET(request: NextRequest) {
     if (lat && lng) {
       const userLat = parseFloat(lat);
       const userLng = parseFloat(lng);
-      const radiusKm = parseFloat(searchParams.get("radius_km") || "50");
+      const radiusKm = parseFloat(searchParams.get("radius_km") || searchParams.get("radius") || "50");
 
       results = results.filter((dp) => {
         const dLat = ((dp.latitude - userLat) * Math.PI) / 180;

@@ -16,9 +16,9 @@ import {
  *     summary: Get user profile information
  *     description: Retrieve the current user's profile information including bio and stats
  *     tags:
- *       - User Profile
+ *       - Users
  *     security:
- *       - BearerAuth: []
+ *       - bearerAuth: []
  *     responses:
  *       200:
  *         description: Profile retrieved successfully
@@ -78,9 +78,9 @@ export async function GET(request: NextRequest) {
  *     summary: Update user profile information
  *     description: Update the current user's profile including name, phone, and bio
  *     tags:
- *       - User Profile
+ *       - Users
  *     security:
- *       - BearerAuth: []
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -97,6 +97,9 @@ export async function GET(request: NextRequest) {
  *               bio:
  *                 type: string
  *                 example: Updated bio text
+ *               avatar_url:
+ *                 type: string
+ *                 example: https://your-storage-url.com/uploads/123.jpg
  *     responses:
  *       200:
  *         description: Profile updated successfully
@@ -132,6 +135,7 @@ export async function PUT(request: NextRequest) {
       name: input.name,
       phoneNumber: input.phone_number,
       bio: input.bio,
+      avatarUrl: input.avatar_url,
     });
 
     return successResponse(profileData, {

@@ -32,7 +32,6 @@ export class PrismaMarketplaceRepository implements IMarketplaceRepository {
       product = await prisma.product.findFirst({
         where: {
           isAvailable: true,
-          isHarvest: true,
         },
         include: {
           seller: {
@@ -88,7 +87,8 @@ export class PrismaMarketplaceRepository implements IMarketplaceRepository {
     }
 
     if (filter === "Harvest Today") {
-      whereClause.isHarvest = true;
+      // isHarvest is removed, just a placeholder or use another criteria
+      // whereClause.isHarvest = true;
     }
 
     let orderByClause: any = { createdAt: "desc" };

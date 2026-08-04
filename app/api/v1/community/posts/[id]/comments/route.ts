@@ -10,6 +10,46 @@ import {
   AdminCommunityPaginationSchema as PaginationSchema, // Reusing generic pagination
 } from "@/features/community";
 
+/**
+ * @swagger
+ * /api/v1/community/posts/{id}/comments:
+ *   get:
+ *     summary: Get comments for a post
+ *     description: Retrieve comments for a specific community post with pagination
+ *     tags:
+ *       - Community
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The post ID
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         description: Number of items per page
+ *     responses:
+ *       200:
+ *         description: Comments retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *       404:
+ *         description: Post not found
+ */
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -46,6 +86,57 @@ export async function GET(
   }
 }
 
+/**
+ * @swagger
+ * /api/v1/community/posts/{id}/comments:
+ *   post:
+ *     summary: Add a comment to a post
+ *     description: Add a new comment or reply to an existing comment on a post
+ *     tags:
+ *       - Community
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The post ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - content
+ *             properties:
+ *               content:
+ *                 type: string
+ *               parent_id:
+ *                 type: string
+ *               reply_to_user_id:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Comment added successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Post not found
+ */
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },

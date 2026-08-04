@@ -1,0 +1,645 @@
+// generator client {
+//   provider = "prisma-client"
+//   output   = "../app/generated/prisma"
+// }
+
+// datasource db {
+//   provider = "postgresql"
+// }
+
+// // ============================================
+// // ENUMS
+// // ============================================
+// enum UserType {
+//   CONSUMER
+//   PRODUCER
+//   ADMIN
+// }
+
+// enum ConversationType {
+//   GENERAL
+//   ORDER
+//   PRODUCT
+// }
+
+// enum MessageType {
+//   TEXT
+//   IMAGE
+//   PRODUCT
+//   ORDER
+//   VOICE
+//   SYSTEM
+// }
+
+// // ============================================
+// // USERS & AUTHENTICATION
+// // ============================================
+// model User {
+//   id             String    @id @default(uuid())
+//   email          String    @unique
+//   password       String    // Hashed
+//   name           String
+//   phoneNumber    String?   @map("phone_number")
+//   avatarUrl      String?   @map("avatar_url")
+//   userType       UserType  @default(CONSUMER) @map("user_type")
+//   isOnline       Boolean   @default(false) @map("is_online")
+//   createdAt      DateTime  @default(now()) @map("created_at")
+//   updatedAt      DateTime  @updatedAt @map("updated_at")
+
+//   // Relations
+//   products             Product[]
+//   farmer               Farmer?
+//   favorites            Favorite[]
+//   cart                 Cart?
+//   buyerOrders          Order[]                @relation("BuyerOrders")
+//   sellerOrders         Order[]                @relation("SellerOrders")
+//   addresses            Address[]
+//   reviews              Review[]
+//   conversationsAsP1    Conversation[]         @relation("Participant1")
+//   conversationsAsP2    Conversation[]         @relation("Participant2")
+//   sentMessages         Message[]
+//   communityPosts       CommunityPost[]
+//   postLikes            PostLike[]
+//   postComments         PostComment[]
+//   commentLikes         CommentLike[]
+//   commentReplyTo       PostComment[]          @relation("CommentReplyTo")
+//   recipes              Recipe[]
+//   preorderReservations PreorderReservation[]
+//   campaignSchedules    UserCampaignSchedule[]
+
+//   @@index([email])
+//   @@index([userType])
+//   @@map("users")
+// }
+
+// // ============================================
+// // FARMERS
+// // ============================================
+// model Farmer {
+//   id                String   @id @default(uuid())
+//   userId            String   @unique @map("user_id")
+//   name              String
+//   description       String?
+//   profileImage      String?  @map("profile_image")
+//   latitude          Float?
+//   longitude         Float?
+//   rating            Float    @default(0)
+//   totalReviews      Int      @default(0) @map("total_reviews")
+
+//   // Relations
+//   user              User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+//   communityPosts    CommunityPost[]
+//   dropPoints        DropPoint[]
+//   preorderCampaigns PreorderCampaign[]
+//   liveStreams       LiveStream[]
+//   experiences       FarmExperience[]
+//   groupBuys         GroupBuy[]
+//   galleries         FarmerGallery[]
+
+//   @@index([userId])
+//   @@index([latitude, longitude])
+//   @@map("farmers")
+// }
+
+// model FarmerGallery {
+//   id        String   @id @default(uuid())
+//   farmerId  String   @map("farmer_id")
+//   imageUrl  String   @map("image_url") @db.Text
+//   createdAt DateTime @default(now()) @map("created_at")
+
+//   // Relations
+//   farmer Farmer @relation(fields: [farmerId], references: [id], onDelete: Cascade)
+
+//   @@index([farmerId])
+//   @@map("farmer_galleries")
+// }
+
+// // ============================================
+// // DROP POINTS (Nearby Farmer)
+// // ============================================
+// model DropPoint {
+//   id             String   @id @default(uuid())
+//   farmerId       String   @map("farmer_id")
+//   name           String
+//   description    String?  @db.Text
+//   whatWeSell     String?  @map("what_we_sell") @db.Text 
+//   latitude       Float
+//   longitude      Float
+//   address        String?
+//   imageUrl       String?  @map("image_url") @db.Text
+//   operatingHours Json?    @map("operating_hours")
+//   isActive       Boolean  @default(true) @map("is_active")
+
+//   // Relations
+//   farmer Farmer @relation(fields: [farmerId], references: [id], onDelete: Cascade)
+
+//   @@index([farmerId])
+//   @@map("drop_points")
+// }
+
+// // ============================================
+// // LOCATIONS & ADDRESSES
+// // ============================================
+// model Province {
+//   id        Int       @id
+//   name      String
+//   cities    City[]
+//   addresses Address[]
+
+//   @@map("provinces")
+// }
+
+// model City {
+//   id         Int        @id
+//   provinceId Int        @map("province_id")
+//   name       String
+//   province   Province   @relation(fields: [provinceId], references: [id], onDelete: Cascade)
+//   districts  District[]
+//   addresses  Address[]
+
+//   @@index([provinceId])
+//   @@map("cities")
+// }
+
+// model District {
+//   id        Int       @id
+//   cityId    Int       @map("city_id")
+//   name      String
+//   city      City      @relation(fields: [cityId], references: [id], onDelete: Cascade)
+//   addresses Address[]
+
+//   @@index([cityId])
+//   @@map("districts")
+// }
+
+// model Address {
+//   id            String   @id @default(uuid())
+//   userId        String   @map("user_id")
+//   label         String
+//   recipientName String   @map("recipient_name")
+//   phone         String
+//   fullAddress   String   @map("full_address")
+//   provinceId    Int      @map("province_id")
+//   cityId        Int      @map("city_id")
+//   districtId    Int      @map("district_id")
+//   latitude      Float?
+//   longitude     Float?
+//   isPrimary     Boolean  @default(false) @map("is_primary")
+//   createdAt     DateTime @default(now()) @map("created_at")
+
+//   // Relations
+//   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+//   provinceRel Province @relation(fields: [provinceId], references: [id], onDelete: Restrict)
+//   cityRel     City     @relation(fields: [cityId], references: [id], onDelete: Restrict)
+//   districtRel District @relation(fields: [districtId], references: [id], onDelete: Restrict)
+//   orders      Order[]
+
+//   @@index([userId])
+//   @@map("addresses")
+// }
+
+// // ============================================
+// // CATALOG (Category, Product, Favorites)
+// // ============================================
+// model Category {
+//   id             String   @id @default(uuid())
+//   name           String
+//   slug           String   @unique
+//   products       Product[]
+
+//   @@map("categories")
+// }
+
+// model Product {
+//   id              String   @id @default(uuid())
+//   name            String
+//   description     String?
+//   categoryId      String?  @map("category_id")
+//   sellerId        String   @map("seller_id")
+//   price           Float
+//   stockQuantity   Int      @default(0) @map("stock_quantity")
+//   isAvailable     Boolean  @default(true) @map("is_available")
+//   createdAt       DateTime @default(now()) @map("created_at")
+//   updatedAt       DateTime @updatedAt @map("updated_at")
+
+//   // Relations
+//   seller            User                   @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+//   category          Category?              @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+//   images            ProductImage[]
+//   favorites         Favorite[]
+//   cartItems         CartItem[]
+//   orderItems        OrderItem[]
+//   reviews           Review[]
+//   recipeIngredients RecipeIngredient[]
+//   groupBuys         GroupBuy[]
+//   conversations     Conversation[]
+
+//   @@index([sellerId])
+//   @@index([categoryId])
+//   @@map("products")
+// }
+
+// model ProductImage {
+//   id           String   @id @default(uuid())
+//   productId    String   @map("product_id")
+//   url          String
+//   isPrimary    Boolean  @default(false) @map("is_primary")
+
+//   // Relations
+//   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+//   @@index([productId])
+//   @@map("product_images")
+// }
+
+// model Favorite {
+//   id        String   @id @default(uuid())
+//   userId    String   @map("user_id")
+//   productId String   @map("product_id")
+//   createdAt DateTime @default(now()) @map("created_at")
+
+//   // Relations
+//   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+//   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+//   @@unique([userId, productId])
+//   @@map("favorites")
+// }
+
+// // ============================================
+// // REVIEWS
+// // ============================================
+// model Review {
+//   id                 String   @id @default(uuid())
+//   productId          String   @map("product_id")
+//   userId             String   @map("user_id")
+//   orderId            String?  @map("order_id")
+//   rating             Float
+//   comment            String?  @db.Text
+//   createdAt          DateTime @default(now()) @map("created_at")
+
+//   // Relations
+//   product        Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+//   user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+//   order          Order?          @relation(fields: [orderId], references: [id], onDelete: SetNull)
+
+//   @@index([productId])
+//   @@index([userId])
+//   @@map("reviews")
+// }
+
+// // ============================================
+// // SALES (Cart & Orders)
+// // ============================================
+// model Cart {
+//   id        String   @id @default(uuid())
+//   userId    String   @unique @map("user_id")
+
+//   // Relations
+//   user  User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+//   items CartItem[]
+
+//   @@map("carts")
+// }
+
+// model CartItem {
+//   id            String   @id @default(uuid())
+//   cartId        String   @map("cart_id")
+//   productId     String   @map("product_id")
+//   quantity      Int      @default(1)
+//   unitPrice     Float    @map("unit_price")
+//   subtotal      Float
+
+//   // Relations
+//   cart    Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
+//   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+//   @@unique([cartId, productId])
+//   @@map("cart_items")
+// }
+
+// model Order {
+//   id                String    @id @default(uuid())
+//   orderNumber       String    @unique @map("order_number")
+//   buyerId           String    @map("buyer_id")
+//   sellerId          String    @map("seller_id")
+//   status            String    @default("pending_payment")
+//   subtotal          Float
+//   deliveryFee       Float     @default(0) @map("delivery_fee")
+//   totalAmount       Float     @map("total_amount")
+//   paymentMethod     String?   @map("payment_method")
+//   snapToken         String?   @map("snap_token")
+//   deliveryMethod    String?   @map("delivery_method")
+//   deliveryAddressId String?   @map("delivery_address_id")
+//   trackingNumber    String?   @map("tracking_number")
+//   createdAt         DateTime  @default(now()) @map("created_at")
+
+//   // Relations
+//   buyer           User           @relation("BuyerOrders", fields: [buyerId], references: [id], onDelete: Cascade)
+//   seller          User           @relation("SellerOrders", fields: [sellerId], references: [id], onDelete: Cascade)
+//   deliveryAddress Address?       @relation(fields: [deliveryAddressId], references: [id], onDelete: SetNull)
+//   items           OrderItem[]
+//   reviews         Review[]
+//   conversations   Conversation[]
+
+//   @@index([buyerId])
+//   @@index([sellerId])
+//   @@map("orders")
+// }
+
+// model OrderItem {
+//   id           String  @id @default(uuid())
+//   orderId      String  @map("order_id")
+//   productId    String  @map("product_id")
+//   productName  String  @map("product_name")
+//   quantity     Int
+//   unitPrice    Float   @map("unit_price")
+//   subtotal     Float
+
+//   // Relations
+//   order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+//   product Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+//   @@index([orderId])
+//   @@map("order_items")
+// }
+
+// // ============================================
+// // COMMUNITY (Posts & Recipes)
+// // ============================================
+// model CommunityPost {
+//   id            String   @id @default(uuid())
+//   userId        String   @map("user_id")
+//   farmerId      String?  @map("farmer_id")
+//   title         String
+//   content       String   @db.Text
+//   likesCount    Int      @default(0) @map("likes_count")
+//   createdAt     DateTime @default(now()) @map("created_at")
+
+//   // Relations
+//   user     User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+//   farmer   Farmer?       @relation(fields: [farmerId], references: [id], onDelete: SetNull)
+//   images   PostImage[]
+//   tags     PostTag[]
+//   likes    PostLike[]
+//   comments PostComment[]
+
+//   @@index([userId])
+//   @@map("community_posts")
+// }
+
+// model PostImage {
+//   id           String  @id @default(uuid())
+//   postId       String  @map("post_id")
+//   url          String  @db.Text
+
+//   // Relations
+//   post CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+//   @@index([postId])
+//   @@map("post_images")
+// }
+
+// model PostTag {
+//   postId String @map("post_id")
+//   tag    String
+
+//   // Relations
+//   post CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+//   @@id([postId, tag])
+//   @@map("post_tags")
+// }
+
+// model PostLike {
+//   postId    String   @map("post_id")
+//   userId    String   @map("user_id")
+
+//   // Relations
+//   post CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+//   user User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+//   @@id([postId, userId])
+//   @@map("post_likes")
+// }
+
+// model PostComment {
+//   id            String   @id @default(uuid())
+//   postId        String   @map("post_id")
+//   userId        String   @map("user_id")
+//   parentId      String?  @map("parent_id")
+//   replyToUserId String?  @map("reply_to_user_id")
+//   content       String   @db.Text
+//   createdAt     DateTime @default(now()) @map("created_at")
+
+//   // Relations
+//   post        CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+//   user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+//   parent      PostComment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+//   replies     PostComment[] @relation("CommentReplies")
+//   replyToUser User?         @relation("CommentReplyTo", fields: [replyToUserId], references: [id], onDelete: SetNull)
+//   likes       CommentLike[]
+
+//   @@index([postId])
+//   @@map("post_comments")
+// }
+
+// model CommentLike {
+//   commentId String   @map("comment_id")
+//   userId    String   @map("user_id")
+
+//   // Relations
+//   comment PostComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+//   user    User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+//   @@id([commentId, userId])
+//   @@map("comment_likes")
+// }
+
+// model Recipe {
+//   id              String   @id @default(uuid())
+//   authorId        String   @map("author_id")
+//   title           String
+//   description     String?  @db.Text
+//   imageUrl        String?  @map("image_url")
+//   prepTimeMinutes Int?     @map("prep_time_minutes")
+//   cookTimeMinutes Int?     @map("cook_time_minutes")
+//   servings        Int?
+//   difficulty      String?  // easy, medium, hard
+//   instructions    String[] // array of step descriptions
+//   createdAt       DateTime @default(now()) @map("created_at")
+
+//   // Relations
+//   author      User               @relation(fields: [authorId], references: [id], onDelete: Cascade)
+//   ingredients RecipeIngredient[]
+
+//   @@index([authorId])
+//   @@map("recipes")
+// }
+
+// model RecipeIngredient {
+//   id        String  @id @default(uuid())
+//   recipeId  String  @map("recipe_id")
+//   name      String  // The text name
+//   productId String? @map("product_id") // Optional link to product
+
+//   // Relations
+//   recipe  Recipe   @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+//   product Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+//   @@index([recipeId])
+//   @@map("recipe_ingredients")
+// }
+
+// // ============================================
+// // PREORDERS & HARVEST SCHEDULES
+// // ============================================
+// model PreorderCampaign {
+//   id                    String   @id @default(uuid())
+//   farmerId              String   @map("farmer_id")
+//   title                 String
+//   description           String?  @db.Text
+//   category              String?
+//   minimumOrderQuantity  Int      @default(1) @map("min_order_qty")
+//   targetQuantity        Float    @map("target_quantity")
+//   estimatedHarvestDate  DateTime @map("estimated_harvest_date")
+//   images                String[] @default([]) @map("images")
+//   createdAt             DateTime @default(now()) @map("created_at")
+
+//   // Relations
+//   farmer       Farmer                 @relation(fields: [farmerId], references: [id], onDelete: Cascade)
+//   reservations PreorderReservation[]
+//   schedules    UserCampaignSchedule[]
+
+//   @@index([farmerId])
+//   @@map("preorder_campaigns")
+// }
+
+// model PreorderReservation {
+//   id             String   @id @default(uuid())
+//   campaignId     String   @map("campaign_id")
+//   userId         String   @map("user_id")
+//   quantity       Float
+//   status         String   @default("PENDING_PAYMENT")
+//   createdAt      DateTime @default(now()) @map("created_at")
+
+//   // Relations
+//   campaign PreorderCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+//   user     User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+//   @@index([campaignId])
+//   @@map("preorder_reservations")
+// }
+
+// model UserCampaignSchedule {
+//   userId           String   @map("user_id")
+//   campaignId       String   @map("campaign_id")
+
+//   user     User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+//   campaign PreorderCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+//   @@id([userId, campaignId])
+//   @@map("user_campaign_schedules")
+// }
+
+// // ============================================
+// // EXPLORE FEATURE MODELS
+// // ============================================
+// model LiveStream {
+//   id        String    @id @default(uuid())
+//   farmerId  String    @map("farmer_id")
+//   title     String
+//   thumbnail String?
+//   streamUrl String    @map("stream_url")
+//   isLive    Boolean   @default(false) @map("is_live")
+
+//   // Relations
+//   farmer Farmer @relation(fields: [farmerId], references: [id], onDelete: Cascade)
+
+//   @@index([farmerId])
+//   @@map("live_streams")
+// }
+
+// model FarmExperience {
+//   id          String   @id @default(uuid())
+//   farmerId    String   @map("farmer_id")
+//   title       String
+//   description String?  @db.Text
+//   location    String
+//   eventDate   DateTime @map("event_date")
+//   price       Float
+
+//   // Relations
+//   farmer Farmer @relation(fields: [farmerId], references: [id], onDelete: Cascade)
+
+//   @@index([farmerId])
+//   @@map("farm_experiences")
+// }
+
+// model GroupBuy {
+//   id            String   @id @default(uuid())
+//   farmerId      String   @map("farmer_id")
+//   productId     String   @map("product_id")
+//   title         String
+//   price         Float
+//   targetCount   Int      @map("target_count")
+//   joinedCount   Int      @default(0) @map("joined_count")
+//   status        String   @default("ACTIVE") 
+
+//   // Relations
+//   farmer  Farmer  @relation(fields: [farmerId], references: [id], onDelete: Cascade)
+//   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+//   @@index([farmerId])
+//   @@map("group_buys")
+// }
+
+// // ============================================
+// // CHAT
+// // ============================================
+// model Conversation {
+//   id             String           @id @default(uuid())
+//   participant1Id String           @map("participant_1_id")
+//   participant2Id String           @map("participant_2_id")
+//   orderId        String?          @map("order_id")
+//   productId      String?          @map("product_id")
+
+//   // Relations
+//   participant1 User      @relation("Participant1", fields: [participant1Id], references: [id], onDelete: Cascade)
+//   participant2 User      @relation("Participant2", fields: [participant2Id], references: [id], onDelete: Cascade)
+//   order        Order?    @relation(fields: [orderId], references: [id], onDelete: SetNull)
+//   product      Product?  @relation(fields: [productId], references: [id], onDelete: SetNull)
+//   messages     Message[]
+
+//   @@unique([participant1Id, participant2Id, orderId])
+//   @@map("conversations")
+// }
+
+// model Message {
+//   id                  String      @id @default(uuid())
+//   conversationId      String      @map("conversation_id")
+//   senderId            String      @map("sender_id")
+//   type                MessageType @default(TEXT)
+//   content             String?     @db.Text
+//   createdAt           DateTime    @default(now()) @map("created_at")
+
+//   // Relations
+//   conversation Conversation   @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+//   sender       User           @relation(fields: [senderId], references: [id], onDelete: Cascade)
+//   images       MessageImage[]
+
+//   @@index([conversationId])
+//   @@map("messages")
+// }
+
+// model MessageImage {
+//   id           String  @id @default(uuid())
+//   messageId    String  @map("message_id")
+//   url          String  @db.Text
+
+//   // Relations
+//   message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+//   @@index([messageId])
+//   @@map("message_images")
+// }

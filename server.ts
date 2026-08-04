@@ -31,7 +31,7 @@ async function getUserConversationStats(userId: string) {
           (c.participant_2_id = ${userId} AND m.deleted_for_sender = false)
         )
     ` as any[];
-    
+
     return {
       unread_conversations: Number(rawStats?.[0]?.unread_conversations || 0),
       total_unread_messages: Number(rawStats?.[0]?.total_unread_messages || 0)
@@ -90,6 +90,12 @@ app.prepare().then(() => {
   // Middleware: authenticate socket connection
   io.use(async (socket: Socket, next) => {
     try {
+      // // Check if this is the godeye background push service
+      // if (socket.handshake.query.appId === "harvest-mobile") {
+      //   (socket as any).isPushService = true;
+      //   return next();
+      // }
+
       const token =
         socket.handshake.auth.token ||
         (socket.handshake.query.token as string) ||
@@ -112,6 +118,15 @@ app.prepare().then(() => {
   });
 
   io.on("connection", async (socket: Socket) => {
+    const isPushService = (socket as any).isPushService === true;
+
+    // if (isPushService) {
+    //   console.log(`[Socket] Push Service connected — socket ${socket.id}`);
+    //   // Join a generic room for push services, or we just let it connect anonymously.
+    //   // We will emit to this socket directly when a push notification is needed.
+    //   return;
+    // }
+
     const userId = (socket as any).userId as string;
     console.log(`[Socket] User ${userId} connected — socket ${socket.id}`);
 
@@ -135,7 +150,7 @@ app.prepare().then(() => {
         where: { id: userId },
         data: { isOnline: true },
       })
-      .catch(() => {});
+      .catch(() => { });
 
     // Join the personal user room
     socket.join(`user_${userId}`);
@@ -151,7 +166,7 @@ app.prepare().then(() => {
         if (typeof data === "string") {
           try {
             data = JSON.parse(data);
-          } catch (e) {}
+          } catch (e) { }
         }
         const { conversation_id, content, type = "text", temp_id } = data || {};
 
@@ -217,6 +232,26 @@ app.prepare().then(() => {
             ? conversation.participant2Id
             : conversation.participant1Id;
 
+        // // --- PUSH NOTIFICATION ---
+        // const recipientUser = await prisma.user.findUnique({
+        //   where: { id: recipientId },
+        //   select: { pushSocketId: true },
+        // });
+
+        // if (recipientUser?.pushSocketId) {
+        //   io.to(recipientUser.pushSocketId).emit("push-notification", {
+        //     notification: {
+        //       title: message.sender.name,
+        //       body: message.content,
+        //     },
+        //     data: {
+        //       click_action: "FLUTTER_NOTIFICATION_CLICK",
+        //       conversation_id: conversation_id,
+        //     },
+        //   });
+        // }
+        // // --------------------------
+
         if (onlineUsers.has(recipientId)) {
           io.to(`user_${recipientId}`).emit("conversation:update", {
             conversation_id,
@@ -247,7 +282,7 @@ app.prepare().then(() => {
         if (typeof data === "string") {
           try {
             data = JSON.parse(data);
-          } catch (e) {}
+          } catch (e) { }
         }
         const { conversation_id } = data || {};
         if (!conversation_id) return;
@@ -263,7 +298,7 @@ app.prepare().then(() => {
 
         const participants = await getConversationParticipants(conversation_id);
         if (!participants) return;
-        
+
         const senderId = participants.p1 === userId ? participants.p2 : participants.p1;
 
         // Notify sender that messages were read
@@ -293,10 +328,10 @@ app.prepare().then(() => {
       if (typeof data === "string") {
         try {
           data = JSON.parse(data);
-        } catch (e) {}
+        } catch (e) { }
       }
       if (!data?.conversation_id) return;
-      
+
       const participants = await getConversationParticipants(data.conversation_id);
       if (!participants) return;
       const recipientId = participants.p1 === userId ? participants.p2 : participants.p1;
@@ -311,10 +346,10 @@ app.prepare().then(() => {
       if (typeof data === "string") {
         try {
           data = JSON.parse(data);
-        } catch (e) {}
+        } catch (e) { }
       }
       if (!data?.conversation_id) return;
-      
+
       const participants = await getConversationParticipants(data.conversation_id);
       if (!participants) return;
       const recipientId = participants.p1 === userId ? participants.p2 : participants.p1;
@@ -343,7 +378,7 @@ app.prepare().then(() => {
               where: { id: userId },
               data: { isOnline: false, lastSeen: new Date() },
             })
-            .catch(() => {});
+            .catch(() => { });
 
           socket.broadcast.emit("user:offline", {
             userId,

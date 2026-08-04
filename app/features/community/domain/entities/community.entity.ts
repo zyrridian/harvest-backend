@@ -63,3 +63,38 @@ export interface PostCommentEntity {
   };
   is_liked_by_user?: boolean;
 }
+
+export interface RecipeIngredientEntity {
+  id: string;
+  recipeId: string;
+  name: string;
+  quantity?: number | null;
+  unit?: string | null;
+  productId?: string | null;
+}
+
+export interface RecipeEntity {
+  id: string;
+  authorId: string;
+  title: string;
+  description?: string | null;
+  imageUrl?: string | null;
+  prepTimeMinutes?: number | null;
+  cookTimeMinutes?: number | null;
+  servings?: number | null;
+  difficulty?: string | null;
+  isFeatured: boolean;
+  instructions: string[];
+  likesCount: number;
+  viewsCount: number;
+  createdAt: Date;
+  updatedAt: Date;
+
+  // Relations commonly loaded
+  author?: {
+    id: string;
+    name: string;
+    avatarUrl?: string | null;
+  };
+  ingredients?: RecipeIngredientEntity[];
+}

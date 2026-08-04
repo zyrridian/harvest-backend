@@ -2,11 +2,7 @@ export * from "./domain/entities/community.entity";
 export * from "./domain/repositories/community.repository";
 
 export * from "./application/dtos/community.dto";
-// Admin usecases
-export * from "./application/usecases/get-admin-posts.usecase";
-export * from "./application/usecases/delete-admin-post.usecase";
-export * from "./application/usecases/get-admin-comments.usecase";
-export * from "./application/usecases/delete-admin-comment.usecase";
+
 
 // Core usecases
 export * from "./application/usecases/get-posts.usecase";
@@ -19,6 +15,14 @@ export * from "./application/usecases/add-comment.usecase";
 export * from "./application/usecases/like-post.usecase";
 export * from "./application/usecases/delete-comment.usecase";
 export * from "./application/usecases/like-comment.usecase";
+
+// Tags and Recipes
+export * from "./application/usecases/get-trending-tags.usecase";
+export * from "./application/usecases/get-recipes.usecase";
+export * from "./application/usecases/get-recipe-by-id.usecase";
+export * from "./application/usecases/create-recipe.usecase";
+export * from "./application/usecases/update-recipe.usecase";
+export * from "./application/usecases/delete-recipe.usecase";
 
 export * from "./infrastructure/repositories/prisma-community.repository";
 
