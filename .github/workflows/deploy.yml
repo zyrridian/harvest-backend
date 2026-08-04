@@ -58,6 +58,7 @@ jobs:
             # Create .env file for docker-compose
             echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" > .env
             echo "MIDTRANS_SERVER_KEY=${{ secrets.MIDTRANS_SERVER_KEY }}" >> .env
+            echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env
             
             # Login the VPS to GitHub Packages
             echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
