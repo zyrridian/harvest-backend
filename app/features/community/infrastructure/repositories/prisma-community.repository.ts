@@ -38,6 +38,15 @@ export class PrismaCommunityRepository implements ICommunityRepository {
     
     if (filter === "my_posts" && userId) where.userId = userId;
     if (filter === "farmers") where.farmerId = { not: null };
+    if (filter === "following" && userId) {
+      where.farmer = {
+        followers: {
+          some: {
+            userId: userId,
+          },
+        },
+      };
+    }
     if (farmerId) where.farmerId = farmerId;
     if (tag) where.tags = { some: { tag } };
 
@@ -65,6 +74,15 @@ export class PrismaCommunityRepository implements ICommunityRepository {
     
     if (filter === "my_posts" && userId) where.userId = userId;
     if (filter === "farmers") where.farmerId = { not: null };
+    if (filter === "following" && userId) {
+      where.farmer = {
+        followers: {
+          some: {
+            userId: userId,
+          },
+        },
+      };
+    }
     if (farmerId) where.farmerId = farmerId;
     if (tag) where.tags = { some: { tag } };
 
