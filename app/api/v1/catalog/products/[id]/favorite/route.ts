@@ -34,9 +34,8 @@ export async function GET(
     const payload = await verifyAuth(request);
     const userId = payload.userId as string;
 
-    // We'll skip the CheckFavoriteUseCase since we just want to return toggle state
-    // In our simplified domain, toggle returns { added: true/false }
-    return successResponse({ checked: true }); // Mocking original response signature
+    const isChecked = await productRepository.checkFavorite(userId, id);
+    return successResponse({ checked: isChecked });
   } catch (error) {
     return handleRouteError(error, "CheckFavorite");
   }

@@ -146,6 +146,13 @@ export class PrismaProductRepository implements IProductRepository {
     }
   }
 
+  async checkFavorite(userId: string, productId: string): Promise<boolean> {
+    const existing = await prisma.favorite.findUnique({
+      where: { userId_productId: { userId, productId } },
+    });
+    return !!existing;
+  }
+
   async recordView(userId: string | null, productId: string): Promise<void> {
     await prisma.$transaction([
       prisma.productView.create({
