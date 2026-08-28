@@ -10,6 +10,7 @@ export class GetCampaignsUseCase {
       id: campaign.id,
       productId: "", // keeping empty as model might not have direct product link yet
       title: campaign.title,
+      farmerId: campaign.farmer?.id || "",
       farmerName: campaign.farmer?.name || "Unknown Farmer",
       productImage: (campaign.images && campaign.images.length > 0) ? campaign.images[0] : (campaign.farmer?.coverImage || campaign.farmer?.profileImage || ""),
       targetQuantity: campaign.targetQuantity,
