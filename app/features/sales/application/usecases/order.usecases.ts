@@ -183,10 +183,16 @@ export class GetOrderByIdUseCase {
             order_id: order.id,
             order_number: order.orderNumber,
             status: order.status,
-            seller: {
+            counterparty: order.sellerId === userId ? {
+                user_id: order.buyer.id,
+                name: order.buyer.name,
+                profile_picture: order.buyer.avatarUrl,
+                role: 'buyer'
+            } : {
                 user_id: order.seller.id,
                 name: order.seller.name,
                 profile_picture: order.seller.farmer?.profileImage || order.seller.avatarUrl,
+                role: 'seller'
             },
             items: order.items.map((item: any) => ({
                 order_item_id: item.id,
@@ -208,6 +214,9 @@ export class GetOrderByIdUseCase {
                         full_address: order.deliveryAddress.fullAddress,
                         recipient_name: order.deliveryAddress.recipientName,
                         phone: order.deliveryAddress.phone,
+                        latitude: order.deliveryAddress.latitude,
+                        longitude: order.deliveryAddress.longitude,
+                        notes: order.deliveryAddress.notes,
                     } : null,
                     date: order.deliveryDate,
                     time_slot: order.deliveryTimeSlot,

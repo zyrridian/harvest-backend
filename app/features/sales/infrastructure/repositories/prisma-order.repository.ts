@@ -51,6 +51,13 @@ export class PrismaOrderRepository implements IOrderRepository {
             farmer: { select: { profileImage: true } },
           },
         },
+        buyer: {
+          select: {
+            id: true,
+            name: true,
+            avatarUrl: true,
+          }
+        },
         deliveryAddress: true,
         items: {
           include: {
