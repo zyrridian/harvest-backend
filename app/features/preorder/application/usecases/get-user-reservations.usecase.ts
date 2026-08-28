@@ -12,14 +12,18 @@ export class GetUserReservationsUseCase {
       const daysToHarvest = c?.estimatedHarvestDate ? Math.ceil((c.estimatedHarvestDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : 0;
       
       let statusStr = "Pending";
-      if (r.status === "DEPOSIT_PAID" || r.status === "FULLY_PAID") {
-          statusStr = "Processing"; // Fallback
+      if (r.status === "PENDING_PAYMENT") {
+          statusStr = "Pending Payment";
+      } else if (r.status === "PAID") {
+          statusStr = "Confirmed";
           const campStatus = c?.status?.toUpperCase();
           if (campStatus && ["READY", "COMPLETED"].includes(campStatus)) {
               statusStr = campStatus.charAt(0) + campStatus.slice(1).toLowerCase();
-          } else if (r.status === "DEPOSIT_PAID") {
-              statusStr = "Confirmed";
           }
+      } else if (r.status === "COMPLETED") {
+          statusStr = "Completed";
+      } else if (r.status === "CANCELLED") {
+          statusStr = "Cancelled";
       }
 
       return {
