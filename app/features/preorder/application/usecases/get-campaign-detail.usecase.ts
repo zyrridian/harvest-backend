@@ -1,17 +1,17 @@
 import { IPreOrderRepository } from "../../domain/repositories/preorder.repository";
 
 export class GetCampaignDetailUseCase {
-  constructor(private readonly preorderRepo: IPreOrderRepository) {}
+  constructor(private readonly preorderRepo: IPreOrderRepository) { }
 
   async execute(campaignId: string, userId: string, latitude?: number, longitude?: number): Promise<any> {
     const campaign = await this.preorderRepo.findCampaignById(campaignId);
-    
+
     if (!campaign) {
       throw new Error("Campaign not found");
     }
 
     const hasReserved = await this.preorderRepo.hasUserReserved(userId, campaignId);
-    
+
     let distance: number | undefined;
     // We calculate distance manually here since findCampaignById doesn't inject it automatically like getAvailableCampaigns does.
     if (latitude && longitude && (campaign as any).farmer?.latitude && (campaign as any).farmer?.longitude) {
@@ -29,6 +29,7 @@ export class GetCampaignDetailUseCase {
       id: campaign.id,
       productId: "", // Keeping empty if not directly linked to a marketplace product right now
       title: campaign.title,
+      farmerId: (campaign as any).farmer?.id || (campaign as any).farmerId || "",
       farmerName: (campaign as any).farmer?.name || "Unknown Farmer",
       productImage: (campaign.images && campaign.images.length > 0) ? campaign.images[0] : ((campaign as any).farmer?.coverImage || (campaign as any).farmer?.profileImage || ""),
       targetQuantity: campaign.targetQuantity,
